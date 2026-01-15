@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { IdeaCard } from "@/components/voting/idea-card";
+import { IdeaCard, CardAnimationState } from "@/components/voting/idea-card";
 import { VoteButtons, VoteType } from "@/components/voting/vote-buttons";
 import { RevealOverlay } from "@/components/voting/reveal-overlay";
 
@@ -31,11 +31,15 @@ export function VotingClient({ sessionId }: VotingClientProps) {
   const [voteResult, setVoteResult] = useState<VoteResult | null>(null);
   const [userVote, setUserVote] = useState<VoteType | null>(null);
   const [noMoreIdeas, setNoMoreIdeas] = useState(false);
+  const [cardAnimationState, setCardAnimationState] = useState<CardAnimationState>("visible");
+  const [showResults, setShowResults] = useState(false);
 
   const fetchNextIdea = useCallback(async () => {
     setLoading(true);
     setVoteResult(null);
     setUserVote(null);
+    setShowResults(false);
+    setCardAnimationState("visible");
 
     try {
       const response = await fetch(`/api/ideas/next?session_id=${sessionId}`);
@@ -53,6 +57,8 @@ export function VotingClient({ sessionId }: VotingClientProps) {
       const data = await response.json();
       setIdea(data);
       setNoMoreIdeas(false);
+      // Trigger entrance animation
+      setCardAnimationState("entering");
     } catch (error) {
       console.error("Error fetching idea:", error);
     } finally {
@@ -69,6 +75,9 @@ export function VotingClient({ sessionId }: VotingClientProps) {
 
     setVoting(true);
     setUserVote(vote);
+
+    // Trigger exit animation based on vote direction
+    setCardAnimationState(vote === "ship" ? "exiting-ship" : "exiting-skip");
 
     try {
       const response = await fetch("/api/ideas/vote", {
@@ -89,9 +98,15 @@ export function VotingClient({ sessionId }: VotingClientProps) {
 
       const result = await response.json();
       setVoteResult(result);
+
+      // Wait for exit animation (250ms) then show results
+      setTimeout(() => {
+        setShowResults(true);
+      }, 250);
     } catch (error) {
       console.error("Error voting:", error);
       setUserVote(null);
+      setCardAnimationState("visible");
     } finally {
       setVoting(false);
     }
@@ -162,27 +177,24 @@ export function VotingClient({ sessionId }: VotingClientProps) {
   // Main voting UI
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-4 gap-6">
-      {idea && !voteResult && (
+      {idea && !showResults && (
         <>
-          <IdeaCard idea={idea} />
+          <IdeaCard idea={idea} animationState={cardAnimationState} />
           <VoteButtons onVote={handleVote} disabled={voting} />
         </>
       )}
 
-      {idea && voteResult && userVote && (
-        <>
-          <IdeaCard idea={idea} />
-          <RevealOverlay
-            shipPercentage={voteResult.ship_percentage}
-            totalVotes={voteResult.total_votes}
-            userVote={userVote}
-            userAgreedWithCrowd={voteResult.user_agreed_with_crowd}
-            sourceCompany={voteResult.source_company}
-            sourceOutcome={voteResult.source_outcome}
-            onNext={handleNext}
-            onShare={handleShare}
-          />
-        </>
+      {idea && voteResult && userVote && showResults && (
+        <RevealOverlay
+          shipPercentage={voteResult.ship_percentage}
+          totalVotes={voteResult.total_votes}
+          userVote={userVote}
+          userAgreedWithCrowd={voteResult.user_agreed_with_crowd}
+          sourceCompany={voteResult.source_company}
+          sourceOutcome={voteResult.source_outcome}
+          onNext={handleNext}
+          onShare={handleShare}
+        />
       )}
     </div>
   );

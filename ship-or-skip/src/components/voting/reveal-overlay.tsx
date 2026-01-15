@@ -29,7 +29,7 @@ export function RevealOverlay({
   const crowdVerdict = shipPercentage >= 50 ? "shipped" : "skipped";
 
   return (
-    <div className="w-full max-w-[480px] mx-auto bg-surface rounded-2xl px-6 py-8 text-center">
+    <div className="w-full max-w-[480px] mx-auto bg-surface rounded-2xl px-6 py-8 text-center animate-fade-in">
       {/* Main percentage display */}
       <div className="mb-6">
         <span className="text-[48px] font-bold">

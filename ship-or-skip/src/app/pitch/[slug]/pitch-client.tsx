@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
-import { IdeaCard } from "@/components/voting/idea-card";
+import { IdeaCard, CardAnimationState } from "@/components/voting/idea-card";
 import { VoteButtons, VoteType } from "@/components/voting/vote-buttons";
 
 interface PitchData {
@@ -34,6 +34,7 @@ export function PitchClient({ slug, sessionId }: PitchClientProps) {
   const [voteResult, setVoteResult] = useState<VoteResult | null>(null);
   const [userVote, setUserVote] = useState<VoteType | null>(null);
   const [hasVoted, setHasVoted] = useState(false);
+  const [cardAnimationState, setCardAnimationState] = useState<CardAnimationState>("visible");
 
   const fetchPitch = useCallback(async () => {
     setLoading(true);
@@ -53,6 +54,8 @@ export function PitchClient({ slug, sessionId }: PitchClientProps) {
 
       const data: PitchData = await response.json();
       setPitch(data);
+      // Trigger entrance animation
+      setCardAnimationState("entering");
 
       // Check if user has already voted on this idea
       const voteCheckResponse = await fetch(
@@ -225,7 +228,7 @@ export function PitchClient({ slug, sessionId }: PitchClientProps) {
       )}
 
       {/* Idea Card */}
-      <IdeaCard idea={pitch} />
+      <IdeaCard idea={pitch} animationState={cardAnimationState} />
 
       {/* Vote buttons (if not voted) */}
       {!hasVoted && !voteResult && (
@@ -234,7 +237,7 @@ export function PitchClient({ slug, sessionId }: PitchClientProps) {
 
       {/* Results (after voting) */}
       {voteResult && (
-        <div className="w-full max-w-[480px] mx-auto bg-surface rounded-2xl px-6 py-8 text-center">
+        <div className="w-full max-w-[480px] mx-auto bg-surface rounded-2xl px-6 py-8 text-center animate-fade-in">
           {/* Main percentage display */}
           <div className="mb-6">
             <span className="text-[48px] font-bold">
