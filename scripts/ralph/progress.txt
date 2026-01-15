@@ -781,3 +781,18 @@ Started: Wed, Jan 15, 2026
   - Used bullet list with ship-colored dots for visual consistency
   - HTML entity &apos; for apostrophe in JSX string
 ---
+
+## 2026-01-15 - US-031
+- What was implemented: Created pool expansion admin utility script
+- Files changed:
+  - ship-or-skip/scripts/expand-pool.ts (new admin script for pool expansion)
+- **Learnings for future iterations:**
+  - Script run with: npx tsx scripts/expand-pool.ts [count] [outcome]
+  - expandActivePool function is exported for reuse in other scripts
+  - Prioritizes by yc_team_size descending (bigger companies first)
+  - Filters out companies already in pool (is_in_active_pool=false)
+  - Sets pool_added_at timestamp on added companies
+  - getPoolStats shows breakdown by outcome before/after expansion
+  - Validates outcome argument against allowed values
+  - Returns count of companies successfully added
+---

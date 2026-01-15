@@ -538,7 +538,7 @@
         "Typecheck passes"
       ],
       "priority": 31,
-      "passes": false,
+      "passes": true,
       "notes": "This is for manual pool expansion as vote counts grow"
     },
     {
