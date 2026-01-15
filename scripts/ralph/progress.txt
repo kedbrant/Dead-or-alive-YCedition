@@ -810,3 +810,16 @@ Started: Wed, Jan 15, 2026
   - Uses supabase .single() for user session, handles PGRST116 (not found) error
   - CompareResponse interface documents the response shape
 ---
+
+## 2026-01-15 - US-033
+- What was implemented: Made landing page hook stat dynamic with real vote data
+- Files changed:
+  - ship-or-skip/src/app/api/landing-stats/route.ts (added featured company lookup)
+  - ship-or-skip/src/app/page.tsx (updated to use dynamic skip percentage)
+- **Learnings for future iterations:**
+  - FEATURED_COMPANY_NAME constant in API makes rotation easy
+  - API returns featured_skip_percentage (100 - ship_percentage)
+  - Landing page falls back to hardcoded "67%" if no real data
+  - featured_has_votes flag indicates whether to use dynamic data
+  - Updates live as votes come in (fetched on page load)
+---

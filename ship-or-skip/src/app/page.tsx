@@ -12,8 +12,10 @@ export default function Home() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [companyCount, setCompanyCount] = useState<number | null>(null);
+  const [featuredCompany, setFeaturedCompany] = useState<string | null>(null);
+  const [featuredSkipPct, setFeaturedSkipPct] = useState<number | null>(null);
 
-  // Fetch company count on mount
+  // Fetch landing stats on mount
   useEffect(() => {
     async function fetchStats() {
       try {
@@ -21,6 +23,10 @@ export default function Home() {
         if (response.ok) {
           const data = await response.json();
           setCompanyCount(data.company_count);
+          if (data.featured_has_votes) {
+            setFeaturedCompany(data.featured_company_name);
+            setFeaturedSkipPct(data.featured_skip_percentage);
+          }
         }
       } catch {
         // Silently fail - will show fallback
@@ -107,7 +113,9 @@ export default function Home() {
         {/* Hook stat */}
         <div className="bg-surface rounded-2xl px-6 py-4">
           <p className="text-lg sm:text-xl">
-            <span className="text-skip font-bold">67%</span> would have skipped Airbnb.
+            <span className="text-skip font-bold">
+              {featuredSkipPct !== null ? `${featuredSkipPct}%` : "67%"}
+            </span> would have skipped {featuredCompany || "Airbnb"}.
           </p>
           <p className="text-sm text-foreground/60 mt-1">
             Test your investor instincts on real YC companies.
