@@ -708,3 +708,18 @@ Started: Wed, Jan 15, 2026
   - CompanyReveal component links to /company/[yc_slug] for deep dive
   - Grid layout with grid-cols-2 gap-4 works well for side-by-side battle cards
 ---
+
+## 2026-01-15 - US-024
+- What was implemented: Updated landing page with YC hook stats, company count, and Oracle Score teaser
+- Files changed:
+  - ship-or-skip/src/app/page.tsx (updated headline, hook stat, company count, Oracle Score teaser, CTAs)
+  - ship-or-skip/src/app/api/landing-stats/route.ts (new API for company count)
+- **Learnings for future iterations:**
+  - Headline changed from generic to YC-specific: "Can you spot a unicorn?"
+  - Hook stat: "67% would have skipped Airbnb" - hardcoded for now, can be made dynamic later
+  - Company count fetched from API, rounded down to nearest 100 with "+" suffix
+  - Oracle Score teaser shown alongside company count to preview gamification
+  - CTA changed from "Start Voting" to "Start Predicting" for accuracy framing
+  - Secondary CTA links to /stats for returning users
+  - "How it works" updated to mention YC, unicorns, and Oracle Score
+---
