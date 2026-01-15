@@ -1,0 +1,57 @@
+# Ralph Progress Log
+Started: Ship or Skip project
+---
+
+## Codebase Patterns
+- Next.js 16+ uses Tailwind v4 with `@theme inline` in globals.css for custom colors
+- Use `--color-*` CSS variables in @theme block for Tailwind utility class support
+- Inter font loaded via `next/font/google` with `variable: "--font-inter"`
+- Dark theme enforced via `className="dark"` on html element
+- Supabase clients: `client.ts` for browser, `server.ts` for server-side with service role key
+- TypeScript types in `lib/supabase/types.ts` - import `Database` for createClient generic
+- SQL migrations in `supabase/migrations/` numbered 001_, 002_, etc.
+- Components organized in `src/components/` by feature (e.g., `voting/`, `submit/`, `layout/`)
+---
+
+## 2026-01-15 - US-001
+- What was implemented: Initialized Next.js project with Tailwind CSS and Ship or Skip theme
+- Files changed:
+  - ship-or-skip/src/app/globals.css (custom color theme)
+  - ship-or-skip/src/app/layout.tsx (Inter font, dark theme)
+  - ship-or-skip/src/app/page.tsx (simple placeholder)
+- **Learnings for future iterations:**
+  - Next.js 16+ create-next-app uses Tailwind v4 with new @theme syntax
+  - Custom colors are defined in globals.css using CSS variables and @theme inline block
+  - Build and typecheck run from ship-or-skip directory with `npm run build`
+  - Project structure: src/app/ for App Router pages
+---
+
+## 2026-01-15 - US-002
+- What was implemented: Set up Supabase database connection and SQL migrations
+- Files changed:
+  - ship-or-skip/src/lib/supabase/client.ts (browser Supabase client)
+  - ship-or-skip/src/lib/supabase/server.ts (server Supabase client)
+  - ship-or-skip/src/lib/supabase/types.ts (TypeScript types for all tables)
+  - ship-or-skip/supabase/migrations/001_create_ideas_table.sql
+  - ship-or-skip/supabase/migrations/002_create_votes_table.sql
+  - ship-or-skip/supabase/migrations/003_create_sessions_table.sql
+  - ship-or-skip/package.json (added @supabase/supabase-js dependency)
+- **Learnings for future iterations:**
+  - Use `createClient<Database>` generic to get typed Supabase queries
+  - Server client uses SUPABASE_SERVICE_ROLE_KEY for admin access
+  - Browser client uses NEXT_PUBLIC_SUPABASE_ANON_KEY for public access
+  - Types file exports convenience types: Idea, IdeaInsert, Vote, VoteInsert, etc.
+  - SQL migrations should use IF NOT EXISTS for idempotency
+---
+
+## 2026-01-15 - US-003
+- What was implemented: Built IdeaCard component for displaying startup ideas
+- Files changed:
+  - ship-or-skip/src/components/voting/idea-card.tsx (new component)
+- **Learnings for future iterations:**
+  - Components go in `src/components/` organized by feature (e.g., `voting/`, `submit/`)
+  - Use `Pick<Idea, "hero" | "subtitle">` to type props with only needed fields from Idea type
+  - Tailwind custom colors work via `bg-surface`, `text-foreground` etc. from @theme inline
+  - Use `rounded-2xl` for 16px border-radius in Tailwind
+  - Use `py-12` for 48px vertical padding (12 * 4px = 48px)
+---
