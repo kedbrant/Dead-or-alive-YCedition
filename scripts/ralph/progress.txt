@@ -600,3 +600,62 @@ Started: Wed, Jan 15, 2026
   - Always check if acceptance criteria are already satisfied before implementing
   - US-008 proactively added the Read More link when building the reveal overlay
 ---
+
+## 2026-01-15 - US-016
+- What was implemented: Created Biggest Misses leaderboard tab showing unicorns with lowest ship percentage
+- Files changed:
+  - ship-or-skip/src/app/api/leaderboard/route.ts (added biggest_misses type, yc fields to response)
+  - ship-or-skip/src/app/leaderboard/leaderboard-client.tsx (added tab, OutcomeBadge, YC company links)
+- **Learnings for future iterations:**
+  - MIN_VOTES_YC_LEADERBOARD = 50 for YC-specific leaderboard tabs
+  - LeaderboardItem type expanded with yc_slug, yc_name, source_outcome for company links and badges
+  - getItemLink() helper determines /company/[yc_slug] for YC vs /pitch/[slug] for others
+  - OutcomeBadge with size="sm" fits well in leaderboard rows
+  - Default tab changed to "biggest_misses" as most engaging content
+---
+
+## 2026-01-15 - US-017
+- What was implemented: Created Biggest Fools leaderboard tab showing dead companies with highest ship percentage
+- Files changed:
+  - ship-or-skip/src/app/api/leaderboard/route.ts (added biggest_fools case to switch statement)
+  - ship-or-skip/src/app/leaderboard/leaderboard-client.tsx (added biggest_fools to type and TABS array)
+- **Learnings for future iterations:**
+  - Biggest Fools is opposite of Biggest Misses: dead companies with highest ship_percentage
+  - Follows same pattern: MIN_VOTES_YC_LEADERBOARD (50), filter by source_outcome, order by ship_percentage
+  - Tab order places Biggest Fools second after Biggest Misses for engagement
+---
+
+## 2026-01-15 - US-018
+- What was implemented: Added 50 vote minimum requirement to Most Controversial leaderboard tab
+- Files changed:
+  - ship-or-skip/src/app/api/leaderboard/route.ts (updated controversial case to use MIN_VOTES_YC_LEADERBOARD)
+- **Learnings for future iterations:**
+  - The Controversial tab was already implemented in earlier work, but was missing the 50 vote minimum
+  - Uses `.gte("total_votes", MIN_VOTES_YC_LEADERBOARD)` consistently with other YC leaderboard tabs
+  - Client-side sorting with ABS(ship_percentage - 50) required for Supabase which doesn't support ABS() in ORDER BY
+  - Fetches 500 records then sorts and slices to LIMIT (20) for proper controversial ranking
+---
+
+## 2026-01-15 - US-019
+- What was implemented: Created Crowd Favorites leaderboard tab showing companies with highest ship percentage
+- Files changed:
+  - ship-or-skip/src/app/api/leaderboard/route.ts (added favorites case to switch statement)
+  - ship-or-skip/src/app/leaderboard/leaderboard-client.tsx (added favorites to type and TABS array)
+- **Learnings for future iterations:**
+  - Crowd Favorites is similar to "top" but with minimum 50 votes requirement for quality filter
+  - Removed "Top Ideas" and "Most Voted" tabs in favor of focused YC outcome leaderboards
+  - Final tab order: Biggest Misses, Biggest Fools, Controversial, Crowd Favorites (4 tabs)
+---
+
+## 2026-01-15 - US-020
+- What was implemented: Refactored leaderboard API to support all leaderboard types with configurable limit
+- Files changed:
+  - ship-or-skip/src/app/api/leaderboard/route.ts (added user_submissions and voters types, limit param)
+- **Learnings for future iterations:**
+  - LeaderboardType union expanded: top, voted, controversial, biggest_misses, biggest_fools, favorites, user_submissions, voters
+  - VoterLeaderboardItem type created for sessions-based leaderboard (different table than ideas)
+  - user_submissions: filter by source='user' with MIN_VOTES_USER_SUBMISSIONS=20 (lower threshold)
+  - voters: query sessions table, order by total_votes DESC, requires at least 1 vote to appear
+  - limit query param: parsed with parseInt, clamped between 1-100, defaults to 20
+  - Switch statement handles type routing cleanly, voters handled separately before the switch
+---

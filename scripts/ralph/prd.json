@@ -280,7 +280,7 @@
         "Typecheck passes"
       ],
       "priority": 16,
-      "passes": false,
+      "passes": true,
       "notes": "This surfaces the most surprising misses like Airbnb"
     },
     {
@@ -297,7 +297,7 @@
         "Typecheck passes"
       ],
       "priority": 17,
-      "passes": false,
+      "passes": true,
       "notes": "Shows dead companies that tricked people with good-sounding pitches"
     },
     {
@@ -314,7 +314,7 @@
         "Typecheck passes"
       ],
       "priority": 18,
-      "passes": false,
+      "passes": true,
       "notes": "Use ABS(ship_percentage - 50) for sorting"
     },
     {
@@ -331,7 +331,7 @@
         "Typecheck passes"
       ],
       "priority": 19,
-      "passes": false,
+      "passes": true,
       "notes": "This is effectively the existing 'top' leaderboard renamed"
     },
     {
@@ -348,7 +348,7 @@
         "Typecheck passes"
       ],
       "priority": 20,
-      "passes": false,
+      "passes": true,
       "notes": "Consider using a switch statement or lookup object for type handling"
     },
     {
