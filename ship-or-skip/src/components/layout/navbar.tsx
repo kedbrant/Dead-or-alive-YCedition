@@ -3,7 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 
 const navLinks = [
   { href: "/vote", label: "Vote" },
@@ -13,9 +13,52 @@ const navLinks = [
   { href: "/stats", label: "Stats" },
 ];
 
+const MIN_RESOLVED_VOTES = 10;
+
 export function Navbar() {
   const pathname = usePathname();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [oracleScore, setOracleScore] = useState<number | null>(null);
+  const [resolvedVotes, setResolvedVotes] = useState<number>(0);
+
+  const fetchOracleScore = useCallback(async () => {
+    try {
+      const response = await fetch("/api/stats");
+      if (response.ok) {
+        const data = await response.json();
+        if (data.resolved_votes >= MIN_RESOLVED_VOTES && data.oracle_score !== null) {
+          setOracleScore(data.oracle_score);
+          setResolvedVotes(data.resolved_votes);
+        } else {
+          setOracleScore(null);
+          setResolvedVotes(data.resolved_votes || 0);
+        }
+      }
+    } catch {
+      // Silently fail - score won't be shown
+    }
+  }, []);
+
+  // Fetch on mount
+  useEffect(() => {
+    fetchOracleScore();
+  }, [fetchOracleScore]);
+
+  // Re-fetch when navigating (to update after votes)
+  useEffect(() => {
+    fetchOracleScore();
+  }, [pathname, fetchOracleScore]);
+
+  // Listen for custom event to refresh score after voting
+  useEffect(() => {
+    const handleScoreUpdate = () => {
+      fetchOracleScore();
+    };
+    window.addEventListener("oracle-score-update", handleScoreUpdate);
+    return () => {
+      window.removeEventListener("oracle-score-update", handleScoreUpdate);
+    };
+  }, [fetchOracleScore]);
 
   return (
     <nav className="sticky top-0 z-50 bg-background/80 backdrop-blur-md border-b border-foreground/10">
@@ -50,6 +93,18 @@ export function Navbar() {
                 {link.label}
               </Link>
             ))}
+
+            {/* Oracle Score Display */}
+            {oracleScore !== null && (
+              <Link
+                href="/stats"
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-600/20 rounded-full text-sm font-semibold text-purple-400 hover:bg-purple-600/30 transition-colors"
+                title="Your Oracle Score - prediction accuracy"
+              >
+                <span>🔮</span>
+                <span>{oracleScore.toFixed(0)}%</span>
+              </Link>
+            )}
           </div>
 
           {/* Mobile Hamburger Button */}
@@ -108,6 +163,18 @@ export function Navbar() {
                   {link.label}
                 </Link>
               ))}
+
+              {/* Mobile Oracle Score Display */}
+              {oracleScore !== null && (
+                <Link
+                  href="/stats"
+                  onClick={() => setIsMenuOpen(false)}
+                  className="min-h-11 flex items-center gap-2 px-3 py-2 text-base font-medium rounded-lg bg-purple-600/20 text-purple-400 mt-2"
+                >
+                  <span>🔮</span>
+                  <span>Oracle Score: {oracleScore.toFixed(0)}%</span>
+                </Link>
+              )}
             </div>
           </div>
         )}

@@ -723,3 +723,19 @@ Started: Wed, Jan 15, 2026
   - Secondary CTA links to /stats for returning users
   - "How it works" updated to mention YC, unicorns, and Oracle Score
 ---
+
+## 2026-01-15 - US-025
+- What was implemented: Added Oracle Score display in navbar with automatic updates after voting
+- Files changed:
+  - ship-or-skip/src/components/layout/navbar.tsx (added Oracle Score display with fetch and event listener)
+  - ship-or-skip/src/app/vote/voting-client.tsx (dispatch oracle-score-update event after vote)
+- **Learnings for future iterations:**
+  - Oracle Score shown only when user has 10+ resolved votes (MIN_RESOLVED_VOTES)
+  - Format: crystal ball emoji + percentage in purple pill badge
+  - Score updates without page refresh via custom event "oracle-score-update"
+  - window.dispatchEvent(new CustomEvent("oracle-score-update")) triggers navbar re-fetch
+  - useCallback for fetchOracleScore to enable stable effect dependencies
+  - Re-fetch on pathname change covers navigation-based updates
+  - title attribute used for tooltip: "Your Oracle Score - prediction accuracy"
+  - Mobile menu shows expanded Oracle Score display with label
+---

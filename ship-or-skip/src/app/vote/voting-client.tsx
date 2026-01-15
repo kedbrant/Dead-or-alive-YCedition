@@ -114,6 +114,9 @@ export function VotingClient({ sessionId }: VotingClientProps) {
       const result = await response.json();
       setVoteResult(result);
 
+      // Dispatch event to update Oracle Score in navbar
+      window.dispatchEvent(new CustomEvent("oracle-score-update"));
+
       // Wait for exit animation (250ms) then show results
       setTimeout(() => {
         setShowResults(true);
