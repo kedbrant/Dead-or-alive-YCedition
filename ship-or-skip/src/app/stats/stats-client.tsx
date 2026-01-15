@@ -1,0 +1,264 @@
+"use client";
+
+import { useState, useEffect, useCallback } from "react";
+import Link from "next/link";
+
+interface UserStats {
+  total_votes: number;
+  ship_votes: number;
+  skip_votes: number;
+  crowd_agreements: number;
+  ship_rate: number;
+  crowd_agreement_rate: number;
+}
+
+export function StatsClient() {
+  const [stats, setStats] = useState<UserStats | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  const fetchStats = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const response = await fetch("/api/stats");
+      if (!response.ok) {
+        if (response.status === 401) {
+          // No session yet - show empty state
+          setStats({
+            total_votes: 0,
+            ship_votes: 0,
+            skip_votes: 0,
+            crowd_agreements: 0,
+            ship_rate: 0,
+            crowd_agreement_rate: 0,
+          });
+          return;
+        }
+        throw new Error("Failed to fetch stats");
+      }
+      const data = await response.json();
+      setStats(data);
+    } catch {
+      setError("Failed to load your stats. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchStats();
+  }, [fetchStats]);
+
+  const generateTweetTemplate = () => {
+    if (!stats || stats.total_votes === 0) return "";
+
+    const tweetText = `My Ship or Skip stats: ${stats.total_votes} ideas voted, ${stats.ship_rate}% shipped, ${stats.crowd_agreement_rate}% crowd agreement. Think you can beat my instincts?`;
+    const encodedText = encodeURIComponent(tweetText);
+    const baseUrl = typeof window !== "undefined" ? window.location.origin : "";
+    const encodedUrl = encodeURIComponent(`${baseUrl}/vote`);
+    return `https://twitter.com/intent/tweet?text=${encodedText}&url=${encodedUrl}`;
+  };
+
+  const handleShare = async () => {
+    if (!stats || stats.total_votes === 0) return;
+
+    const shareText = `My Ship or Skip stats: ${stats.total_votes} ideas voted, ${stats.ship_rate}% shipped, ${stats.crowd_agreement_rate}% crowd agreement.`;
+    const baseUrl = typeof window !== "undefined" ? window.location.origin : "";
+    const shareUrl = `${baseUrl}/vote`;
+
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: "My Ship or Skip Stats",
+          text: shareText,
+          url: shareUrl,
+        });
+      } catch {
+        // User cancelled or share failed
+      }
+    } else {
+      // Fallback to clipboard
+      try {
+        await navigator.clipboard.writeText(`${shareText} ${shareUrl}`);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      } catch {
+        // Clipboard failed
+      }
+    }
+  };
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen p-4 sm:p-8">
+        <div className="max-w-[480px] mx-auto">
+          <h1 className="text-3xl sm:text-4xl font-bold text-center mb-8">
+            Your Stats
+          </h1>
+          <div className="bg-surface rounded-2xl p-8 animate-pulse">
+            <div className="space-y-6">
+              <div className="h-24 bg-foreground/10 rounded-xl" />
+              <div className="grid grid-cols-2 gap-4">
+                <div className="h-20 bg-foreground/10 rounded-xl" />
+                <div className="h-20 bg-foreground/10 rounded-xl" />
+              </div>
+              <div className="h-20 bg-foreground/10 rounded-xl" />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="min-h-screen p-4 sm:p-8">
+        <div className="max-w-[480px] mx-auto">
+          <h1 className="text-3xl sm:text-4xl font-bold text-center mb-8">
+            Your Stats
+          </h1>
+          <div className="bg-skip/10 border border-skip/30 rounded-xl p-6 text-center">
+            <p className="text-skip mb-4">{error}</p>
+            <button
+              onClick={fetchStats}
+              className="text-foreground/60 hover:text-foreground underline"
+            >
+              Try again
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Empty state - no votes yet
+  if (!stats || stats.total_votes === 0) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center p-4">
+        <div className="w-full max-w-[480px] mx-auto bg-surface rounded-2xl px-6 py-12 text-center">
+          <div className="text-6xl mb-6">📊</div>
+          <h1 className="text-[32px] font-bold mb-4">No Stats Yet</h1>
+          <p className="text-[18px] text-foreground/80 mb-8">
+            Start voting on startup ideas to track your stats!
+          </p>
+          <Link
+            href="/vote"
+            className="inline-block w-full px-6 py-4 bg-ship text-white font-bold rounded-xl
+              transition-all duration-150
+              hover:shadow-[0_0_20px_rgba(34,197,94,0.5)] hover:scale-[1.02]
+              active:scale-[0.98]"
+          >
+            Start Voting
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  // Stats display
+  return (
+    <div className="min-h-screen p-4 sm:p-8">
+      <div className="max-w-[480px] mx-auto">
+        <h1 className="text-3xl sm:text-4xl font-bold text-center mb-8">
+          Your Stats
+        </h1>
+
+        <div className="bg-surface rounded-2xl p-6 sm:p-8">
+          {/* Main stat - Ideas Voted */}
+          <div className="text-center mb-8">
+            <p className="text-foreground/60 text-sm mb-1">Ideas Voted</p>
+            <p className="text-6xl font-bold text-ship">
+              {stats.total_votes.toLocaleString()}
+            </p>
+          </div>
+
+          {/* Ship vs Skip breakdown */}
+          <div className="grid grid-cols-2 gap-4 mb-6">
+            <div className="bg-background/50 rounded-xl p-4 text-center">
+              <p className="text-foreground/60 text-sm mb-1">Shipped</p>
+              <p className="text-3xl font-bold text-ship">
+                {stats.ship_votes.toLocaleString()}
+              </p>
+              <p className="text-ship text-sm">{stats.ship_rate}% 🚀</p>
+            </div>
+            <div className="bg-background/50 rounded-xl p-4 text-center">
+              <p className="text-foreground/60 text-sm mb-1">Skipped</p>
+              <p className="text-3xl font-bold text-skip">
+                {stats.skip_votes.toLocaleString()}
+              </p>
+              <p className="text-skip text-sm">{100 - stats.ship_rate}% 💀</p>
+            </div>
+          </div>
+
+          {/* Crowd Agreement */}
+          <div className="bg-background/50 rounded-xl p-4 text-center mb-8">
+            <p className="text-foreground/60 text-sm mb-1">Crowd Agreement</p>
+            <p className="text-4xl font-bold">
+              <span className={stats.crowd_agreement_rate >= 50 ? "text-ship" : "text-skip"}>
+                {stats.crowd_agreement_rate}%
+              </span>
+            </p>
+            <p className="text-foreground/60 text-sm mt-1">
+              You agreed with the crowd on {stats.crowd_agreements.toLocaleString()} ideas
+            </p>
+          </div>
+
+          {/* Share button */}
+          <div className="space-y-3">
+            <a
+              href={generateTweetTemplate()}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-center gap-2 w-full px-6 py-4 bg-[#1DA1F2] text-white font-bold rounded-xl
+                transition-all duration-150
+                hover:shadow-[0_0_20px_rgba(29,161,242,0.5)] hover:scale-[1.02]
+                active:scale-[0.98]"
+            >
+              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+              </svg>
+              Share on X
+            </a>
+
+            <button
+              onClick={handleShare}
+              className="w-full px-6 py-4 border border-foreground/20 text-foreground font-bold rounded-xl
+                transition-all duration-150
+                hover:border-foreground/40 hover:scale-[1.02]
+                active:scale-[0.98]"
+            >
+              {copied ? "Copied!" : "Share Stats"}
+            </button>
+          </div>
+        </div>
+
+        {/* Footer CTAs */}
+        <div className="mt-6 flex flex-col sm:flex-row gap-3">
+          <Link
+            href="/vote"
+            className="flex-1 px-6 py-4 bg-ship text-white font-bold rounded-xl text-center
+              transition-all duration-150
+              hover:shadow-[0_0_20px_rgba(34,197,94,0.5)] hover:scale-[1.02]
+              active:scale-[0.98]"
+          >
+            Keep Voting
+          </Link>
+          <Link
+            href="/leaderboard"
+            className="flex-1 px-6 py-4 border border-foreground/20 text-foreground font-bold rounded-xl text-center
+              transition-all duration-150
+              hover:border-foreground/40 hover:scale-[1.02]
+              active:scale-[0.98]"
+          >
+            Leaderboard
+          </Link>
+        </div>
+      </div>
+    </div>
+  );
+}

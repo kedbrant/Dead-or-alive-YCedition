@@ -8,6 +8,7 @@ const navLinks = [
   { href: "/vote", label: "Vote" },
   { href: "/submit", label: "Submit" },
   { href: "/leaderboard", label: "Leaderboard" },
+  { href: "/stats", label: "Stats" },
 ];
 
 export function Navbar() {
