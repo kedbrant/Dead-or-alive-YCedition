@@ -451,7 +451,7 @@
         "Typecheck passes"
       ],
       "priority": 26,
-      "passes": false,
+      "passes": true,
       "notes": "Reference the pivot PRD for exact layout"
     },
     {

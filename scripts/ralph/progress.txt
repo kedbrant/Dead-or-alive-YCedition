@@ -739,3 +739,18 @@ Started: Wed, Jan 15, 2026
   - title attribute used for tooltip: "Your Oracle Score - prediction accuracy"
   - Mobile menu shows expanded Oracle Score display with label
 ---
+
+## 2026-01-15 - US-026
+- What was implemented: Created OracleScoreCard shareable component for social sharing
+- Files changed:
+  - ship-or-skip/src/components/stats/oracle-score-card.tsx (new shareable card component)
+- **Learnings for future iterations:**
+  - OracleScoreCard shows: large score %, predictions correct, percentile rank, breakdown
+  - Purple gradient theme (from-purple-900 via-purple-800 to-indigo-900) matches Oracle brand
+  - Breakdown grid: correct ships, correct skips, wrong predictions
+  - Share on X button generates tweet with score and stats
+  - Copy Share Link uses clipboard fallback when navigator.share unavailable
+  - Component accepts percentileRank prop (optional) for comparison messaging
+  - Branding footer shows shiporskip.io URL
+  - Component can be used standalone or embedded in stats page
+---
