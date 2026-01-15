@@ -143,6 +143,29 @@ export function SubmitClient() {
           </p>
         </div>
 
+        {/* Info box explaining user submissions */}
+        <div className="mb-6 p-4 bg-foreground/5 border border-foreground/10 rounded-xl">
+          <h3 className="font-semibold text-sm mb-2">How it works</h3>
+          <ul className="text-sm text-foreground/70 space-y-1.5">
+            <li className="flex items-start gap-2">
+              <span className="text-ship">•</span>
+              <span>User submissions are separate from YC company pitches</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="text-ship">•</span>
+              <span>Your pitch has no known outcome - the crowd decides!</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="text-ship">•</span>
+              <span>Votes on user submissions don&apos;t affect Oracle Score</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="text-ship">•</span>
+              <span>Get 20+ votes to appear on the User Submissions leaderboard</span>
+            </li>
+          </ul>
+        </div>
+
         {error && (
           <div className="mb-6 p-4 bg-skip/10 border border-skip/30 rounded-xl text-skip text-center">
             {error}

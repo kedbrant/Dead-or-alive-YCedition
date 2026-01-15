@@ -754,3 +754,30 @@ Started: Wed, Jan 15, 2026
   - Branding footer shows shiporskip.io URL
   - Component can be used standalone or embedded in stats page
 ---
+
+## 2026-01-15 - US-029
+- What was implemented: Verified that user submissions leaderboard tab was already implemented in US-020/US-021
+- Files changed: None (feature already existed)
+- **Verification:**
+  - User Submissions tab exists in leaderboard TABS array
+  - API filters by source='user' with MIN_VOTES_USER_SUBMISSIONS=20
+  - Sorted by total_votes descending
+  - getDisplayName shows @submitter_twitter if available
+  - getItemLink returns /pitch/[slug] for non-YC items
+  - OutcomeBadge only shows when source_outcome is truthy (null for user submissions)
+- **Learnings for future iterations:**
+  - Always check if acceptance criteria are already satisfied before implementing
+  - The user_submissions leaderboard type was added in US-020 when refactoring the API
+---
+
+## 2026-01-15 - US-030
+- What was implemented: Added clarity messaging to submit page explaining user submissions vs YC companies
+- Files changed:
+  - ship-or-skip/src/app/submit/submit-client.tsx (added info box explaining how user submissions work)
+- **Learnings for future iterations:**
+  - Info box added before the form to set expectations
+  - Key messages: separate from YC, no known outcome, doesn't affect Oracle Score
+  - Mentions 20+ votes threshold for User Submissions leaderboard
+  - Used bullet list with ship-colored dots for visual consistency
+  - HTML entity &apos; for apostrophe in JSX string
+---

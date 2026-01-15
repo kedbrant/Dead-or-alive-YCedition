@@ -504,7 +504,7 @@
         "Typecheck passes"
       ],
       "priority": 29,
-      "passes": false,
+      "passes": true,
       "notes": "Keeps the user submission feature working alongside YC data"
     },
     {
@@ -520,7 +520,7 @@
         "Typecheck passes"
       ],
       "priority": 30,
-      "passes": false,
+      "passes": true,
       "notes": "Don't discourage submissions, just set correct expectations"
     },
     {
