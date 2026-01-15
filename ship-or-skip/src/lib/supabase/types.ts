@@ -21,6 +21,7 @@ export type Database = {
           source_outcome: string | null;
           submitter_twitter: string | null;
           submitter_session_id: string | null;
+          link: string | null;
           ship_count: number;
           skip_count: number;
           total_votes: number;
@@ -39,6 +40,7 @@ export type Database = {
           source_outcome?: string | null;
           submitter_twitter?: string | null;
           submitter_session_id?: string | null;
+          link?: string | null;
           ship_count?: number;
           skip_count?: number;
           total_votes?: number;
@@ -57,6 +59,7 @@ export type Database = {
           source_outcome?: string | null;
           submitter_twitter?: string | null;
           submitter_session_id?: string | null;
+          link?: string | null;
           ship_count?: number;
           skip_count?: number;
           total_votes?: number;
@@ -93,6 +96,7 @@ export type Database = {
       sessions: {
         Row: {
           id: string;
+          twitter_handle: string | null;
           total_votes: number;
           ship_votes: number;
           skip_votes: number;
@@ -102,6 +106,7 @@ export type Database = {
         };
         Insert: {
           id?: string;
+          twitter_handle?: string | null;
           total_votes?: number;
           ship_votes?: number;
           skip_votes?: number;
@@ -111,6 +116,7 @@ export type Database = {
         };
         Update: {
           id?: string;
+          twitter_handle?: string | null;
           total_votes?: number;
           ship_votes?: number;
           skip_votes?: number;

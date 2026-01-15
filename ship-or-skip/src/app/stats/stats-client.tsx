@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
+import Image from "next/image";
 
 interface UserStats {
   total_votes: number;
@@ -10,6 +11,7 @@ interface UserStats {
   crowd_agreements: number;
   ship_rate: number;
   crowd_agreement_rate: number;
+  twitter_handle: string | null;
 }
 
 export function StatsClient() {
@@ -169,6 +171,35 @@ export function StatsClient() {
         </h1>
 
         <div className="bg-surface rounded-2xl p-6 sm:p-8">
+          {/* User profile */}
+          {stats.twitter_handle && (
+            <div className="flex flex-col items-center mb-8">
+              <a
+                href={`https://twitter.com/${stats.twitter_handle}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group"
+              >
+                <Image
+                  src={`https://unavatar.io/twitter/${stats.twitter_handle}`}
+                  alt={stats.twitter_handle}
+                  width={80}
+                  height={80}
+                  className="rounded-full mb-3 group-hover:ring-2 ring-ship transition-all"
+                  unoptimized
+                />
+              </a>
+              <a
+                href={`https://twitter.com/${stats.twitter_handle}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xl font-semibold hover:text-ship transition-colors"
+              >
+                @{stats.twitter_handle}
+              </a>
+            </div>
+          )}
+
           {/* Main stat - Ideas Voted */}
           <div className="text-center mb-8">
             <p className="text-foreground/60 text-sm mb-1">Ideas Voted</p>

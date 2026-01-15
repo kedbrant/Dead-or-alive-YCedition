@@ -14,6 +14,8 @@ interface VoteResponse {
   user_agreed_with_crowd: boolean;
   source_company?: string | null;
   source_outcome?: string | null;
+  submitter_twitter?: string | null;
+  link?: string | null;
 }
 
 export async function POST(request: NextRequest) {
@@ -94,6 +96,8 @@ export async function POST(request: NextRequest) {
       user_agreed_with_crowd: userAgreedWithCrowd,
       source_company: idea.source_company,
       source_outcome: idea.source_outcome,
+      submitter_twitter: idea.submitter_twitter,
+      link: idea.link,
     };
 
     return NextResponse.json(response);
@@ -204,6 +208,8 @@ export async function POST(request: NextRequest) {
     user_agreed_with_crowd: userAgreedWithCrowd,
     source_company: idea.source_company,
     source_outcome: idea.source_outcome,
+    submitter_twitter: idea.submitter_twitter,
+    link: idea.link,
   };
 
   return NextResponse.json(response);

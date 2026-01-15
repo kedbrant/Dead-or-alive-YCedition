@@ -24,14 +24,20 @@ export function IdeaCard({ idea, animationState = "visible" }: IdeaCardProps) {
 
   return (
     <div
-      className={`w-full max-w-[480px] mx-auto bg-surface rounded-2xl px-6 py-12 ${getAnimationClasses()}`}
+      className={`w-full max-w-[480px] mx-auto bg-gradient-to-br from-surface to-surface/80 rounded-3xl px-8 py-14
+        border border-foreground/10 shadow-2xl shadow-black/20
+        backdrop-blur-sm
+        ${getAnimationClasses()}`}
     >
-      <h2 className="text-[32px] font-bold text-center leading-tight mb-4">
+      {/* Decorative quote marks */}
+      <div className="text-6xl text-foreground/10 font-serif leading-none mb-2 select-none">"</div>
+      <h2 className="text-[32px] font-bold text-center leading-tight mb-6">
         {idea.hero}
       </h2>
-      <p className="text-[18px] text-center text-foreground/80">
+      <p className="text-[18px] text-center text-foreground/70 leading-relaxed">
         {idea.subtitle}
       </p>
+      <div className="text-6xl text-foreground/10 font-serif leading-none mt-2 text-right select-none">"</div>
     </div>
   );
 }

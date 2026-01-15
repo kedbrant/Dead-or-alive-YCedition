@@ -15,6 +15,10 @@ Started: Ship or Skip project
 - SQL migrations in `supabase/migrations/` numbered 001_, 002_, etc.
 - Components organized in `src/components/` by feature (e.g., `voting/`, `submit/`, `layout/`)
 - Session management: `lib/session/manager.ts` with `getOrCreateSessionId()` for server components
+- Seed scripts: `npx tsx scripts/seed-*.ts` - use dotenv to load .env.local, batch upserts for performance
+- YC data source: YC-OSS API at `https://yc-oss.github.io/api/companies/all.json` for public YC company data
+- Swipe gestures: SwipeContainer component uses native touch/mouse events with 100px threshold, card tilt, and elastic rubber-band cancel animation
+- OG meta tags: Default in layout.tsx with metadataBase, dynamic via generateMetadata() in pages, dynamic OG images via /api/og edge endpoint
 ---
 
 ## 2026-01-15 - US-001
@@ -149,4 +153,228 @@ Started: Ship or Skip project
   - Hook stats in colored highlights: `<span className="text-skip font-bold">73%</span>` draws attention
   - Same hover/active animation pattern as vote buttons: `hover:scale-[1.02] active:scale-[0.98]`
   - Simple "How it works" section with `space-y-1` and muted text helps explain app
+---
+
+## 2026-01-15 - US-011
+- What was implemented: Built submit idea form component with validation
+- Files changed:
+  - ship-or-skip/src/components/submit/submit-form.tsx (new component)
+- **Learnings for future iterations:**
+  - Export `SubmitFormData` interface for consistent data typing between form and parent
+  - Use `maxLength` attribute on inputs for built-in browser enforcement
+  - Character counter pattern: show count/max with conditional color (`text-skip` when over limit)
+  - Form validation: use state object `errors: { field?: string }` and display inline below inputs
+  - Twitter handle: strip leading @ on input change with `.replace(/^@/, "")`
+  - Input prefix styling: use `relative` container with `absolute` prefix span and extra `pl-8` padding
+  - Textarea: use `resize-none` to prevent resizing, set explicit `rows`
+  - Export both the component and the `SubmitFormData` interface for use by the submit page
+---
+
+## 2026-01-15 - US-012
+- What was implemented: Created POST /api/ideas/submit endpoint for submitting new ideas
+- Files changed:
+  - ship-or-skip/src/app/api/ideas/submit/route.ts (new file)
+  - ship-or-skip/supabase/migrations/004_add_submitter_session.sql (new migration)
+  - ship-or-skip/src/lib/supabase/types.ts (added submitter_session_id field)
+  - ship-or-skip/src/app/vote/voting-client.tsx (lint fix: Link instead of anchor)
+  - ship-or-skip/src/components/voting/reveal-overlay.tsx (lint fix: unused var)
+- **Learnings for future iterations:**
+  - Generate URL-friendly slugs: lowercase, remove special chars, replace spaces with hyphens
+  - Handle slug uniqueness by appending random suffix if base slug exists
+  - Rate limiting by session requires tracking `submitter_session_id` on ideas table
+  - Use `.returns<Pick<Idea, "id">[]>()` for select queries to avoid type inference issues
+  - Get session ID from request cookies via `request.cookies.get("ship-or-skip-session")`
+  - Return 401 if no session, 429 for rate limit exceeded
+  - Build share URL from env var `NEXT_PUBLIC_BASE_URL` with fallback
+---
+
+## 2026-01-15 - US-013
+- What was implemented: Built submit page with form and success confirmation
+- Files changed:
+  - ship-or-skip/src/app/submit/page.tsx (new server component wrapper)
+  - ship-or-skip/src/app/submit/submit-client.tsx (new client component)
+- **Learnings for future iterations:**
+  - Submit page doesn't need sessionId prop - cookies are sent automatically with API calls
+  - Success state shows: shareable pitch page link with copy button, tweet template, action buttons
+  - Use `encodeURIComponent()` for Twitter intent URLs with text and URL params
+  - X (Twitter) icon SVG path for modern branding (not old bird logo)
+  - Error state: show error message in red box with `bg-skip/10 border border-skip/30`
+  - Link component from `next/link` for internal navigation to pitch page and vote page
+---
+
+## 2026-01-15 - US-014
+- What was implemented: Created GET /api/pitch/[slug] endpoint for fetching idea data by slug
+- Files changed:
+  - ship-or-skip/src/app/api/pitch/[slug]/route.ts (new file)
+- **Learnings for future iterations:**
+  - Dynamic route params in Next.js 16+ are passed as `Promise<{ slug: string }>` and must be awaited
+  - Use `Pick<Idea, ...>` type alias for API response to explicitly select returned fields
+  - Filter by `is_active: true` when fetching ideas to exclude inactive/hidden ideas
+  - Pattern: `{ params }: { params: Promise<{ slug: string }> }` for typed dynamic route handlers
+---
+
+## 2026-01-15 - US-015
+- What was implemented: Built personal pitch page - the shareable viral engine
+- Files changed:
+  - ship-or-skip/src/app/pitch/[slug]/page.tsx (server component wrapper)
+  - ship-or-skip/src/app/pitch/[slug]/pitch-client.tsx (client component with voting/reveal flow)
+  - ship-or-skip/src/app/api/ideas/vote/check/route.ts (new endpoint to check if user voted)
+- **Learnings for future iterations:**
+  - Pitch page reuses existing components: IdeaCard, VoteButtons from voting/
+  - Created /api/ideas/vote/check endpoint to check if user already voted on an idea
+  - Vote check endpoint returns `{ has_voted: boolean, vote?: string }` for conditional UI
+  - When user has already voted, show results immediately without vote buttons
+  - Share functionality: native `navigator.share()` with clipboard fallback
+  - Twitter/X share: use twitter.com/intent/tweet with encodeURIComponent for text/URL params
+  - CTAs at bottom guide users to vote on more ideas or submit their own
+---
+
+## 2026-01-15 - US-016
+- What was implemented: Created GET /api/leaderboard endpoint for fetching ranked ideas
+- Files changed:
+  - ship-or-skip/src/app/api/leaderboard/route.ts (new file)
+- **Learnings for future iterations:**
+  - Leaderboard types: "top" (highest ship_percentage, min 100 votes), "voted" (most total_votes), "controversial" (closest to 50%)
+  - For "controversial" sorting by ABS(ship_percentage - 50), fetch more records and sort in JS since Supabase doesn't support ABS() in order
+  - Use `Pick<Idea, ...>` type alias for LeaderboardItem to explicitly type API response
+  - Validate query param `type` with includes() check before using as query modifier
+  - Default to "top" if no type parameter provided
+---
+
+## 2026-01-15 - US-017
+- What was implemented: Built leaderboard page with tab navigation for top/most voted/controversial ideas
+- Files changed:
+  - ship-or-skip/src/app/leaderboard/page.tsx (server component wrapper)
+  - ship-or-skip/src/app/leaderboard/leaderboard-client.tsx (client component with tabs and data fetching)
+- **Learnings for future iterations:**
+  - Tab navigation pattern: use state for activeTab, border-b-2 for active indicator
+  - Loading skeleton: use `animate-pulse` with `bg-foreground/10` for placeholder rectangles
+  - Leaderboard rows link to `/pitch/[slug]` using Link component from next/link
+  - Display name logic: show @twitter handle first, then source_company, then source type fallback
+  - Ship percentage color: green if >= 50%, red if < 50% using conditional className
+  - Empty state: show contextual message (e.g., "No ideas with 100+ votes yet" for top tab)
+---
+
+## 2026-01-15 - US-018
+- What was implemented: Built navbar component with logo, nav links, and responsive hamburger menu
+- Files changed:
+  - ship-or-skip/src/components/layout/navbar.tsx (new component)
+  - ship-or-skip/src/app/layout.tsx (added Navbar import and component)
+- **Learnings for future iterations:**
+  - Navbar pattern: sticky top with `bg-background/80 backdrop-blur-md` for glassmorphism effect
+  - Responsive nav: `hidden sm:flex` for desktop links, `sm:hidden` for mobile hamburger
+  - Active link highlighting: use `usePathname()` from `next/navigation` to detect current route
+  - Mobile menu toggle: useState for isMenuOpen, close menu on link click via onClick handler
+  - SVG hamburger icon (3 lines) and X close icon patterns for menu toggle button
+  - Nav links array pattern: centralize `{ href, label }` objects for consistent rendering
+---
+
+## 2026-01-15 - US-019
+- What was implemented: Created seed script for famous startups with 30 startup ideas
+- Files changed:
+  - ship-or-skip/scripts/seed-famous.ts (new file)
+  - ship-or-skip/package.json (added dotenv dependency)
+- **Learnings for future iterations:**
+  - Scripts go in `ship-or-skip/scripts/` directory
+  - Use `dotenv` package with `config({ path: resolve(__dirname, "../.env.local") })` to load env vars
+  - Generate slugs with: lowercase, remove special chars, replace spaces with hyphens
+  - Supabase upsert with `onConflict: "slug"` handles duplicates gracefully
+  - Run scripts with: `npx tsx scripts/seed-famous.ts`
+  - Outcome types: "success", "failure", "acquired", "shutdown" for source_outcome field
+---
+
+## 2026-01-15 - US-020
+- What was implemented: Created YCDB seed script to seed 500+ YC startup ideas from public API
+- Files changed:
+  - ship-or-skip/scripts/seed-ycdb.ts (new file)
+- **Learnings for future iterations:**
+  - YC-OSS API at `https://yc-oss.github.io/api/companies/all.json` provides public YC company data
+  - YC company fields: `name`, `one_liner`, `long_description`, `batch`, `status`, `top_company`, `industry`
+  - Map `one_liner` to hero (truncate to 60 chars if needed), `long_description` to subtitle (100 chars max)
+  - Status mapping: "acquired" -> "acquired", "inactive"/"dead" -> "shutdown", "active"/"public" -> "success"
+  - Process large datasets in batches (50 records) for better Supabase performance
+  - Prioritize records: top_company first, then by batch (newer first) to get best quality data
+  - Use `source: "yc"` to distinguish from "famous" and "user" submitted ideas
+  - Run script with: `npx tsx scripts/seed-ycdb.ts`
+---
+
+## 2026-01-15 - US-021
+- What was implemented: Added smooth card and reveal animations to the voting experience
+- Files changed:
+  - ship-or-skip/src/app/globals.css (added CSS keyframes and animation classes)
+  - ship-or-skip/src/components/voting/idea-card.tsx (added CardAnimationState type and animation support)
+  - ship-or-skip/src/components/voting/reveal-overlay.tsx (added fade-in animation class)
+  - ship-or-skip/src/app/vote/voting-client.tsx (added animation state management)
+  - ship-or-skip/src/app/pitch/[slug]/pitch-client.tsx (added entrance animation for pitch page)
+- **Learnings for future iterations:**
+  - Use CSS keyframes in globals.css with custom `.animate-*` classes for complex animations
+  - Animation states as union types (e.g., `"entering" | "visible" | "exiting-ship" | "exiting-skip"`) for type-safe animation management
+  - Card exit animations: use `showResults` state separate from `voteResult` to delay reveal until exit animation completes (250ms setTimeout)
+  - Animation timing: entrance 300ms ease-out, exit 250ms ease-in, fade-in 200ms ease-out
+  - Button hover/press animations already use Tailwind transitions (`hover:scale-[1.02] active:scale-[0.98]`)
+  - Export animation state types from components for use in parent components
+---
+
+## 2026-01-15 - US-022
+- What was implemented: Added swipe gestures for mobile voting with touch and mouse support
+- Files changed:
+  - ship-or-skip/src/components/voting/swipe-container.tsx (new component)
+  - ship-or-skip/src/app/vote/voting-client.tsx (integrated SwipeContainer)
+  - ship-or-skip/src/app/pitch/[slug]/pitch-client.tsx (integrated SwipeContainer)
+- **Learnings for future iterations:**
+  - Native touch events (touchstart/move/end) work well for swipe gestures in React 19 without external libs
+  - Use `touchAction: 'pan-y'` CSS to allow vertical scroll while capturing horizontal swipes
+  - Swipe state: track startX, currentX, isDragging for calculating delta and progress
+  - Card tilt: calculate rotation from delta (e.g., `deltaX / threshold * maxRotation`)
+  - Rubber band effect: use CSS cubic-bezier(0.34, 1.56, 0.64, 1) for elastic snap-back animation
+  - Progress indicator: scale icon based on `progress = min(abs(deltaX) / threshold, 1)`
+  - Support both touch (mobile) and mouse (desktop testing) events in same component
+  - Wrap conditionally: only show SwipeContainer when voting is allowed, show plain IdeaCard after voting
+---
+
+## 2026-01-15 - US-023
+- What was implemented: Added Open Graph and Twitter Card meta tags for rich social sharing
+- Files changed:
+  - ship-or-skip/src/app/layout.tsx (added default OG and Twitter meta tags)
+  - ship-or-skip/src/app/pitch/[slug]/page.tsx (added generateMetadata for dynamic OG tags)
+  - ship-or-skip/src/app/api/og/route.tsx (new dynamic OG image endpoint)
+  - ship-or-skip/scripts/seed-ycdb.ts (lint fixes for unused vars)
+- **Learnings for future iterations:**
+  - Next.js Metadata API: use `metadataBase` with `new URL()` for proper absolute URLs
+  - Title template: `{ default: "...", template: "%s | Site" }` for page-specific titles
+  - Dynamic metadata: export `generateMetadata({ params })` async function in page.tsx
+  - OG image API: use `next/og` ImageResponse with `runtime = "edge"` for dynamic OG images
+  - Dynamic OG images use JSX-like syntax with inline styles (no className, only style objects)
+  - Twitter card: use `card: "summary_large_image"` for large preview images
+  - Twitter creator: set `creator: "@handle"` for attribution on tweets
+  - For pitch pages, encode params in OG image URL: `/api/og?hero=...&ship=...&votes=...`
+---
+
+## 2026-01-15 - US-024
+- What was implemented: Added user stats tracking page with API endpoint
+- Files changed:
+  - ship-or-skip/src/app/api/stats/route.ts (new endpoint to fetch user session stats)
+  - ship-or-skip/src/app/stats/page.tsx (server component wrapper)
+  - ship-or-skip/src/app/stats/stats-client.tsx (client component with stats display and share functionality)
+  - ship-or-skip/src/components/layout/navbar.tsx (added Stats nav link)
+- **Learnings for future iterations:**
+  - Session stats already tracked by /api/ideas/vote endpoint: total_votes, ship_votes, skip_votes, crowd_agreements
+  - Stats API pattern: get session ID from cookies, query sessions table, calculate derived percentages (ship_rate, crowd_agreement_rate)
+  - Share stats pattern: generateTweetTemplate() for X/Twitter, handleShare() for native share API with clipboard fallback
+  - Stats display pattern: large hero number, grid of breakdown cards, crowd agreement highlight
+  - Empty state: check for total_votes === 0 and show CTA to start voting
+---
+
+## 2026-01-15 - US-025
+- What was implemented: Final polish and mobile testing improvements
+- Files changed:
+  - ship-or-skip/src/components/layout/navbar.tsx (increased touch targets to 44px)
+  - ship-or-skip/src/app/vote/voting-client.tsx (added user-friendly error states)
+  - ship-or-skip/src/app/pitch/[slug]/pitch-client.tsx (removed console.error)
+- **Learnings for future iterations:**
+  - Touch target minimum: use `min-w-11 min-h-11` (44px) for mobile accessibility
+  - Mobile nav links: add padding and min-height for proper touch targets
+  - Error handling pattern: use state (error, setError) with both full-page error state and inline error banners
+  - Remove console.error from client components - show user-friendly messages instead
+  - Build passes: all pages responsive, touch targets ≥44px, loading states on async ops, error handling throughout
 ---

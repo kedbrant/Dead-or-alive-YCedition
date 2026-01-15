@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 
@@ -22,9 +23,15 @@ export function Navbar() {
           {/* Logo */}
           <Link
             href="/"
-            className="text-xl font-bold text-foreground hover:text-ship transition-colors"
+            className="flex items-center hover:opacity-80 transition-opacity"
           >
-            Ship or Skip
+            <Image
+              src="/logo.png"
+              alt="Ship or Skip"
+              width={40}
+              height={40}
+              className="rounded-lg"
+            />
           </Link>
 
           {/* Desktop Navigation */}

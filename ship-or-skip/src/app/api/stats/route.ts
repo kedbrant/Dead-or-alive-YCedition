@@ -9,6 +9,7 @@ interface StatsResponse {
   crowd_agreements: number;
   ship_rate: number;
   crowd_agreement_rate: number;
+  twitter_handle: string | null;
 }
 
 export async function GET(request: NextRequest) {
@@ -46,6 +47,7 @@ export async function GET(request: NextRequest) {
       crowd_agreements: 0,
       ship_rate: 0,
       crowd_agreement_rate: 0,
+      twitter_handle: null,
     };
     return NextResponse.json(emptyStats);
   }
@@ -67,6 +69,7 @@ export async function GET(request: NextRequest) {
     crowd_agreements: session.crowd_agreements,
     ship_rate: shipRate,
     crowd_agreement_rate: crowdAgreementRate,
+    twitter_handle: session.twitter_handle,
   };
 
   return NextResponse.json(response);

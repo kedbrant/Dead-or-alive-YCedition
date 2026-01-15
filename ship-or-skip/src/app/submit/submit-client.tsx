@@ -45,7 +45,7 @@ export function SubmitClient() {
   };
 
   const generateTweetTemplate = () => {
-    const tweetText = `I just submitted my startup pitch on Ship or Skip! Vote on "${submittedHero}" and tell me if you'd ship it or skip it.`;
+    const tweetText = `Would you ship this? 👀\n\n${submittedHero}\n\nVote on Ship or Skip:`;
     const encodedText = encodeURIComponent(tweetText);
     const encodedUrl = encodeURIComponent(submitResult?.share_url || "");
     return `https://twitter.com/intent/tweet?text=${encodedText}&url=${encodedUrl}`;

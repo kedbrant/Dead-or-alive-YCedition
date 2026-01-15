@@ -136,9 +136,7 @@ export function LeaderboardClient() {
         {!loading && !error && items.length === 0 && (
           <div className="text-center py-12">
             <p className="text-foreground/60 text-lg">
-              {activeTab === "top"
-                ? "No ideas with 100+ votes yet. Keep voting!"
-                : "No ideas to show yet."}
+              No ideas to show yet.
             </p>
             <Link
               href="/vote"

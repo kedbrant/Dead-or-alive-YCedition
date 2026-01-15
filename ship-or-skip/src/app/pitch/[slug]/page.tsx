@@ -1,5 +1,5 @@
 import { Metadata } from "next";
-import { getOrCreateSessionId } from "@/lib/session/manager";
+import { getSessionId } from "@/lib/session/manager";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { Idea } from "@/lib/supabase/types";
 import { PitchClient } from "./pitch-client";
@@ -81,7 +81,7 @@ export async function generateMetadata({ params }: PitchPageProps): Promise<Meta
 
 export default async function PitchPage({ params }: PitchPageProps) {
   const { slug } = await params;
-  const sessionId = await getOrCreateSessionId();
+  const sessionId = await getSessionId();
 
   return <PitchClient slug={slug} sessionId={sessionId} />;
 }

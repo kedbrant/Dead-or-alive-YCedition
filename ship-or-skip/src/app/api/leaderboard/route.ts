@@ -18,8 +18,7 @@ type LeaderboardItem = Pick<
   | "source_company"
 >;
 
-const LIMIT = 50;
-const MIN_VOTES_FOR_TOP = 100;
+const LIMIT = 20;
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -44,9 +43,8 @@ export async function GET(request: NextRequest) {
 
   switch (type) {
     case "top":
-      // Highest ship_percentage with minimum 100 votes
+      // Highest ship_percentage
       query = query
-        .gte("total_votes", MIN_VOTES_FOR_TOP)
         .order("ship_percentage", { ascending: false });
       break;
 

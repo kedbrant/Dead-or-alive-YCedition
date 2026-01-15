@@ -9,6 +9,7 @@ export interface SubmitFormData {
   hero: string;
   subtitle: string;
   twitter_handle?: string;
+  link?: string;
 }
 
 interface SubmitFormProps {
@@ -20,6 +21,7 @@ export function SubmitForm({ onSubmit, isSubmitting = false }: SubmitFormProps) 
   const [hero, setHero] = useState("");
   const [subtitle, setSubtitle] = useState("");
   const [twitterHandle, setTwitterHandle] = useState("");
+  const [link, setLink] = useState("");
   const [errors, setErrors] = useState<{ hero?: string; subtitle?: string }>({});
 
   const validateForm = (): boolean => {
@@ -55,6 +57,10 @@ export function SubmitForm({ onSubmit, isSubmitting = false }: SubmitFormProps) 
 
     if (twitterHandle.trim()) {
       data.twitter_handle = twitterHandle.trim().replace(/^@/, "");
+    }
+
+    if (link.trim()) {
+      data.link = link.trim();
     }
 
     await onSubmit(data);
@@ -140,6 +146,25 @@ export function SubmitForm({ onSubmit, isSubmitting = false }: SubmitFormProps) 
           />
         </div>
         <p className="text-xs text-foreground/40">Get credit when people vote on your pitch</p>
+      </div>
+
+      <div className="space-y-2">
+        <label htmlFor="link" className="block text-sm font-medium text-foreground">
+          Website Link <span className="text-foreground/40">(optional)</span>
+        </label>
+        <input
+          type="url"
+          id="link"
+          value={link}
+          onChange={(e) => setLink(e.target.value)}
+          placeholder="https://yourcompany.com"
+          disabled={isSubmitting}
+          className="w-full px-4 py-3 bg-surface text-foreground rounded-xl border border-foreground/20
+            placeholder:text-foreground/40
+            focus:outline-none focus:border-ship focus:ring-1 focus:ring-ship
+            disabled:opacity-50 disabled:cursor-not-allowed"
+        />
+        <p className="text-xs text-foreground/40">Link to your product or landing page</p>
       </div>
 
       <button

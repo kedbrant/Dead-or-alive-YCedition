@@ -6,6 +6,7 @@ interface SubmitRequestBody {
   hero: string;
   subtitle: string;
   twitter_handle?: string;
+  link?: string;
 }
 
 interface SubmitResponse {
@@ -66,7 +67,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const { hero, subtitle, twitter_handle } = body;
+  const { hero, subtitle, twitter_handle, link } = body;
 
   // Validate required fields
   if (!hero || !subtitle) {
@@ -141,6 +142,21 @@ export async function POST(request: NextRequest) {
   // Clean twitter handle (remove @ if present)
   const cleanTwitterHandle = twitter_handle?.replace(/^@/, "").trim() || null;
 
+  // Clean and validate link (ensure it has protocol)
+  let cleanLink: string | null = null;
+  if (link?.trim()) {
+    let url = link.trim();
+    if (!url.startsWith("http://") && !url.startsWith("https://")) {
+      url = "https://" + url;
+    }
+    try {
+      new URL(url); // Validate URL format
+      cleanLink = url;
+    } catch {
+      // Invalid URL, ignore it
+    }
+  }
+
   // Create the idea
   const ideaInsert: IdeaInsert = {
     slug,
@@ -149,6 +165,7 @@ export async function POST(request: NextRequest) {
     source: "user",
     submitter_twitter: cleanTwitterHandle,
     submitter_session_id: sessionId,
+    link: cleanLink,
     ship_count: 0,
     skip_count: 0,
     total_votes: 0,

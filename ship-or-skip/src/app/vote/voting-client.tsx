@@ -19,6 +19,8 @@ interface VoteResult {
   user_agreed_with_crowd: boolean;
   source_company?: string | null;
   source_outcome?: string | null;
+  submitter_twitter?: string | null;
+  link?: string | null;
 }
 
 interface VotingClientProps {
@@ -34,6 +36,7 @@ export function VotingClient({ sessionId }: VotingClientProps) {
   const [noMoreIdeas, setNoMoreIdeas] = useState(false);
   const [cardAnimationState, setCardAnimationState] = useState<CardAnimationState>("visible");
   const [showResults, setShowResults] = useState(false);
+  const [resultsExiting, setResultsExiting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const fetchNextIdea = useCallback(async () => {
@@ -41,6 +44,7 @@ export function VotingClient({ sessionId }: VotingClientProps) {
     setVoteResult(null);
     setUserVote(null);
     setShowResults(false);
+    setResultsExiting(false);
     setCardAnimationState("visible");
     setError(null);
 
@@ -73,7 +77,7 @@ export function VotingClient({ sessionId }: VotingClientProps) {
     fetchNextIdea();
   }, [fetchNextIdea]);
 
-  const handleVote = async (vote: VoteType) => {
+  const handleVote = useCallback(async (vote: VoteType) => {
     if (!idea || voting) return;
 
     setVoting(true);
@@ -113,10 +117,45 @@ export function VotingClient({ sessionId }: VotingClientProps) {
     } finally {
       setVoting(false);
     }
-  };
+  }, [idea, voting, sessionId]);
+
+  // Keyboard controls
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (!idea) return;
+
+      // On results page: arrow keys or Enter/Space to go next
+      if (showResults) {
+        if (e.key === "ArrowRight" || e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          handleNext();
+        }
+        return;
+      }
+
+      // On voting page: left/right arrows to vote
+      if (voting) return;
+
+      if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        handleVote("skip");
+      } else if (e.key === "ArrowRight") {
+        e.preventDefault();
+        handleVote("ship");
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [voting, showResults, idea, handleVote]);
 
   const handleNext = () => {
-    fetchNextIdea();
+    // Trigger exit animation first
+    setResultsExiting(true);
+    // Wait for animation to complete, then fetch next
+    setTimeout(() => {
+      fetchNextIdea();
+    }, 200);
   };
 
   const handleShare = () => {
@@ -226,6 +265,9 @@ export function VotingClient({ sessionId }: VotingClientProps) {
           userAgreedWithCrowd={voteResult.user_agreed_with_crowd}
           sourceCompany={voteResult.source_company}
           sourceOutcome={voteResult.source_outcome}
+          submitterTwitter={voteResult.submitter_twitter}
+          link={voteResult.link}
+          isExiting={resultsExiting}
           onNext={handleNext}
           onShare={handleShare}
         />
