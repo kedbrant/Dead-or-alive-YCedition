@@ -16,6 +16,11 @@ interface VoteResponse {
   source_outcome?: string | null;
   submitter_twitter?: string | null;
   link?: string | null;
+  // YC company fields for reveal
+  yc_name?: string | null;
+  yc_logo_url?: string | null;
+  yc_slug?: string | null;
+  source?: string | null;
 }
 
 export async function POST(request: NextRequest) {
@@ -98,6 +103,10 @@ export async function POST(request: NextRequest) {
       source_outcome: idea.source_outcome,
       submitter_twitter: idea.submitter_twitter,
       link: idea.link,
+      yc_name: idea.yc_name,
+      yc_logo_url: idea.yc_logo_url,
+      yc_slug: idea.yc_slug,
+      source: idea.source,
     };
 
     return NextResponse.json(response);
@@ -210,6 +219,10 @@ export async function POST(request: NextRequest) {
     source_outcome: idea.source_outcome,
     submitter_twitter: idea.submitter_twitter,
     link: idea.link,
+    yc_name: idea.yc_name,
+    yc_logo_url: idea.yc_logo_url,
+    yc_slug: idea.yc_slug,
+    source: idea.source,
   };
 
   return NextResponse.json(response);

@@ -24,6 +24,11 @@ interface VoteResult {
   source_outcome?: string | null;
   submitter_twitter?: string | null;
   link?: string | null;
+  // YC company fields for reveal
+  yc_name?: string | null;
+  yc_logo_url?: string | null;
+  yc_slug?: string | null;
+  source?: string | null;
 }
 
 interface VotingClientProps {
@@ -273,6 +278,10 @@ export function VotingClient({ sessionId }: VotingClientProps) {
           isExiting={resultsExiting}
           onNext={handleNext}
           onShare={handleShare}
+          ycName={voteResult.yc_name}
+          ycLogoUrl={voteResult.yc_logo_url}
+          ycSlug={voteResult.yc_slug}
+          source={voteResult.source}
         />
       )}
     </div>
