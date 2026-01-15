@@ -279,6 +279,78 @@ export type Database = {
         };
         Relationships: [];
       };
+      achievement_progress: {
+        Row: {
+          id: string;
+          session_id: string;
+          total_votes: number;
+          unicorns_voted: number;
+          unicorns_shipped: number;
+          unicorns_skipped: number;
+          dead_voted: number;
+          dead_shipped: number;
+          dead_skipped: number;
+          acquired_voted: number;
+          acquired_shipped: number;
+          acquired_skipped: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          session_id: string;
+          total_votes?: number;
+          unicorns_voted?: number;
+          unicorns_shipped?: number;
+          unicorns_skipped?: number;
+          dead_voted?: number;
+          dead_shipped?: number;
+          dead_skipped?: number;
+          acquired_voted?: number;
+          acquired_shipped?: number;
+          acquired_skipped?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          session_id?: string;
+          total_votes?: number;
+          unicorns_voted?: number;
+          unicorns_shipped?: number;
+          unicorns_skipped?: number;
+          dead_voted?: number;
+          dead_shipped?: number;
+          dead_skipped?: number;
+          acquired_voted?: number;
+          acquired_shipped?: number;
+          acquired_skipped?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      session_achievements: {
+        Row: {
+          id: string;
+          session_id: string;
+          achievement_id: string;
+          unlocked_at: string;
+        };
+        Insert: {
+          id?: string;
+          session_id: string;
+          achievement_id: string;
+          unlocked_at?: string;
+        };
+        Update: {
+          id?: string;
+          session_id?: string;
+          achievement_id?: string;
+          unlocked_at?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: {
       [_ in never]: never;
@@ -315,6 +387,14 @@ export type BattleVoteUpdate = Database["public"]["Tables"]["battle_votes"]["Upd
 export type AchievementDefinition = Database["public"]["Tables"]["achievement_definitions"]["Row"];
 export type AchievementDefinitionInsert = Database["public"]["Tables"]["achievement_definitions"]["Insert"];
 export type AchievementDefinitionUpdate = Database["public"]["Tables"]["achievement_definitions"]["Update"];
+
+export type AchievementProgress = Database["public"]["Tables"]["achievement_progress"]["Row"];
+export type AchievementProgressInsert = Database["public"]["Tables"]["achievement_progress"]["Insert"];
+export type AchievementProgressUpdate = Database["public"]["Tables"]["achievement_progress"]["Update"];
+
+export type SessionAchievement = Database["public"]["Tables"]["session_achievements"]["Row"];
+export type SessionAchievementInsert = Database["public"]["Tables"]["session_achievements"]["Insert"];
+export type SessionAchievementUpdate = Database["public"]["Tables"]["session_achievements"]["Update"];
 
 // Achievement rarity and category types for convenience
 export type AchievementRarity = "common" | "uncommon" | "rare" | "epic" | "legendary";

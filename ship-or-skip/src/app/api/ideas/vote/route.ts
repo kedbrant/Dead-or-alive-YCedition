@@ -1,6 +1,25 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
-import type { Vote, Idea, Session, VoteInsert, SessionInsert, IdeaUpdate, SessionUpdate, SourceOutcome } from "@/lib/supabase/types";
+import type {
+  Vote,
+  Idea,
+  Session,
+  VoteInsert,
+  SessionInsert,
+  IdeaUpdate,
+  SessionUpdate,
+  SourceOutcome,
+  AchievementProgress,
+  AchievementProgressInsert,
+  AchievementDefinition,
+  SessionAchievementInsert,
+} from "@/lib/supabase/types";
+import {
+  getProgressUpdates,
+  checkAchievements,
+  createInitialProgress,
+} from "@/lib/achievements";
+import { calculateOracleScore } from "@/lib/scoring";
 
 /**
  * Compute if a prediction was correct based on vote and outcome.
@@ -43,6 +62,8 @@ interface VoteResponse {
   yc_logo_url?: string | null;
   yc_slug?: string | null;
   source?: string | null;
+  // Newly unlocked achievements
+  unlocked_achievements?: AchievementDefinition[];
 }
 
 export async function POST(request: NextRequest) {
@@ -239,6 +260,122 @@ export async function POST(request: NextRequest) {
     }
   }
 
+  // Track achievement progress and check for newly unlocked achievements
+  let unlockedAchievements: AchievementDefinition[] = [];
+  try {
+    // Fetch or create achievement progress
+    const { data: existingProgress } = await supabase
+      .from("achievement_progress")
+      .select("*")
+      .eq("session_id", session_id)
+      .limit(1)
+      .returns<AchievementProgress[]>();
+
+    const currentProgress =
+      existingProgress && existingProgress.length > 0
+        ? existingProgress[0]
+        : createInitialProgress(session_id);
+
+    // Get progress update increments for this vote
+    const progressUpdates = getProgressUpdates(vote, ideaOutcome);
+
+    // Calculate updated progress values
+    const updatedProgress: AchievementProgress = {
+      ...currentProgress,
+      total_votes: currentProgress.total_votes + (progressUpdates.total_votes || 0),
+      unicorns_voted: currentProgress.unicorns_voted + (progressUpdates.unicorns_voted || 0),
+      unicorns_shipped: currentProgress.unicorns_shipped + (progressUpdates.unicorns_shipped || 0),
+      unicorns_skipped: currentProgress.unicorns_skipped + (progressUpdates.unicorns_skipped || 0),
+      dead_voted: currentProgress.dead_voted + (progressUpdates.dead_voted || 0),
+      dead_shipped: currentProgress.dead_shipped + (progressUpdates.dead_shipped || 0),
+      dead_skipped: currentProgress.dead_skipped + (progressUpdates.dead_skipped || 0),
+      acquired_voted: currentProgress.acquired_voted + (progressUpdates.acquired_voted || 0),
+      acquired_shipped: currentProgress.acquired_shipped + (progressUpdates.acquired_shipped || 0),
+      acquired_skipped: currentProgress.acquired_skipped + (progressUpdates.acquired_skipped || 0),
+      updated_at: new Date().toISOString(),
+    };
+
+    // Upsert progress
+    if (existingProgress && existingProgress.length > 0) {
+      await writeClient
+        .from("achievement_progress")
+        .update(updatedProgress)
+        .eq("session_id", session_id);
+    } else {
+      const progressInsert: AchievementProgressInsert = {
+        session_id,
+        total_votes: updatedProgress.total_votes,
+        unicorns_voted: updatedProgress.unicorns_voted,
+        unicorns_shipped: updatedProgress.unicorns_shipped,
+        unicorns_skipped: updatedProgress.unicorns_skipped,
+        dead_voted: updatedProgress.dead_voted,
+        dead_shipped: updatedProgress.dead_shipped,
+        dead_skipped: updatedProgress.dead_skipped,
+        acquired_voted: updatedProgress.acquired_voted,
+        acquired_shipped: updatedProgress.acquired_shipped,
+        acquired_skipped: updatedProgress.acquired_skipped,
+      };
+      await writeClient.from("achievement_progress").insert(progressInsert);
+    }
+
+    // Fetch achievement definitions
+    const { data: definitions } = await supabase
+      .from("achievement_definitions")
+      .select("*")
+      .eq("is_active", true)
+      .returns<AchievementDefinition[]>();
+
+    // Fetch already unlocked achievements for this session
+    const { data: existingUnlocks } = await supabase
+      .from("session_achievements")
+      .select("achievement_id")
+      .eq("session_id", session_id);
+
+    const unlockedIds = existingUnlocks?.map((u) => u.achievement_id) || [];
+
+    // Get Oracle Score for Oracle achievement check
+    const { data: sessionVotes } = await supabase
+      .from("votes")
+      .select("is_correct, idea_outcome")
+      .eq("session_id", session_id);
+
+    const oracleScore = sessionVotes ? calculateOracleScore(sessionVotes) : null;
+    const resolvedVotes =
+      sessionVotes?.filter(
+        (v) =>
+          v.idea_outcome &&
+          ["unicorn", "dead", "acquired"].includes(v.idea_outcome)
+      ).length || 0;
+
+    // Check which achievements are newly unlocked
+    if (definitions) {
+      const newlyUnlockedIds = checkAchievements(
+        updatedProgress,
+        definitions,
+        unlockedIds,
+        oracleScore,
+        resolvedVotes
+      );
+
+      // Insert newly unlocked achievements
+      for (const achievementId of newlyUnlockedIds) {
+        const unlock: SessionAchievementInsert = {
+          session_id,
+          achievement_id: achievementId,
+        };
+        await writeClient.from("session_achievements").insert(unlock);
+      }
+
+      // Get full achievement definitions for newly unlocked
+      unlockedAchievements = definitions.filter((d) =>
+        newlyUnlockedIds.includes(d.id)
+      );
+    }
+  } catch (achievementError) {
+    // Achievement tracking is non-critical - log error but don't fail the vote
+    console.error("Achievement tracking error:", achievementError);
+  }
+
   const response: VoteResponse = {
     ship_percentage: newShipPercentage,
     total_votes: newTotalVotes,
@@ -251,6 +388,8 @@ export async function POST(request: NextRequest) {
     yc_logo_url: idea.yc_logo_url,
     yc_slug: idea.yc_slug,
     source: idea.source,
+    unlocked_achievements:
+      unlockedAchievements.length > 0 ? unlockedAchievements : undefined,
   };
 
   return NextResponse.json(response);
