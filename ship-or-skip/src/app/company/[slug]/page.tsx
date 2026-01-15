@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { Idea, SourceOutcome } from "@/lib/supabase/types";
 import { OutcomeBadge } from "@/components/voting/outcome-badge";
+import { InsightCard } from "@/components/voting/insight-card";
 
 export const dynamic = "force-dynamic";
 
@@ -250,6 +251,16 @@ export default async function CompanyPage({ params }: CompanyPageProps) {
             <span>Ship {company.ship_percentage}%</span>
             <span>Skip {100 - company.ship_percentage}%</span>
           </div>
+        </div>
+
+        {/* Insight Card */}
+        <div className="mb-6">
+          <InsightCard
+            outcome={company.source_outcome as SourceOutcome}
+            shipPercentage={company.ship_percentage}
+            totalVotes={company.total_votes}
+            companyName={company.yc_name || "this company"}
+          />
         </div>
 
         {/* Long Description */}
