@@ -20,6 +20,7 @@ export type Database = {
           source_batch: string | null;
           source_outcome: string | null;
           submitter_twitter: string | null;
+          submitter_session_id: string | null;
           ship_count: number;
           skip_count: number;
           total_votes: number;
@@ -37,6 +38,7 @@ export type Database = {
           source_batch?: string | null;
           source_outcome?: string | null;
           submitter_twitter?: string | null;
+          submitter_session_id?: string | null;
           ship_count?: number;
           skip_count?: number;
           total_votes?: number;
@@ -54,6 +56,7 @@ export type Database = {
           source_batch?: string | null;
           source_outcome?: string | null;
           submitter_twitter?: string | null;
+          submitter_session_id?: string | null;
           ship_count?: number;
           skip_count?: number;
           total_votes?: number;

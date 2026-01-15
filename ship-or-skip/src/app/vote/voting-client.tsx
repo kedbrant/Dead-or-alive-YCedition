@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import Link from "next/link";
 import { IdeaCard } from "@/components/voting/idea-card";
 import { VoteButtons, VoteType } from "@/components/voting/vote-buttons";
 import { RevealOverlay } from "@/components/voting/reveal-overlay";
@@ -144,7 +145,7 @@ export function VotingClient({ sessionId }: VotingClientProps) {
           <p className="text-[18px] text-foreground/80 mb-8">
             You&apos;ve voted on all available ideas. Check back later for more!
           </p>
-          <a
+          <Link
             href="/"
             className="inline-block px-8 py-4 bg-ship text-white font-bold text-lg rounded-xl
               transition-all duration-150
@@ -152,7 +153,7 @@ export function VotingClient({ sessionId }: VotingClientProps) {
               active:scale-[0.98]"
           >
             Back to Home
-          </a>
+          </Link>
         </div>
       </div>
     );

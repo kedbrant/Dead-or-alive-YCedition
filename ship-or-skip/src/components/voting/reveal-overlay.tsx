@@ -16,13 +16,15 @@ interface RevealOverlayProps {
 export function RevealOverlay({
   shipPercentage,
   totalVotes,
-  userVote,
+  userVote: _userVote,
   userAgreedWithCrowd,
   sourceCompany,
   sourceOutcome,
   onNext,
   onShare,
 }: RevealOverlayProps) {
+  // userVote is available in props for future use (e.g., showing "You voted Ship/Skip")
+  void _userVote;
   const emoji = shipPercentage >= 50 ? "🚀" : "💀";
   const crowdVerdict = shipPercentage >= 50 ? "shipped" : "skipped";
 
