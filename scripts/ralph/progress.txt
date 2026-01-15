@@ -796,3 +796,17 @@ Started: Wed, Jan 15, 2026
   - Validates outcome argument against allowed values
   - Returns count of companies successfully added
 ---
+
+## 2026-01-15 - US-032
+- What was implemented: Created /api/stats/compare endpoint for percentile rankings
+- Files changed:
+  - ship-or-skip/src/app/api/stats/compare/route.ts (new API for percentile comparison)
+- **Learnings for future iterations:**
+  - Percentile calculation: (users with lower score / total users) * 100
+  - Qualified players = those with 10+ resolved votes (MIN_RESOLVED_VOTES)
+  - Average Oracle Score calculated from all qualified players
+  - is_qualified flag indicates if user meets the 10-vote threshold
+  - Returns null for percentile_rank if user isn't qualified yet
+  - Uses supabase .single() for user session, handles PGRST116 (not found) error
+  - CompareResponse interface documents the response shape
+---

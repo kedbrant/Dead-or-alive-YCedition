@@ -555,7 +555,7 @@
         "Typecheck passes"
       ],
       "priority": 32,
-      "passes": false,
+      "passes": true,
       "notes": "Percentile calculation: (users with lower score / total users) * 100"
     },
     {
