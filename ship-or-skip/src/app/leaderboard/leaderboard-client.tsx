@@ -1,11 +1,12 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { OutcomeBadge } from "@/components/voting/outcome-badge";
 import type { SourceOutcome } from "@/lib/supabase/types";
 
-type LeaderboardType = "top" | "voted" | "controversial" | "biggest_misses" | "biggest_fools" | "favorites";
+type LeaderboardType = "biggest_misses" | "biggest_fools" | "controversial" | "favorites" | "user_submissions" | "voters";
 
 interface LeaderboardItem {
   id: string;
@@ -22,16 +23,40 @@ interface LeaderboardItem {
   source_outcome: SourceOutcome;
 }
 
+interface VoterItem {
+  id: string;
+  twitter_handle: string | null;
+  total_votes: number;
+  ship_votes: number;
+  skip_votes: number;
+  crowd_agreements: number;
+  oracle_score: number | null;
+  resolved_votes: number | null;
+}
+
 const TABS: { type: LeaderboardType; label: string }[] = [
   { type: "biggest_misses", label: "Biggest Misses" },
   { type: "biggest_fools", label: "Biggest Fools" },
   { type: "controversial", label: "Controversial" },
   { type: "favorites", label: "Crowd Favorites" },
+  { type: "user_submissions", label: "User Submissions" },
+  { type: "voters", label: "Top Voters" },
 ];
 
+const DEFAULT_TAB: LeaderboardType = "biggest_misses";
+
+function isValidTab(tab: string | null): tab is LeaderboardType {
+  return tab !== null && TABS.some((t) => t.type === tab);
+}
+
 export function LeaderboardClient() {
-  const [activeTab, setActiveTab] = useState<LeaderboardType>("biggest_misses");
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const tabParam = searchParams.get("tab");
+  const activeTab = isValidTab(tabParam) ? tabParam : DEFAULT_TAB;
+
   const [items, setItems] = useState<LeaderboardItem[]>([]);
+  const [voters, setVoters] = useState<VoterItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -45,7 +70,13 @@ export function LeaderboardClient() {
         throw new Error("Failed to fetch leaderboard");
       }
       const data = await response.json();
-      setItems(data);
+      if (type === "voters") {
+        setVoters(data);
+        setItems([]);
+      } else {
+        setItems(data);
+        setVoters([]);
+      }
     } catch {
       setError("Failed to load leaderboard. Please try again.");
     } finally {
@@ -58,7 +89,7 @@ export function LeaderboardClient() {
   }, [activeTab, fetchLeaderboard]);
 
   const handleTabChange = (type: LeaderboardType) => {
-    setActiveTab(type);
+    router.push(`/leaderboard?tab=${type}`, { scroll: false });
   };
 
   const getDisplayName = (item: LeaderboardItem) => {
@@ -93,21 +124,23 @@ export function LeaderboardClient() {
           Leaderboard
         </h1>
 
-        {/* Tab Navigation */}
-        <div className="flex border-b border-foreground/20 mb-6">
-          {TABS.map((tab) => (
-            <button
-              key={tab.type}
-              onClick={() => handleTabChange(tab.type)}
-              className={`flex-1 py-3 px-4 text-sm sm:text-base font-medium transition-colors ${
-                activeTab === tab.type
-                  ? "text-ship border-b-2 border-ship"
-                  : "text-foreground/60 hover:text-foreground"
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
+        {/* Tab Navigation - scrollable on mobile */}
+        <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
+          <div className="flex border-b border-foreground/20 mb-6 min-w-max sm:min-w-0">
+            {TABS.map((tab) => (
+              <button
+                key={tab.type}
+                onClick={() => handleTabChange(tab.type)}
+                className={`py-3 px-3 sm:px-4 text-sm sm:text-base font-medium transition-colors whitespace-nowrap ${
+                  activeTab === tab.type
+                    ? "text-ship border-b-2 border-ship"
+                    : "text-foreground/60 hover:text-foreground"
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Loading State */}
@@ -148,10 +181,14 @@ export function LeaderboardClient() {
         )}
 
         {/* Empty State */}
-        {!loading && !error && items.length === 0 && (
+        {!loading && !error && items.length === 0 && voters.length === 0 && (
           <div className="text-center py-12">
             <p className="text-foreground/60 text-lg">
-              No ideas to show yet.
+              {activeTab === "voters"
+                ? "No voters yet. Be the first!"
+                : activeTab === "user_submissions"
+                ? "No user submissions with enough votes yet."
+                : "No ideas to show yet."}
             </p>
             <Link
               href="/vote"
@@ -207,6 +244,47 @@ export function LeaderboardClient() {
                   </div>
                 </div>
               </Link>
+            ))}
+          </div>
+        )}
+
+        {/* Voters Leaderboard Rows */}
+        {!loading && !error && voters.length > 0 && (
+          <div className="space-y-2">
+            {voters.map((voter, index) => (
+              <div
+                key={voter.id}
+                className="bg-surface rounded-lg p-4"
+              >
+                <div className="flex items-center gap-4">
+                  {/* Rank */}
+                  <div className="w-8 h-8 flex items-center justify-center rounded-full bg-foreground/10 text-foreground/80 font-bold text-sm">
+                    {index + 1}
+                  </div>
+
+                  {/* Voter Info */}
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-semibold text-foreground truncate">
+                      {voter.twitter_handle ? `@${voter.twitter_handle}` : "Anonymous Voter"}
+                    </h3>
+                    <p className="text-sm text-foreground/60">
+                      {voter.ship_votes} ships • {voter.skip_votes} skips
+                    </p>
+                  </div>
+
+                  {/* Stats */}
+                  <div className="text-right flex-shrink-0">
+                    <p className="font-bold text-ship">
+                      {voter.total_votes.toLocaleString()} votes
+                    </p>
+                    {voter.oracle_score !== null && voter.resolved_votes && voter.resolved_votes >= 10 && (
+                      <p className="text-sm text-foreground/60">
+                        🔮 {voter.oracle_score}%
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
             ))}
           </div>
         )}
