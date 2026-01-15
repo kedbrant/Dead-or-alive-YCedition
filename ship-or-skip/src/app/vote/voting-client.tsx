@@ -34,6 +34,7 @@ export function VotingClient({ sessionId }: VotingClientProps) {
   const [noMoreIdeas, setNoMoreIdeas] = useState(false);
   const [cardAnimationState, setCardAnimationState] = useState<CardAnimationState>("visible");
   const [showResults, setShowResults] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchNextIdea = useCallback(async () => {
     setLoading(true);
@@ -41,6 +42,7 @@ export function VotingClient({ sessionId }: VotingClientProps) {
     setUserVote(null);
     setShowResults(false);
     setCardAnimationState("visible");
+    setError(null);
 
     try {
       const response = await fetch(`/api/ideas/next?session_id=${sessionId}`);
@@ -60,8 +62,8 @@ export function VotingClient({ sessionId }: VotingClientProps) {
       setNoMoreIdeas(false);
       // Trigger entrance animation
       setCardAnimationState("entering");
-    } catch (error) {
-      console.error("Error fetching idea:", error);
+    } catch {
+      setError("Failed to load ideas. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -104,8 +106,8 @@ export function VotingClient({ sessionId }: VotingClientProps) {
       setTimeout(() => {
         setShowResults(true);
       }, 250);
-    } catch (error) {
-      console.error("Error voting:", error);
+    } catch {
+      setError("Failed to record vote. Please try again.");
       setUserVote(null);
       setCardAnimationState("visible");
     } finally {
@@ -152,6 +154,28 @@ export function VotingClient({ sessionId }: VotingClientProps) {
     );
   }
 
+  // Error state
+  if (error && !idea) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center p-4">
+        <div className="w-full max-w-[480px] mx-auto bg-surface rounded-2xl px-6 py-12 text-center">
+          <div className="text-6xl mb-6">😕</div>
+          <h2 className="text-[24px] font-bold mb-4">Something went wrong</h2>
+          <p className="text-[16px] text-foreground/80 mb-6">{error}</p>
+          <button
+            onClick={fetchNextIdea}
+            className="inline-block px-8 py-4 bg-ship text-white font-bold text-lg rounded-xl
+              transition-all duration-150
+              hover:shadow-[0_0_20px_rgba(34,197,94,0.5)] hover:scale-[1.02]
+              active:scale-[0.98]"
+          >
+            Try Again
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   // No more ideas state
   if (noMoreIdeas) {
     return (
@@ -178,6 +202,13 @@ export function VotingClient({ sessionId }: VotingClientProps) {
   // Main voting UI
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-4 gap-6">
+      {/* Inline error banner */}
+      {error && idea && (
+        <div className="w-full max-w-[480px] mx-auto bg-skip/10 border border-skip/30 rounded-xl p-4 text-center">
+          <p className="text-skip text-sm">{error}</p>
+        </div>
+      )}
+
       {idea && !showResults && (
         <>
           <SwipeContainer onSwipe={handleVote} disabled={voting}>

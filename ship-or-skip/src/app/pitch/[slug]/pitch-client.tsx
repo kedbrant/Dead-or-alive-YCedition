@@ -126,8 +126,8 @@ export function PitchClient({ slug, sessionId }: PitchClientProps) {
             }
           : null
       );
-    } catch (err) {
-      console.error("Error voting:", err);
+    } catch {
+      // Vote failed - user can try again
       setUserVote(null);
     } finally {
       setVoting(false);
