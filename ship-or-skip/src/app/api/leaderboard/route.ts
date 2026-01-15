@@ -60,8 +60,9 @@ export async function GET(request: NextRequest) {
 
     case "controversial":
       // Closest to 50% ship_percentage (most divided opinions)
+      // Requires minimum 50 votes to appear
       // We'll sort in JS since Supabase doesn't support ABS() in order
-      query = query.gt("total_votes", 0);
+      query = query.gte("total_votes", MIN_VOTES_YC_LEADERBOARD);
       break;
 
     case "biggest_misses":
