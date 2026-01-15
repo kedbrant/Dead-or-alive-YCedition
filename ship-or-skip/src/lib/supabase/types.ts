@@ -61,6 +61,7 @@ export type Database = {
           is_active?: boolean;
           created_at?: string;
         };
+        Relationships: [];
       };
       votes: {
         Row: {
@@ -84,6 +85,7 @@ export type Database = {
           vote?: "ship" | "skip";
           created_at?: string;
         };
+        Relationships: [];
       };
       sessions: {
         Row: {
@@ -113,6 +115,7 @@ export type Database = {
           created_at?: string;
           last_activity_at?: string;
         };
+        Relationships: [];
       };
     };
     Views: {
@@ -122,6 +125,9 @@ export type Database = {
       [_ in never]: never;
     };
     Enums: {
+      [_ in never]: never;
+    };
+    CompositeTypes: {
       [_ in never]: never;
     };
   };
