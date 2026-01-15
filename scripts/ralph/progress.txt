@@ -689,3 +689,22 @@ Started: Wed, Jan 15, 2026
   - Shuffle arrays before searching for unseen pairs to ensure randomness
   - BattleCompany interface contains only display fields (no outcome reveal before voting)
 ---
+
+## 2026-01-15 - US-023
+- What was implemented: Created full battle mode UI with YC company cards and result reveal
+- Files changed:
+  - ship-or-skip/src/components/battle/battle-card.tsx (new component for compact battle cards)
+  - ship-or-skip/src/components/battle/battle-result.tsx (new component for result reveal with company info)
+  - ship-or-skip/src/app/api/battle/vote/route.ts (new API for submitting battle votes)
+  - ship-or-skip/src/app/battle/page.tsx (new server component wrapper)
+  - ship-or-skip/src/app/battle/battle-client.tsx (new client component with full battle flow)
+  - ship-or-skip/src/components/layout/navbar.tsx (added Battle link to navigation)
+- **Learnings for future iterations:**
+  - BattleCard shows hero, subtitle, yc_batch, yc_industry without revealing company name/outcome
+  - Click-to-select pattern: user clicks card, then confirms choice with button
+  - BattleResult shows side-by-side company reveals with logos, names, OutcomeBadges
+  - Vote API returns crowd_accuracy calculated from all votes on that battle pair
+  - isWinner/isLoser props control visual distinction (green border vs red border)
+  - CompanyReveal component links to /company/[yc_slug] for deep dive
+  - Grid layout with grid-cols-2 gap-4 works well for side-by-side battle cards
+---

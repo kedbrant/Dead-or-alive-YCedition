@@ -7,6 +7,7 @@ import { useState } from "react";
 
 const navLinks = [
   { href: "/vote", label: "Vote" },
+  { href: "/battle", label: "Battle" },
   { href: "/submit", label: "Submit" },
   { href: "/leaderboard", label: "Leaderboard" },
   { href: "/stats", label: "Stats" },
