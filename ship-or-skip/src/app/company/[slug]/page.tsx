@@ -3,9 +3,11 @@ import Link from "next/link";
 import Image from "next/image";
 import { notFound } from "next/navigation";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { getSessionId } from "@/lib/session/manager";
 import { Idea, SourceOutcome } from "@/lib/supabase/types";
 import { OutcomeBadge } from "@/components/voting/outcome-badge";
 import { InsightCard } from "@/components/voting/insight-card";
+import { CompanyVoteCta } from "@/components/voting/company-vote-cta";
 
 export const dynamic = "force-dynamic";
 
@@ -125,6 +127,7 @@ export default async function CompanyPage({ params }: CompanyPageProps) {
     notFound();
   }
 
+  const sessionId = await getSessionId();
   const ycProfileUrl = company.yc_slug
     ? `https://www.ycombinator.com/companies/${company.yc_slug}`
     : null;
@@ -251,6 +254,16 @@ export default async function CompanyPage({ params }: CompanyPageProps) {
             <span>Ship {company.ship_percentage}%</span>
             <span>Skip {100 - company.ship_percentage}%</span>
           </div>
+        </div>
+
+        {/* Vote CTA */}
+        <div className="mb-6">
+          <CompanyVoteCta
+            ideaId={company.id}
+            companyName={company.yc_name || "this company"}
+            sessionId={sessionId}
+            initialShipPercentage={company.ship_percentage}
+          />
         </div>
 
         {/* Insight Card */}
