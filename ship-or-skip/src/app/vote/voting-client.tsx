@@ -1,0 +1,188 @@
+"use client";
+
+import { useState, useEffect, useCallback } from "react";
+import { IdeaCard } from "@/components/voting/idea-card";
+import { VoteButtons, VoteType } from "@/components/voting/vote-buttons";
+import { RevealOverlay } from "@/components/voting/reveal-overlay";
+
+interface Idea {
+  id: string;
+  hero: string;
+  subtitle: string;
+}
+
+interface VoteResult {
+  ship_percentage: number;
+  total_votes: number;
+  user_agreed_with_crowd: boolean;
+  source_company?: string | null;
+  source_outcome?: string | null;
+}
+
+interface VotingClientProps {
+  sessionId: string;
+}
+
+export function VotingClient({ sessionId }: VotingClientProps) {
+  const [idea, setIdea] = useState<Idea | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [voting, setVoting] = useState(false);
+  const [voteResult, setVoteResult] = useState<VoteResult | null>(null);
+  const [userVote, setUserVote] = useState<VoteType | null>(null);
+  const [noMoreIdeas, setNoMoreIdeas] = useState(false);
+
+  const fetchNextIdea = useCallback(async () => {
+    setLoading(true);
+    setVoteResult(null);
+    setUserVote(null);
+
+    try {
+      const response = await fetch(`/api/ideas/next?session_id=${sessionId}`);
+
+      if (response.status === 404) {
+        setNoMoreIdeas(true);
+        setIdea(null);
+        return;
+      }
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch idea");
+      }
+
+      const data = await response.json();
+      setIdea(data);
+      setNoMoreIdeas(false);
+    } catch (error) {
+      console.error("Error fetching idea:", error);
+    } finally {
+      setLoading(false);
+    }
+  }, [sessionId]);
+
+  useEffect(() => {
+    fetchNextIdea();
+  }, [fetchNextIdea]);
+
+  const handleVote = async (vote: VoteType) => {
+    if (!idea || voting) return;
+
+    setVoting(true);
+    setUserVote(vote);
+
+    try {
+      const response = await fetch("/api/ideas/vote", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          idea_id: idea.id,
+          vote,
+          session_id: sessionId,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to record vote");
+      }
+
+      const result = await response.json();
+      setVoteResult(result);
+    } catch (error) {
+      console.error("Error voting:", error);
+      setUserVote(null);
+    } finally {
+      setVoting(false);
+    }
+  };
+
+  const handleNext = () => {
+    fetchNextIdea();
+  };
+
+  const handleShare = () => {
+    if (!idea) return;
+
+    const text = `I just voted on "${idea.hero}" on Ship or Skip! ${voteResult?.ship_percentage}% would ship it.`;
+    const url = window.location.origin;
+
+    if (navigator.share) {
+      navigator.share({
+        title: "Ship or Skip",
+        text,
+        url,
+      }).catch(() => {
+        // User cancelled or share failed
+      });
+    } else {
+      // Fallback: copy to clipboard
+      const shareText = `${text}\n${url}`;
+      navigator.clipboard.writeText(shareText).catch(() => {});
+    }
+  };
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center p-4">
+        <div className="w-full max-w-[480px] mx-auto bg-surface rounded-2xl px-6 py-12 text-center">
+          <div className="animate-pulse">
+            <div className="h-8 bg-foreground/10 rounded w-3/4 mx-auto mb-4" />
+            <div className="h-5 bg-foreground/10 rounded w-1/2 mx-auto" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // No more ideas state
+  if (noMoreIdeas) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center p-4">
+        <div className="w-full max-w-[480px] mx-auto bg-surface rounded-2xl px-6 py-12 text-center">
+          <h2 className="text-[32px] font-bold mb-4">🎉 All done!</h2>
+          <p className="text-[18px] text-foreground/80 mb-8">
+            You&apos;ve voted on all available ideas. Check back later for more!
+          </p>
+          <a
+            href="/"
+            className="inline-block px-8 py-4 bg-ship text-white font-bold text-lg rounded-xl
+              transition-all duration-150
+              hover:shadow-[0_0_20px_rgba(34,197,94,0.5)] hover:scale-[1.02]
+              active:scale-[0.98]"
+          >
+            Back to Home
+          </a>
+        </div>
+      </div>
+    );
+  }
+
+  // Main voting UI
+  return (
+    <div className="min-h-screen flex flex-col items-center justify-center p-4 gap-6">
+      {idea && !voteResult && (
+        <>
+          <IdeaCard idea={idea} />
+          <VoteButtons onVote={handleVote} disabled={voting} />
+        </>
+      )}
+
+      {idea && voteResult && userVote && (
+        <>
+          <IdeaCard idea={idea} />
+          <RevealOverlay
+            shipPercentage={voteResult.ship_percentage}
+            totalVotes={voteResult.total_votes}
+            userVote={userVote}
+            userAgreedWithCrowd={voteResult.user_agreed_with_crowd}
+            sourceCompany={voteResult.source_company}
+            sourceOutcome={voteResult.source_outcome}
+            onNext={handleNext}
+            onShare={handleShare}
+          />
+        </>
+      )}
+    </div>
+  );
+}
