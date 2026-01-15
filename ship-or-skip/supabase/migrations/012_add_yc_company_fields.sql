@@ -28,8 +28,10 @@ ALTER TABLE ideas ADD COLUMN IF NOT EXISTS yc_is_top_company BOOLEAN DEFAULT fal
 ALTER TABLE ideas ADD COLUMN IF NOT EXISTS is_in_active_pool BOOLEAN DEFAULT false;
 ALTER TABLE ideas ADD COLUMN IF NOT EXISTS pool_added_at TIMESTAMPTZ;
 
+-- Unique constraint on yc_id for upsert operations
+CREATE UNIQUE INDEX IF NOT EXISTS idx_ideas_yc_id_unique ON ideas (yc_id) WHERE yc_id IS NOT NULL;
+
 -- Indexes for efficient querying
-CREATE INDEX IF NOT EXISTS idx_ideas_yc_id ON ideas (yc_id) WHERE yc_id IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_ideas_yc_slug ON ideas (yc_slug) WHERE yc_slug IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_ideas_source_outcome ON ideas (source_outcome) WHERE source_outcome IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_ideas_active_pool ON ideas (is_in_active_pool) WHERE is_in_active_pool = true;

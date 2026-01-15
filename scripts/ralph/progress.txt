@@ -395,3 +395,32 @@ Started: Wed, Jan 15, 2026
   - Added indexes for yc_id, yc_slug, source_outcome, and is_in_active_pool for query performance
   - source_outcome column already exists from original schema, no need to add again
 ---
+
+## 2026-01-15 - US-002
+- What was implemented: Updated TypeScript types for YC company fields in types.ts
+- Files changed:
+  - ship-or-skip/src/lib/supabase/types.ts (added YC fields to Idea type, created YCCompanyRaw interface)
+- **Learnings for future iterations:**
+  - Created SourceOutcome type alias: `'unicorn' | 'acquired' | 'dead' | 'active' | null` for type-safe outcome handling
+  - All yc_* fields added to Row/Insert/Update types with appropriate nullability (most are nullable)
+  - yc_is_top_company and is_in_active_pool are non-nullable booleans (have defaults in DB)
+  - YCCompanyRaw interface matches the LaunchedCompany interface from yc-api/fetcher.ts exactly
+  - YC API fields: id (number), name, slug, one_liner, long_description, team_size, industry, subindustry, tags, batch, status, top_company, etc.
+  - YC status values: 'Public', 'Active', 'Inactive', 'Acquired' - used to compute source_outcome
+---
+
+## 2026-01-15 - US-003
+- What was implemented: Created YC data import script at ship-or-skip/scripts/import-yc-data.ts
+- Files changed:
+  - ship-or-skip/scripts/import-yc-data.ts (new file - complete import script)
+  - ship-or-skip/supabase/migrations/012_add_yc_company_fields.sql (added unique constraint on yc_id)
+- **Learnings for future iterations:**
+  - Import script uses YCCompanyRaw and IdeaInsert types from types.ts for type safety
+  - Supabase upsert with onConflict requires a UNIQUE constraint/index on the conflict column
+  - Created unique partial index: `CREATE UNIQUE INDEX IF NOT EXISTS idx_ideas_yc_id_unique ON ideas (yc_id) WHERE yc_id IS NOT NULL`
+  - Source outcome computed: top_company=true OR status='Public' -> 'unicorn', 'Acquired' -> 'acquired', 'Inactive' -> 'dead', else -> 'active'
+  - Slug creation: slugify(one_liner first 30 chars) + yc_slug for uniqueness
+  - Batch size of 100 for imports to avoid Supabase timeout
+  - Script also includes setInitialActivePool() function for US-004 (not yet called automatically)
+  - Run with: `npx tsx scripts/import-yc-data.ts`
+---

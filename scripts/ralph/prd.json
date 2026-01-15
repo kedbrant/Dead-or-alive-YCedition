@@ -33,7 +33,7 @@
         "Typecheck passes: npx tsc --noEmit"
       ],
       "priority": 2,
-      "passes": false,
+      "passes": true,
       "notes": "Reference yc-api/README.md for exact field names from the API"
     },
     {
@@ -52,7 +52,7 @@
         "Typecheck passes: npx tsc --noEmit"
       ],
       "priority": 3,
-      "passes": false,
+      "passes": true,
       "notes": "Use supabase.from('ideas').upsert() with onConflict on yc_id to allow re-running"
     },
     {
