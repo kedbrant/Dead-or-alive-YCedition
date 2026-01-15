@@ -22,8 +22,15 @@ interface UserStats {
   votes_until_oracle: number;
 }
 
+interface CompareStats {
+  percentile_rank: number | null;
+  average_oracle_score: number | null;
+  total_qualified_players: number;
+}
+
 export function StatsClient() {
   const [stats, setStats] = useState<UserStats | null>(null);
+  const [compareStats, setCompareStats] = useState<CompareStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
@@ -33,9 +40,14 @@ export function StatsClient() {
     setError(null);
 
     try {
-      const response = await fetch("/api/stats");
-      if (!response.ok) {
-        if (response.status === 401) {
+      // Fetch user stats and comparison data in parallel
+      const [statsResponse, compareResponse] = await Promise.all([
+        fetch("/api/stats"),
+        fetch("/api/stats/compare"),
+      ]);
+
+      if (!statsResponse.ok) {
+        if (statsResponse.status === 401) {
           // No session yet - show empty state
           setStats({
             total_votes: 0,
@@ -57,8 +69,14 @@ export function StatsClient() {
         }
         throw new Error("Failed to fetch stats");
       }
-      const data = await response.json();
+      const data = await statsResponse.json();
       setStats(data);
+
+      // Fetch comparison data if available
+      if (compareResponse.ok) {
+        const compareData = await compareResponse.json();
+        setCompareStats(compareData);
+      }
     } catch {
       setError("Failed to load your stats. Please try again.");
     } finally {
@@ -239,6 +257,14 @@ export function StatsClient() {
               <p className="text-foreground/60 text-sm">
                 {stats.correct_predictions} of {stats.resolved_votes} predictions correct
               </p>
+              {/* Percentile Rank */}
+              {compareStats?.percentile_rank !== null && compareStats?.percentile_rank !== undefined && (
+                <div className="mt-3 py-2 px-4 bg-white/10 rounded-lg inline-block">
+                  <p className="text-sm font-semibold text-purple-200">
+                    Better than {compareStats.percentile_rank}% of players
+                  </p>
+                </div>
+              )}
               {/* Breakdown */}
               <div className="grid grid-cols-3 gap-2 mt-4 text-xs">
                 <div className="bg-background/30 rounded-lg p-2">

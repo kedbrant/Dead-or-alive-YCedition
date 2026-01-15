@@ -589,7 +589,7 @@
         "Typecheck passes"
       ],
       "priority": 34,
-      "passes": false,
+      "passes": true,
       "notes": "Oracle Score should be the hero metric on stats page"
     },
     {

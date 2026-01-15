@@ -823,3 +823,16 @@ Started: Wed, Jan 15, 2026
   - featured_has_votes flag indicates whether to use dynamic data
   - Updates live as votes come in (fetched on page load)
 ---
+
+## 2026-01-15 - US-034
+- What was implemented: Added percentile ranking to stats page Oracle Score section
+- Files changed:
+  - ship-or-skip/src/app/stats/stats-client.tsx (added compareStats fetch and percentile display)
+- **Learnings for future iterations:**
+  - Fetch /api/stats and /api/stats/compare in parallel with Promise.all
+  - CompareStats interface for percentile_rank, average_oracle_score, total_qualified_players
+  - Percentile displayed inline below predictions count
+  - Condition: compareStats?.percentile_rank !== null && !== undefined
+  - Oracle Score section was mostly complete from previous iteration
+  - Added "Better than X% of players" messaging
+---
