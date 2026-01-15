@@ -2,8 +2,10 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
+import { OutcomeBadge } from "@/components/voting/outcome-badge";
+import type { SourceOutcome } from "@/lib/supabase/types";
 
-type LeaderboardType = "top" | "voted" | "controversial";
+type LeaderboardType = "top" | "voted" | "controversial" | "biggest_misses";
 
 interface LeaderboardItem {
   id: string;
@@ -15,16 +17,20 @@ interface LeaderboardItem {
   submitter_twitter: string | null;
   source: string;
   source_company: string | null;
+  yc_slug: string | null;
+  yc_name: string | null;
+  source_outcome: SourceOutcome;
 }
 
 const TABS: { type: LeaderboardType; label: string }[] = [
+  { type: "biggest_misses", label: "Biggest Misses" },
   { type: "top", label: "Top Ideas" },
   { type: "voted", label: "Most Voted" },
   { type: "controversial", label: "Controversial" },
 ];
 
 export function LeaderboardClient() {
-  const [activeTab, setActiveTab] = useState<LeaderboardType>("top");
+  const [activeTab, setActiveTab] = useState<LeaderboardType>("biggest_misses");
   const [items, setItems] = useState<LeaderboardItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -56,6 +62,10 @@ export function LeaderboardClient() {
   };
 
   const getDisplayName = (item: LeaderboardItem) => {
+    // For YC companies, show the company name
+    if (item.source === "yc" && item.yc_name) {
+      return item.yc_name;
+    }
     if (item.submitter_twitter) {
       return `@${item.submitter_twitter}`;
     }
@@ -65,10 +75,15 @@ export function LeaderboardClient() {
     if (item.source === "famous") {
       return "Famous";
     }
-    if (item.source === "yc") {
-      return "YC";
-    }
     return "User";
+  };
+
+  const getItemLink = (item: LeaderboardItem) => {
+    // YC companies link to /company/[slug], others to /pitch/[slug]
+    if (item.source === "yc" && item.yc_slug) {
+      return `/company/${item.yc_slug}`;
+    }
+    return `/pitch/${item.slug}`;
   };
 
   return (
@@ -153,7 +168,7 @@ export function LeaderboardClient() {
             {items.map((item, index) => (
               <Link
                 key={item.id}
-                href={`/pitch/${item.slug}`}
+                href={getItemLink(item)}
                 className="block bg-surface rounded-lg p-4 hover:bg-surface/80 transition-colors group"
               >
                 <div className="flex items-center gap-4">
@@ -164,9 +179,14 @@ export function LeaderboardClient() {
 
                   {/* Idea Info */}
                   <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-foreground truncate group-hover:text-ship transition-colors">
-                      {item.hero}
-                    </h3>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h3 className="font-semibold text-foreground truncate group-hover:text-ship transition-colors">
+                        {item.hero}
+                      </h3>
+                      {item.source_outcome && (
+                        <OutcomeBadge outcome={item.source_outcome} size="sm" />
+                      )}
+                    </div>
                     <p className="text-sm text-foreground/60">
                       {getDisplayName(item)}
                     </p>
