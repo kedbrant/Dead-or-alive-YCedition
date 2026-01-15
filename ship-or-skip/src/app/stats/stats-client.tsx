@@ -36,6 +36,7 @@ export function StatsClient() {
             crowd_agreements: 0,
             ship_rate: 0,
             crowd_agreement_rate: 0,
+            twitter_handle: null,
           });
           return;
         }
