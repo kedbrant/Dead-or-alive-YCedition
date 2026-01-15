@@ -1,6 +1,5 @@
 # Ralph Progress Log
-Started: Ship or Skip project
----
+Started: Wed, Jan 15, 2026
 
 ## Codebase Patterns
 - Next.js 16+ uses Tailwind v4 with `@theme inline` in globals.css for custom colors
@@ -19,6 +18,10 @@ Started: Ship or Skip project
 - YC data source: YC-OSS API at `https://yc-oss.github.io/api/companies/all.json` for public YC company data
 - Swipe gestures: SwipeContainer component uses native touch/mouse events with 100px threshold, card tilt, and elastic rubber-band cancel animation
 - OG meta tags: Default in layout.tsx with metadataBase, dynamic via generateMetadata() in pages, dynamic OG images via /api/og edge endpoint
+- YC API endpoint: https://yc-oss.github.io/api/companies/all.json
+- YC company status values: 'Public', 'Active', 'Inactive', 'Acquired'
+- Source outcome mapping: top_company=true OR status='Public' -> 'unicorn', status='Acquired' -> 'acquired', status='Inactive' -> 'dead', else -> 'active'
+- Active pool: is_in_active_pool=true marks companies that appear in voting rotation
 ---
 
 ## 2026-01-15 - US-001
@@ -377,4 +380,18 @@ Started: Ship or Skip project
   - Error handling pattern: use state (error, setError) with both full-page error state and inline error banners
   - Remove console.error from client components - show user-friendly messages instead
   - Build passes: all pages responsive, touch targets ≥44px, loading states on async ops, error handling throughout
+---
+
+## 2026-01-15 - US-001 (YC Pivot)
+- What was implemented: Extended ideas table schema with YC company fields via migration
+- Files changed:
+  - ship-or-skip/supabase/migrations/012_add_yc_company_fields.sql (new migration)
+  - ship-or-skip/src/app/stats/stats-client.tsx (fixed pre-existing TypeScript error)
+- **Learnings for future iterations:**
+  - Migration uses ALTER TABLE ADD COLUMN IF NOT EXISTS for idempotent column additions
+  - YC-specific fields prefixed with yc_ (e.g., yc_id, yc_name, yc_slug, yc_batch, etc.)
+  - Active pool management via is_in_active_pool BOOLEAN and pool_added_at TIMESTAMPTZ
+  - yc_tags uses TEXT[] (array) type for multiple tags
+  - Added indexes for yc_id, yc_slug, source_outcome, and is_in_active_pool for query performance
+  - source_outcome column already exists from original schema, no need to add again
 ---
