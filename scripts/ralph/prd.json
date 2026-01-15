@@ -365,7 +365,7 @@
         "Typecheck passes"
       ],
       "priority": 21,
-      "passes": false,
+      "passes": true,
       "notes": "Biggest Misses should be default tab as it's most engaging"
     },
     {
@@ -382,7 +382,7 @@
         "Typecheck passes"
       ],
       "priority": 22,
-      "passes": false,
+      "passes": true,
       "notes": "Battle prompt becomes 'Which was more successful?' instead of 'Which would you ship?'"
     },
     {

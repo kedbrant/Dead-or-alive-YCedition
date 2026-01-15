@@ -207,6 +207,39 @@ export type Database = {
         };
         Relationships: [];
       };
+      battle_votes: {
+        Row: {
+          id: string;
+          session_id: string;
+          winner_idea_id: string;
+          loser_idea_id: string;
+          user_choice: "left" | "right";
+          correct_answer: "left" | "right";
+          is_correct: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          session_id: string;
+          winner_idea_id: string;
+          loser_idea_id: string;
+          user_choice: "left" | "right";
+          correct_answer: "left" | "right";
+          is_correct: boolean;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          session_id?: string;
+          winner_idea_id?: string;
+          loser_idea_id?: string;
+          user_choice?: "left" | "right";
+          correct_answer?: "left" | "right";
+          is_correct?: boolean;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: {
       [_ in never]: never;
@@ -235,6 +268,10 @@ export type VoteUpdate = Database["public"]["Tables"]["votes"]["Update"];
 export type Session = Database["public"]["Tables"]["sessions"]["Row"];
 export type SessionInsert = Database["public"]["Tables"]["sessions"]["Insert"];
 export type SessionUpdate = Database["public"]["Tables"]["sessions"]["Update"];
+
+export type BattleVote = Database["public"]["Tables"]["battle_votes"]["Row"];
+export type BattleVoteInsert = Database["public"]["Tables"]["battle_votes"]["Insert"];
+export type BattleVoteUpdate = Database["public"]["Tables"]["battle_votes"]["Update"];
 
 /**
  * Raw YC company data from the YC-OSS API

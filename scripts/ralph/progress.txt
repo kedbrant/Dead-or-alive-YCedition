@@ -659,3 +659,33 @@ Started: Wed, Jan 15, 2026
   - limit query param: parsed with parseInt, clamped between 1-100, defaults to 20
   - Switch statement handles type routing cleanly, voters handled separately before the switch
 ---
+
+## 2026-01-15 - US-021
+- What was implemented: Updated leaderboard page with 6 tabs and URL query param state
+- Files changed:
+  - ship-or-skip/src/app/leaderboard/leaderboard-client.tsx (added tabs, URL params, voters rendering)
+  - ship-or-skip/src/app/leaderboard/page.tsx (added Suspense wrapper for useSearchParams)
+- **Learnings for future iterations:**
+  - useSearchParams requires Suspense boundary in Next.js - wrap client component in Suspense
+  - URL param state pattern: useSearchParams to read, router.push with { scroll: false } to update
+  - isValidTab type guard pattern: check if string matches union type before casting
+  - Horizontal scrolling tabs: overflow-x-auto container with min-w-max inner div, whitespace-nowrap on buttons
+  - VoterItem interface separate from LeaderboardItem since it comes from sessions table
+  - Voters leaderboard shows Oracle Score with crystal ball emoji when >= 10 resolved votes
+---
+
+## 2026-01-15 - US-022
+- What was implemented: Created battle mode API for winner vs loser matchups with outcome-based battles
+- Files changed:
+  - ship-or-skip/supabase/migrations/015_create_battle_votes_table.sql (new migration for battle tracking)
+  - ship-or-skip/src/lib/supabase/types.ts (added BattleVote types to Database and exports)
+  - ship-or-skip/src/app/api/battle/next/route.ts (new API endpoint for battle matchups)
+- **Learnings for future iterations:**
+  - Battle mode pairs winners (unicorn/acquired) vs losers (dead) for meaningful comparisons
+  - battle_votes table stores: session_id, winner_idea_id, loser_idea_id, user_choice, correct_answer, is_correct
+  - Randomize left/right position with 50/50 Math.random() to avoid position bias
+  - battle_id format: `${winner_id}:${loser_id}:${correct_answer}` for vote submission tracking
+  - Seen pairs stored in Set with both orderings (A-B and B-A) for quick lookup
+  - Shuffle arrays before searching for unseen pairs to ensure randomness
+  - BattleCompany interface contains only display fields (no outcome reveal before voting)
+---
