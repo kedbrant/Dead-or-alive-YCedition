@@ -119,6 +119,15 @@ export function VotingClient({ sessionId }: VotingClientProps) {
     }
   }, [idea, voting, sessionId]);
 
+  const handleNext = useCallback(() => {
+    // Trigger exit animation first
+    setResultsExiting(true);
+    // Wait for animation to complete, then fetch next
+    setTimeout(() => {
+      fetchNextIdea();
+    }, 200);
+  }, [fetchNextIdea]);
+
   // Keyboard controls
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -147,16 +156,7 @@ export function VotingClient({ sessionId }: VotingClientProps) {
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [voting, showResults, idea, handleVote]);
-
-  const handleNext = () => {
-    // Trigger exit animation first
-    setResultsExiting(true);
-    // Wait for animation to complete, then fetch next
-    setTimeout(() => {
-      fetchNextIdea();
-    }, 200);
-  };
+  }, [voting, showResults, idea, handleVote, handleNext]);
 
   const handleShare = () => {
     if (!idea) return;

@@ -69,7 +69,7 @@
         "Typecheck passes"
       ],
       "priority": 4,
-      "passes": false,
+      "passes": true,
       "notes": "Can also create expandPool(count, criteria) helper for future use"
     },
     {
@@ -86,7 +86,7 @@
         "Typecheck passes"
       ],
       "priority": 5,
-      "passes": false,
+      "passes": true,
       "notes": "The weighted distribution ensures users see the most engaging outcomes (unicorns and dead companies) more often"
     },
     {

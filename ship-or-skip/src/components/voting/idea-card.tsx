@@ -30,14 +30,14 @@ export function IdeaCard({ idea, animationState = "visible" }: IdeaCardProps) {
         ${getAnimationClasses()}`}
     >
       {/* Decorative quote marks */}
-      <div className="text-6xl text-foreground/10 font-serif leading-none mb-2 select-none">"</div>
+      <div className="text-6xl text-foreground/10 font-serif leading-none mb-2 select-none">&ldquo;</div>
       <h2 className="text-[32px] font-bold text-center leading-tight mb-6">
         {idea.hero}
       </h2>
       <p className="text-[18px] text-center text-foreground/70 leading-relaxed">
         {idea.subtitle}
       </p>
-      <div className="text-6xl text-foreground/10 font-serif leading-none mt-2 text-right select-none">"</div>
+      <div className="text-6xl text-foreground/10 font-serif leading-none mt-2 text-right select-none">&rdquo;</div>
     </div>
   );
 }

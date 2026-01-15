@@ -424,3 +424,31 @@ Started: Wed, Jan 15, 2026
   - Script also includes setInitialActivePool() function for US-004 (not yet called automatically)
   - Run with: `npx tsx scripts/import-yc-data.ts`
 ---
+
+## 2026-01-15 - US-004
+- What was implemented: Added expandActivePool() helper function to import script for future pool expansion
+- Files changed:
+  - ship-or-skip/scripts/import-yc-data.ts (added expandActivePool function)
+- **Learnings for future iterations:**
+  - setInitialActivePool() already existed and is called automatically after import
+  - expandActivePool(count, outcomeFilter?) allows adding more companies of specific outcome type
+  - Both functions sort by yc_team_size descending to prioritize larger companies
+  - Functions skip companies already in pool via is_in_active_pool=false filter
+  - Export functions so they can be used from other scripts if needed
+---
+
+## 2026-01-15 - US-005
+- What was implemented: Updated /api/ideas/next to use active pool with weighted outcome distribution
+- Files changed:
+  - ship-or-skip/src/app/api/ideas/next/route.ts (major rewrite for active pool + weighted selection)
+  - ship-or-skip/src/app/vote/voting-client.tsx (fixed lint warning for handleNext dependency)
+  - ship-or-skip/src/components/voting/idea-card.tsx (fixed quote escaping lint errors)
+- **Learnings for future iterations:**
+  - Active pool filtering: add `.eq("is_in_active_pool", true)` to Supabase queries
+  - Weighted random by outcome: group ideas by source_outcome, adjust weights for available categories, normalize
+  - OUTCOME_WEIGHTS: { unicorn: 0.4, dead: 0.3, acquired: 0.15, active: 0.15 } for engaging distribution
+  - Within-category selection still uses inverse vote count weighting for vote balancing
+  - Fall back to any available category when preferred category is exhausted
+  - Use useCallback for functions referenced in useEffect dependency arrays
+  - Use HTML entities (&ldquo; &rdquo;) for curly quotes in JSX to satisfy react/no-unescaped-entities
+---
