@@ -5,7 +5,7 @@ import Link from "next/link";
 import { OutcomeBadge } from "@/components/voting/outcome-badge";
 import type { SourceOutcome } from "@/lib/supabase/types";
 
-type LeaderboardType = "top" | "voted" | "controversial" | "biggest_misses";
+type LeaderboardType = "top" | "voted" | "controversial" | "biggest_misses" | "biggest_fools";
 
 interface LeaderboardItem {
   id: string;
@@ -24,6 +24,7 @@ interface LeaderboardItem {
 
 const TABS: { type: LeaderboardType; label: string }[] = [
   { type: "biggest_misses", label: "Biggest Misses" },
+  { type: "biggest_fools", label: "Biggest Fools" },
   { type: "top", label: "Top Ideas" },
   { type: "voted", label: "Most Voted" },
   { type: "controversial", label: "Controversial" },

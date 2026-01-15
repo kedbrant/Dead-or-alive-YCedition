@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import type { Idea } from "@/lib/supabase/types";
 
-type LeaderboardType = "top" | "voted" | "controversial" | "biggest_misses";
+type LeaderboardType = "top" | "voted" | "controversial" | "biggest_misses" | "biggest_fools";
 
 // Type for leaderboard response items
 type LeaderboardItem = Pick<
@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
   const type = (searchParams.get("type") || "top") as LeaderboardType;
 
   // Validate type parameter
-  const validTypes = ["top", "voted", "controversial", "biggest_misses"];
+  const validTypes = ["top", "voted", "controversial", "biggest_misses", "biggest_fools"];
   if (!validTypes.includes(type)) {
     return NextResponse.json(
       { error: `Invalid type. Must be one of: ${validTypes.join(", ")}` },
@@ -70,6 +70,14 @@ export async function GET(request: NextRequest) {
         .eq("source_outcome", "unicorn")
         .gte("total_votes", MIN_VOTES_YC_LEADERBOARD)
         .order("ship_percentage", { ascending: true });
+      break;
+
+    case "biggest_fools":
+      // Dead companies that got shipped the most (highest ship_percentage)
+      query = query
+        .eq("source_outcome", "dead")
+        .gte("total_votes", MIN_VOTES_YC_LEADERBOARD)
+        .order("ship_percentage", { ascending: false });
       break;
   }
 
