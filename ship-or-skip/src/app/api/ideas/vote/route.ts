@@ -1,6 +1,28 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
-import type { Vote, Idea, Session, VoteInsert, SessionInsert, IdeaUpdate, SessionUpdate } from "@/lib/supabase/types";
+import type { Vote, Idea, Session, VoteInsert, SessionInsert, IdeaUpdate, SessionUpdate, SourceOutcome } from "@/lib/supabase/types";
+
+/**
+ * Compute if a prediction was correct based on vote and outcome.
+ * - Ship on unicorn/acquired = correct
+ * - Skip on dead = correct
+ * - Active companies = null (no outcome yet)
+ * - All other combinations = false
+ */
+function computeIsCorrect(vote: "ship" | "skip", outcome: SourceOutcome): boolean | null {
+  if (!outcome || outcome === "active") {
+    // No outcome yet for active companies
+    return null;
+  }
+
+  if (vote === "ship") {
+    // Shipping a unicorn or acquired company is correct
+    return outcome === "unicorn" || outcome === "acquired";
+  } else {
+    // Skipping a dead company is correct
+    return outcome === "dead";
+  }
+}
 
 interface VoteRequestBody {
   idea_id: string;
@@ -112,12 +134,18 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(response);
   }
 
+  // Compute vote correctness based on idea outcome
+  const ideaOutcome = idea.source_outcome;
+  const isCorrect = computeIsCorrect(vote, ideaOutcome);
+
   // Record the new vote (use fresh client to avoid type inference issues)
   const writeClient = createServerSupabaseClient();
   const voteInsert: VoteInsert = {
     idea_id,
     session_id,
     vote,
+    is_correct: isCorrect,
+    idea_outcome: ideaOutcome,
   };
   const { error: insertVoteError } = await writeClient
     .from("votes")

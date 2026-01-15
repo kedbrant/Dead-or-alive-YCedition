@@ -136,6 +136,9 @@ export type Database = {
           session_id: string;
           vote: "ship" | "skip";
           created_at: string;
+          // Vote correctness tracking
+          is_correct: boolean | null;
+          idea_outcome: SourceOutcome;
         };
         Insert: {
           id?: string;
@@ -143,6 +146,9 @@ export type Database = {
           session_id: string;
           vote: "ship" | "skip";
           created_at?: string;
+          // Vote correctness tracking
+          is_correct?: boolean | null;
+          idea_outcome?: SourceOutcome;
         };
         Update: {
           id?: string;
@@ -150,6 +156,9 @@ export type Database = {
           session_id?: string;
           vote?: "ship" | "skip";
           created_at?: string;
+          // Vote correctness tracking
+          is_correct?: boolean | null;
+          idea_outcome?: SourceOutcome;
         };
         Relationships: [];
       };
