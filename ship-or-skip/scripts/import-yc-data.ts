@@ -329,6 +329,64 @@ export async function setInitialActivePool(): Promise<void> {
   console.log(`\nTotal companies added to active pool: ${totalAdded}`);
 }
 
+/**
+ * Expand the active pool by adding more companies
+ * @param count Number of companies to add
+ * @param outcomeFilter Optional filter for specific outcome type ('unicorn' | 'acquired' | 'dead' | 'active')
+ * @returns Number of companies actually added
+ */
+export async function expandActivePool(
+  count: number,
+  outcomeFilter?: SourceOutcome
+): Promise<number> {
+  console.log(`\n=== Expanding Active Pool ===`);
+  console.log(`Adding ${count} companies${outcomeFilter ? ` (${outcomeFilter} only)` : ""}\n`);
+
+  // Build query - fetch companies not in pool, optionally filtered by outcome
+  let query = supabase
+    .from("ideas")
+    .select("id, yc_name, yc_team_size")
+    .eq("source", "yc")
+    .eq("is_in_active_pool", false)
+    .order("yc_team_size", { ascending: false, nullsFirst: false })
+    .limit(count);
+
+  // Apply outcome filter if specified
+  if (outcomeFilter) {
+    query = query.eq("source_outcome", outcomeFilter);
+  }
+
+  const { data: companies, error: fetchError } = await query;
+
+  if (fetchError) {
+    console.error("Error fetching companies for pool expansion:", fetchError.message);
+    return 0;
+  }
+
+  if (!companies || companies.length === 0) {
+    console.log("No available companies to add to pool");
+    return 0;
+  }
+
+  // Update these companies to be in the active pool
+  const companyIds = companies.map((c) => c.id);
+  const { error: updateError } = await supabase
+    .from("ideas")
+    .update({
+      is_in_active_pool: true,
+      pool_added_at: new Date().toISOString(),
+    })
+    .in("id", companyIds);
+
+  if (updateError) {
+    console.error("Error updating companies for pool:", updateError.message);
+    return 0;
+  }
+
+  console.log(`✓ Added ${companies.length} companies to active pool`);
+  return companies.length;
+}
+
 // Run the import
 importYCData()
   .then(async () => {
