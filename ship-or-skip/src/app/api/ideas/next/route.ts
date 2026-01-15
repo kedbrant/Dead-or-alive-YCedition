@@ -165,5 +165,8 @@ export async function GET(request: NextRequest) {
     id: selectedIdea.id,
     hero: selectedIdea.hero,
     subtitle: selectedIdea.subtitle,
+    source: selectedIdea.source,
+    yc_batch: selectedIdea.yc_batch,
+    yc_industry: selectedIdea.yc_industry,
   });
 }

@@ -14,6 +14,9 @@ interface PitchData {
   ship_percentage: number;
   total_votes: number;
   created_at: string;
+  source: string;
+  yc_batch: string | null;
+  yc_industry: string | null;
 }
 
 interface VoteResult {

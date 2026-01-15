@@ -11,6 +11,9 @@ interface Idea {
   id: string;
   hero: string;
   subtitle: string;
+  source: string;
+  yc_batch: string | null;
+  yc_industry: string | null;
 }
 
 interface VoteResult {
