@@ -9,8 +9,12 @@ Started: Ship or Skip project
 - Dark theme enforced via `className="dark"` on html element
 - Supabase clients: `client.ts` for browser, `server.ts` for server-side with service role key
 - TypeScript types in `lib/supabase/types.ts` - import `Database` for createClient generic
+- **CRITICAL:** Supabase Database type MUST include `Relationships: []` in each table and `CompositeTypes` in schema for proper type inference
+- API routes use `.limit(1).returns<Type[]>()` instead of `.single()` for single record fetches to avoid `never` type issues
+- For Supabase write operations, use explicitly typed variables (e.g., `const insert: VoteInsert = {...}`)
 - SQL migrations in `supabase/migrations/` numbered 001_, 002_, etc.
 - Components organized in `src/components/` by feature (e.g., `voting/`, `submit/`, `layout/`)
+- Session management: `lib/session/manager.ts` with `getOrCreateSessionId()` for server components
 ---
 
 ## 2026-01-15 - US-001
@@ -80,4 +84,69 @@ Started: Ship or Skip project
   - Conditional rendering with `{condition && <element>}` for optional sections
   - Use `.toLocaleString()` for formatted vote counts (e.g., "1,234")
   - Border button style: `border border-foreground/20` with hover `border-foreground/40`
+---
+
+## 2026-01-15 - US-006
+- What was implemented: Created session management utility for cookie-based anonymous user tracking
+- Files changed:
+  - ship-or-skip/src/lib/session/manager.ts (new file)
+- **Learnings for future iterations:**
+  - Use `cookies()` from `next/headers` for server-side cookie access (requires await in Next.js 16+)
+  - Use `crypto.randomUUID()` for generating UUID v4 session IDs
+  - Session cookie settings: httpOnly, secure in production, sameSite: "lax", 1 year maxAge
+  - Export both `getOrCreateSessionId()` (creates if missing) and `getSessionId()` (returns null if missing)
+  - Cookie name: "ship-or-skip-session" for this project
+---
+
+## 2026-01-15 - US-007
+- What was implemented: Created GET /api/ideas/next endpoint for fetching next unvoted idea
+- Files changed:
+  - ship-or-skip/src/app/api/ideas/next/route.ts (new file)
+- **Learnings for future iterations:**
+  - Supabase typed client with partial selects may return `never` types - use `.returns<Type[]>()` to fix
+  - Import convenience types (Vote, Idea) from types.ts for explicit return typing
+  - Weighted random selection: use inverse weight (1/(total_votes+1)) to favor low-vote ideas
+  - Handle conditional `.not()` filter by using ternary with two separate query chains
+  - API routes in Next.js App Router: export named `GET`/`POST` functions from route.ts
+---
+
+## 2026-01-15 - US-008
+- What was implemented: Created POST /api/ideas/vote endpoint for recording votes and returning results
+- Files changed:
+  - ship-or-skip/src/app/api/ideas/vote/route.ts (new file)
+  - ship-or-skip/src/lib/supabase/types.ts (added Relationships: [] and CompositeTypes to Database type)
+- **Learnings for future iterations:**
+  - Supabase v2.90+ requires `Relationships: []` and `CompositeTypes` in Database type definition for proper type inference
+  - Use `.limit(1).returns<Type[]>()` instead of `.single()` to avoid type inference issues with `never` types
+  - For write operations (insert/update), use explicit type annotations like `VoteInsert`, `IdeaUpdate` etc.
+  - Create separate supabase client for write operations if type chain gets confused after `.returns<>()` calls
+  - Calculate user_agreed_with_crowd based on updated stats (after the vote is counted) to avoid off-by-one logic issues
+  - Session stats tracking: create new session on first vote, update existing session on subsequent votes
+---
+
+## 2026-01-15 - US-009
+- What was implemented: Built voting page with full voting flow
+- Files changed:
+  - ship-or-skip/src/app/vote/page.tsx (server component wrapper)
+  - ship-or-skip/src/app/vote/voting-client.tsx (client component with voting logic)
+- **Learnings for future iterations:**
+  - Split page into server component (page.tsx) and client component for session handling
+  - Server component fetches session ID via `getOrCreateSessionId()` and passes to client
+  - Client component manages state: loading, voting, voteResult, userVote, noMoreIdeas
+  - Use `useCallback` for fetch functions to avoid infinite re-renders with `useEffect`
+  - API returns 404 when no more ideas - handle this to show "all done" state
+  - Use `navigator.share()` for native sharing with fallback to `clipboard.writeText()`
+  - Loading skeleton with `animate-pulse` for better UX while fetching
+---
+
+## 2026-01-15 - US-010
+- What was implemented: Built landing page with hook stat and call to action
+- Files changed:
+  - ship-or-skip/src/app/page.tsx (updated with full landing page)
+- **Learnings for future iterations:**
+  - Use `next/link` Link component for client-side navigation
+  - Use `&apos;` entity for single quotes in JSX to avoid eslint errors
+  - Hook stats in colored highlights: `<span className="text-skip font-bold">73%</span>` draws attention
+  - Same hover/active animation pattern as vote buttons: `hover:scale-[1.02] active:scale-[0.98]`
+  - Simple "How it works" section with `space-y-1` and muted text helps explain app
 ---
