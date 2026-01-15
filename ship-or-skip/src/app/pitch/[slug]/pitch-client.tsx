@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { IdeaCard, CardAnimationState } from "@/components/voting/idea-card";
 import { VoteButtons, VoteType } from "@/components/voting/vote-buttons";
+import { SwipeContainer } from "@/components/voting/swipe-container";
 
 interface PitchData {
   id: string;
@@ -227,8 +228,14 @@ export function PitchClient({ slug, sessionId }: PitchClientProps) {
         </div>
       )}
 
-      {/* Idea Card */}
-      <IdeaCard idea={pitch} animationState={cardAnimationState} />
+      {/* Idea Card with swipe support */}
+      {!hasVoted && !voteResult ? (
+        <SwipeContainer onSwipe={handleVote} disabled={voting}>
+          <IdeaCard idea={pitch} animationState={cardAnimationState} />
+        </SwipeContainer>
+      ) : (
+        <IdeaCard idea={pitch} animationState={cardAnimationState} />
+      )}
 
       {/* Vote buttons (if not voted) */}
       {!hasVoted && !voteResult && (

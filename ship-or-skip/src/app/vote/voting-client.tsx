@@ -5,6 +5,7 @@ import Link from "next/link";
 import { IdeaCard, CardAnimationState } from "@/components/voting/idea-card";
 import { VoteButtons, VoteType } from "@/components/voting/vote-buttons";
 import { RevealOverlay } from "@/components/voting/reveal-overlay";
+import { SwipeContainer } from "@/components/voting/swipe-container";
 
 interface Idea {
   id: string;
@@ -179,7 +180,9 @@ export function VotingClient({ sessionId }: VotingClientProps) {
     <div className="min-h-screen flex flex-col items-center justify-center p-4 gap-6">
       {idea && !showResults && (
         <>
-          <IdeaCard idea={idea} animationState={cardAnimationState} />
+          <SwipeContainer onSwipe={handleVote} disabled={voting}>
+            <IdeaCard idea={idea} animationState={cardAnimationState} />
+          </SwipeContainer>
           <VoteButtons onVote={handleVote} disabled={voting} />
         </>
       )}
