@@ -172,6 +172,10 @@ export type Database = {
           crowd_agreements: number;
           created_at: string;
           last_activity_at: string;
+          // Oracle Score tracking
+          oracle_score: number | null;
+          resolved_votes: number;
+          correct_predictions: number;
         };
         Insert: {
           id?: string;
@@ -182,6 +186,10 @@ export type Database = {
           crowd_agreements?: number;
           created_at?: string;
           last_activity_at?: string;
+          // Oracle Score tracking
+          oracle_score?: number | null;
+          resolved_votes?: number;
+          correct_predictions?: number;
         };
         Update: {
           id?: string;
@@ -192,6 +200,10 @@ export type Database = {
           crowd_agreements?: number;
           created_at?: string;
           last_activity_at?: string;
+          // Oracle Score tracking
+          oracle_score?: number | null;
+          resolved_votes?: number;
+          correct_predictions?: number;
         };
         Relationships: [];
       };

@@ -12,6 +12,14 @@ interface UserStats {
   ship_rate: number;
   crowd_agreement_rate: number;
   twitter_handle: string | null;
+  // Oracle Score fields
+  oracle_score: number | null;
+  resolved_votes: number;
+  correct_predictions: number;
+  correct_ships: number;
+  correct_skips: number;
+  wrong_predictions: number;
+  votes_until_oracle: number;
 }
 
 export function StatsClient() {
@@ -37,6 +45,13 @@ export function StatsClient() {
             ship_rate: 0,
             crowd_agreement_rate: 0,
             twitter_handle: null,
+            oracle_score: null,
+            resolved_votes: 0,
+            correct_predictions: 0,
+            correct_ships: 0,
+            correct_skips: 0,
+            wrong_predictions: 0,
+            votes_until_oracle: 10,
           });
           return;
         }
@@ -58,7 +73,12 @@ export function StatsClient() {
   const generateTweetTemplate = () => {
     if (!stats || stats.total_votes === 0) return "";
 
-    const tweetText = `My Ship or Skip stats: ${stats.total_votes} ideas voted, ${stats.ship_rate}% shipped, ${stats.crowd_agreement_rate}% crowd agreement. Think you can beat my instincts?`;
+    let tweetText = "";
+    if (stats.oracle_score !== null) {
+      tweetText = `My Oracle Score: ${stats.oracle_score}% on Ship or Skip! I correctly predicted ${stats.correct_predictions} out of ${stats.resolved_votes} YC startup outcomes. Can you spot the unicorns?`;
+    } else {
+      tweetText = `My Ship or Skip stats: ${stats.total_votes} ideas voted, ${stats.ship_rate}% shipped, ${stats.crowd_agreement_rate}% crowd agreement. Think you can beat my instincts?`;
+    }
     const encodedText = encodeURIComponent(tweetText);
     const baseUrl = typeof window !== "undefined" ? window.location.origin : "";
     const encodedUrl = encodeURIComponent(`${baseUrl}/vote`);
@@ -68,7 +88,12 @@ export function StatsClient() {
   const handleShare = async () => {
     if (!stats || stats.total_votes === 0) return;
 
-    const shareText = `My Ship or Skip stats: ${stats.total_votes} ideas voted, ${stats.ship_rate}% shipped, ${stats.crowd_agreement_rate}% crowd agreement.`;
+    let shareText = "";
+    if (stats.oracle_score !== null) {
+      shareText = `My Oracle Score: ${stats.oracle_score}% on Ship or Skip! I correctly predicted ${stats.correct_predictions} out of ${stats.resolved_votes} YC startup outcomes.`;
+    } else {
+      shareText = `My Ship or Skip stats: ${stats.total_votes} ideas voted, ${stats.ship_rate}% shipped, ${stats.crowd_agreement_rate}% crowd agreement.`;
+    }
     const baseUrl = typeof window !== "undefined" ? window.location.origin : "";
     const shareUrl = `${baseUrl}/vote`;
 
@@ -198,6 +223,61 @@ export function StatsClient() {
               >
                 @{stats.twitter_handle}
               </a>
+            </div>
+          )}
+
+          {/* Oracle Score - Hero metric */}
+          {stats.oracle_score !== null ? (
+            <div className="text-center mb-8 p-6 bg-gradient-to-br from-purple-500/20 to-purple-600/10 rounded-2xl border border-purple-500/30">
+              <div className="flex items-center justify-center gap-2 mb-2">
+                <span className="text-2xl">🔮</span>
+                <p className="text-foreground/80 font-semibold">Oracle Score</p>
+              </div>
+              <p className="text-6xl font-bold text-purple-400 mb-2">
+                {stats.oracle_score}%
+              </p>
+              <p className="text-foreground/60 text-sm">
+                {stats.correct_predictions} of {stats.resolved_votes} predictions correct
+              </p>
+              {/* Breakdown */}
+              <div className="grid grid-cols-3 gap-2 mt-4 text-xs">
+                <div className="bg-background/30 rounded-lg p-2">
+                  <p className="text-ship font-bold">{stats.correct_ships}</p>
+                  <p className="text-foreground/50">Ships Hit</p>
+                </div>
+                <div className="bg-background/30 rounded-lg p-2">
+                  <p className="text-ship font-bold">{stats.correct_skips}</p>
+                  <p className="text-foreground/50">Skips Hit</p>
+                </div>
+                <div className="bg-background/30 rounded-lg p-2">
+                  <p className="text-skip font-bold">{stats.wrong_predictions}</p>
+                  <p className="text-foreground/50">Missed</p>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="text-center mb-8 p-6 bg-background/30 rounded-2xl border border-foreground/10">
+              <div className="flex items-center justify-center gap-2 mb-2">
+                <span className="text-2xl opacity-50">🔮</span>
+                <p className="text-foreground/60 font-semibold">Oracle Score</p>
+              </div>
+              <p className="text-4xl font-bold text-foreground/30 mb-2">Locked</p>
+              <p className="text-foreground/60 text-sm">
+                Vote on {stats.votes_until_oracle} more YC companies to unlock
+              </p>
+              {stats.resolved_votes > 0 && (
+                <div className="mt-3 bg-foreground/5 rounded-lg p-2">
+                  <p className="text-xs text-foreground/50">
+                    Progress: {stats.resolved_votes}/10 resolved votes
+                  </p>
+                  <div className="w-full bg-foreground/10 rounded-full h-1.5 mt-1">
+                    <div
+                      className="bg-purple-500 h-1.5 rounded-full transition-all"
+                      style={{ width: `${(stats.resolved_votes / 10) * 100}%` }}
+                    />
+                  </div>
+                </div>
+              )}
             </div>
           )}
 

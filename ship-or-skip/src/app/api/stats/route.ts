@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
-import type { Session } from "@/lib/supabase/types";
+import type { Session, Vote } from "@/lib/supabase/types";
+import { getOracleScoreBreakdown, MIN_RESOLVED_VOTES } from "@/lib/scoring";
 
 interface StatsResponse {
   total_votes: number;
@@ -10,6 +11,14 @@ interface StatsResponse {
   ship_rate: number;
   crowd_agreement_rate: number;
   twitter_handle: string | null;
+  // Oracle Score fields
+  oracle_score: number | null;
+  resolved_votes: number;
+  correct_predictions: number;
+  correct_ships: number;
+  correct_skips: number;
+  wrong_predictions: number;
+  votes_until_oracle: number;
 }
 
 export async function GET(request: NextRequest) {
@@ -48,6 +57,13 @@ export async function GET(request: NextRequest) {
       ship_rate: 0,
       crowd_agreement_rate: 0,
       twitter_handle: null,
+      oracle_score: null,
+      resolved_votes: 0,
+      correct_predictions: 0,
+      correct_ships: 0,
+      correct_skips: 0,
+      wrong_predictions: 0,
+      votes_until_oracle: MIN_RESOLVED_VOTES,
     };
     return NextResponse.json(emptyStats);
   }
@@ -62,6 +78,17 @@ export async function GET(request: NextRequest) {
     ? Math.round((session.crowd_agreements / session.total_votes) * 100)
     : 0;
 
+  // Fetch user's votes to calculate Oracle Score
+  const { data: votes } = await supabase
+    .from("votes")
+    .select("vote, is_correct, idea_outcome")
+    .eq("session_id", sessionId)
+    .returns<Pick<Vote, "vote" | "is_correct" | "idea_outcome">[]>();
+
+  // Calculate Oracle Score breakdown
+  const breakdown = getOracleScoreBreakdown(votes || []);
+  const votesUntilOracle = Math.max(0, MIN_RESOLVED_VOTES - breakdown.resolvedVotes);
+
   const response: StatsResponse = {
     total_votes: session.total_votes,
     ship_votes: session.ship_votes,
@@ -70,6 +97,13 @@ export async function GET(request: NextRequest) {
     ship_rate: shipRate,
     crowd_agreement_rate: crowdAgreementRate,
     twitter_handle: session.twitter_handle,
+    oracle_score: breakdown.oracleScore,
+    resolved_votes: breakdown.resolvedVotes,
+    correct_predictions: breakdown.correctPredictions,
+    correct_ships: breakdown.correctShips,
+    correct_skips: breakdown.correctSkips,
+    wrong_predictions: breakdown.wrongPredictions,
+    votes_until_oracle: votesUntilOracle,
   };
 
   return NextResponse.json(response);
