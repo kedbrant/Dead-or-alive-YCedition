@@ -170,10 +170,35 @@ export function VotingClient({ sessionId }: VotingClientProps) {
   }, [voting, showResults, idea, handleVote, handleNext]);
 
   const handleShare = () => {
-    if (!idea) return;
+    if (!idea || !voteResult || !userVote) return;
 
-    const text = `I just voted on "${idea.hero}" on Ship or Skip! ${voteResult?.ship_percentage}% would ship it.`;
-    const url = window.location.origin;
+    const isYcCompany = voteResult.source === "yc";
+    const companyName = isYcCompany && voteResult.yc_name ? voteResult.yc_name : (voteResult.source_company || "this startup");
+    const voteAction = userVote === "ship" ? "shipped" : "skipped";
+
+    // Generate outcome text for YC companies
+    let outcomeText = "";
+    if (isYcCompany && voteResult.source_outcome) {
+      switch (voteResult.source_outcome) {
+        case "unicorn":
+          outcomeText = " - it became a UNICORN! 🦄";
+          break;
+        case "acquired":
+          outcomeText = " - it got ACQUIRED! 💰";
+          break;
+        case "dead":
+          outcomeText = " - it's DEAD! 💀";
+          break;
+        case "active":
+          outcomeText = " - it's still ACTIVE! 🚀";
+          break;
+      }
+    }
+
+    const text = `I ${voteAction} ${companyName} on Ship or Skip${outcomeText}
+
+Test your predictions → `;
+    const url = process.env.NEXT_PUBLIC_BASE_URL || window.location.origin;
 
     if (navigator.share) {
       navigator.share({
@@ -185,8 +210,10 @@ export function VotingClient({ sessionId }: VotingClientProps) {
       });
     } else {
       // Fallback: copy to clipboard
-      const shareText = `${text}\n${url}`;
-      navigator.clipboard.writeText(shareText).catch(() => {});
+      const shareText = `${text}${url}`;
+      navigator.clipboard.writeText(shareText).then(() => {
+        // Could show a toast here if we had one
+      }).catch(() => {});
     }
   };
 
