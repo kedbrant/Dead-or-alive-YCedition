@@ -55,3 +55,29 @@ Started: Ship or Skip project
   - Use `rounded-2xl` for 16px border-radius in Tailwind
   - Use `py-12` for 48px vertical padding (12 * 4px = 48px)
 ---
+
+## 2026-01-15 - US-004
+- What was implemented: Built VoteButtons component with Ship and Skip buttons
+- Files changed:
+  - ship-or-skip/src/components/voting/vote-buttons.tsx (new component)
+- **Learnings for future iterations:**
+  - Export `VoteType = "ship" | "skip"` type for consistent vote type handling
+  - Use `"use client"` directive for components with onClick handlers
+  - Hover glow: `hover:shadow-[0_0_20px_rgba(R,G,B,0.5)]` with color-matched RGBA
+  - Hover scale: `hover:scale-[1.02]`, active press: `active:scale-[0.98]`
+  - Use `min-h-16` (64px) for large tap targets
+  - `flex-col sm:flex-row` for responsive stacking (full width mobile, side-by-side desktop)
+  - Disabled state: `disabled:opacity-50 disabled:cursor-not-allowed` plus reset hover effects
+---
+
+## 2026-01-15 - US-005
+- What was implemented: Built RevealOverlay component for showing voting results
+- Files changed:
+  - ship-or-skip/src/components/voting/reveal-overlay.tsx (new component)
+- **Learnings for future iterations:**
+  - Import `VoteType` from vote-buttons.tsx for consistent vote type handling
+  - Use `bg-background/50` for subtle nested background contrast
+  - Conditional rendering with `{condition && <element>}` for optional sections
+  - Use `.toLocaleString()` for formatted vote counts (e.g., "1,234")
+  - Border button style: `border border-foreground/20` with hover `border-foreground/40`
+---
