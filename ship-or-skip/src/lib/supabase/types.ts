@@ -240,6 +240,45 @@ export type Database = {
         };
         Relationships: [];
       };
+      achievement_definitions: {
+        Row: {
+          id: string;
+          name: string;
+          description: string;
+          icon: string;
+          rarity: "common" | "uncommon" | "rare" | "epic" | "legendary";
+          category: "voting" | "outcome" | "streak" | "social" | "special";
+          trigger_type: string;
+          trigger_threshold: number;
+          is_active: boolean;
+          created_at: string;
+        };
+        Insert: {
+          id: string;
+          name: string;
+          description: string;
+          icon: string;
+          rarity: "common" | "uncommon" | "rare" | "epic" | "legendary";
+          category: "voting" | "outcome" | "streak" | "social" | "special";
+          trigger_type: string;
+          trigger_threshold?: number;
+          is_active?: boolean;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          name?: string;
+          description?: string;
+          icon?: string;
+          rarity?: "common" | "uncommon" | "rare" | "epic" | "legendary";
+          category?: "voting" | "outcome" | "streak" | "social" | "special";
+          trigger_type?: string;
+          trigger_threshold?: number;
+          is_active?: boolean;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: {
       [_ in never]: never;
@@ -272,6 +311,14 @@ export type SessionUpdate = Database["public"]["Tables"]["sessions"]["Update"];
 export type BattleVote = Database["public"]["Tables"]["battle_votes"]["Row"];
 export type BattleVoteInsert = Database["public"]["Tables"]["battle_votes"]["Insert"];
 export type BattleVoteUpdate = Database["public"]["Tables"]["battle_votes"]["Update"];
+
+export type AchievementDefinition = Database["public"]["Tables"]["achievement_definitions"]["Row"];
+export type AchievementDefinitionInsert = Database["public"]["Tables"]["achievement_definitions"]["Insert"];
+export type AchievementDefinitionUpdate = Database["public"]["Tables"]["achievement_definitions"]["Update"];
+
+// Achievement rarity and category types for convenience
+export type AchievementRarity = "common" | "uncommon" | "rare" | "epic" | "legendary";
+export type AchievementCategory = "voting" | "outcome" | "streak" | "social" | "special";
 
 /**
  * Raw YC company data from the YC-OSS API
