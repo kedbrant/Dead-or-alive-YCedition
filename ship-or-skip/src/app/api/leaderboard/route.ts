@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import type { Idea } from "@/lib/supabase/types";
 
-type LeaderboardType = "top" | "voted" | "controversial" | "biggest_misses" | "biggest_fools";
+type LeaderboardType = "top" | "voted" | "controversial" | "biggest_misses" | "biggest_fools" | "favorites";
 
 // Type for leaderboard response items
 type LeaderboardItem = Pick<
@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
   const type = (searchParams.get("type") || "top") as LeaderboardType;
 
   // Validate type parameter
-  const validTypes = ["top", "voted", "controversial", "biggest_misses", "biggest_fools"];
+  const validTypes = ["top", "voted", "controversial", "biggest_misses", "biggest_fools", "favorites"];
   if (!validTypes.includes(type)) {
     return NextResponse.json(
       { error: `Invalid type. Must be one of: ${validTypes.join(", ")}` },
@@ -77,6 +77,13 @@ export async function GET(request: NextRequest) {
       // Dead companies that got shipped the most (highest ship_percentage)
       query = query
         .eq("source_outcome", "dead")
+        .gte("total_votes", MIN_VOTES_YC_LEADERBOARD)
+        .order("ship_percentage", { ascending: false });
+      break;
+
+    case "favorites":
+      // Crowd Favorites - highest ship_percentage overall with minimum 50 votes
+      query = query
         .gte("total_votes", MIN_VOTES_YC_LEADERBOARD)
         .order("ship_percentage", { ascending: false });
       break;
