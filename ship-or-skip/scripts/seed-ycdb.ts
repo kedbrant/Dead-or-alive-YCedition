@@ -196,7 +196,7 @@ async function seedYCCompanies() {
 
   let successCount = 0;
   let errorCount = 0;
-  let skippedCount = 0;
+  const skippedCount = 0;
 
   // Process in batches of 50 for better performance
   const batchSize = 50;
@@ -222,7 +222,7 @@ async function seedYCCompanies() {
     });
 
     // Upsert batch
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from("ideas")
       .upsert(records, {
         onConflict: "slug",

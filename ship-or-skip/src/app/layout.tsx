@@ -8,9 +8,39 @@ const inter = Inter({
   subsets: ["latin"],
 });
 
+const siteUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://shiporskip.app";
+const defaultTitle = "Ship or Skip - Would You Fund This Startup?";
+const defaultDescription = "Tinder for startup ideas. Swipe through real pitches, see what the crowd thinks, submit your own.";
+
 export const metadata: Metadata = {
-  title: "Ship or Skip",
-  description: "Tinder for startup ideas. Swipe through real pitches, see what the crowd thinks, submit your own.",
+  title: {
+    default: defaultTitle,
+    template: "%s | Ship or Skip",
+  },
+  description: defaultDescription,
+  metadataBase: new URL(siteUrl),
+  openGraph: {
+    type: "website",
+    locale: "en_US",
+    url: siteUrl,
+    siteName: "Ship or Skip",
+    title: defaultTitle,
+    description: defaultDescription,
+    images: [
+      {
+        url: "/api/og?hero=Would%20You%20Fund%20This%20Startup%3F",
+        width: 1200,
+        height: 630,
+        alt: "Ship or Skip - Would You Fund This Startup?",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: defaultTitle,
+    description: defaultDescription,
+    images: ["/api/og?hero=Would%20You%20Fund%20This%20Startup%3F"],
+  },
 };
 
 export default function RootLayout({
