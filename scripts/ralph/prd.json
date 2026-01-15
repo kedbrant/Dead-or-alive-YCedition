@@ -103,7 +103,7 @@
         "Typecheck passes"
       ],
       "priority": 6,
-      "passes": false,
+      "passes": true,
       "notes": "Format should be like: 'YC W09 • Consumer' on one line"
     },
     {
@@ -121,7 +121,7 @@
         "Typecheck passes"
       ],
       "priority": 7,
-      "passes": false,
+      "passes": true,
       "notes": "Use inline SVG icons or existing icon library. Colors should be vibrant and eye-catching."
     },
     {
@@ -139,7 +139,7 @@
         "Typecheck passes"
       ],
       "priority": 8,
-      "passes": false,
+      "passes": true,
       "notes": "This is the 'aha moment' - make the company reveal dramatic and satisfying"
     },
     {
@@ -159,7 +159,7 @@
         "Typecheck passes"
       ],
       "priority": 9,
-      "passes": false,
+      "passes": true,
       "notes": "Reference the pivot PRD for exact copy examples"
     },
     {
@@ -178,7 +178,7 @@
         "Typecheck passes"
       ],
       "priority": 10,
-      "passes": false,
+      "passes": true,
       "notes": "This enables Oracle Score calculation based on prediction accuracy"
     },
     {
@@ -195,7 +195,7 @@
         "Typecheck passes"
       ],
       "priority": 11,
-      "passes": false,
+      "passes": true,
       "notes": "Resolved votes = votes on companies with known outcomes (not active)"
     },
     {
@@ -211,7 +211,7 @@
         "Typecheck passes"
       ],
       "priority": 12,
-      "passes": false,
+      "passes": true,
       "notes": "Consider adding correct_predictions count to sessions as well"
     },
     {
@@ -232,7 +232,7 @@
         "Typecheck passes"
       ],
       "priority": 13,
-      "passes": false,
+      "passes": true,
       "notes": "This is a dynamic route, no static generation. Use force-dynamic if needed."
     },
     {
@@ -248,7 +248,7 @@
         "Typecheck passes"
       ],
       "priority": 14,
-      "passes": false,
+      "passes": true,
       "notes": "Remember Next.js 15 pattern: params is Promise<{ slug: string }>"
     },
     {
@@ -263,7 +263,7 @@
         "Typecheck passes"
       ],
       "priority": 15,
-      "passes": false,
+      "passes": true,
       "notes": "Consider using Next Link component for client-side navigation"
     },
     {

@@ -452,3 +452,151 @@ Started: Wed, Jan 15, 2026
   - Use useCallback for functions referenced in useEffect dependency arrays
   - Use HTML entities (&ldquo; &rdquo;) for curly quotes in JSX to satisfy react/no-unescaped-entities
 ---
+
+## 2026-01-15 - US-006
+- What was implemented: Updated idea-card component to show YC batch and industry for YC companies
+- Files changed:
+  - ship-or-skip/src/components/voting/idea-card.tsx (added YC batch/industry display)
+  - ship-or-skip/src/app/api/ideas/next/route.ts (added source, yc_batch, yc_industry to response)
+  - ship-or-skip/src/app/api/pitch/[slug]/route.ts (added source, yc_batch, yc_industry to response)
+  - ship-or-skip/src/app/vote/voting-client.tsx (updated Idea interface with YC fields)
+  - ship-or-skip/src/app/pitch/[slug]/pitch-client.tsx (updated PitchData interface with YC fields)
+- **Learnings for future iterations:**
+  - IdeaCard uses Pick<Idea, ...> to require only needed fields from the Idea type
+  - Format YC batch as "YC {batch}" (e.g., "YC W09") with • separator for industry
+  - Conditional display: check source === "yc" and existence of yc_batch/yc_industry
+  - API endpoints must be updated to include new fields when adding to component props
+  - Client components with local interfaces need to be updated in parallel with API changes
+---
+
+## 2026-01-15 - US-007
+- What was implemented: Created OutcomeBadge component for displaying company outcomes (unicorn/acquired/dead/active)
+- Files changed:
+  - ship-or-skip/src/components/voting/outcome-badge.tsx (new component)
+- **Learnings for future iterations:**
+  - OutcomeBadge uses SourceOutcome type from types.ts for type-safe outcome props
+  - OUTCOME_CONFIG object pattern maps each outcome to { label, bgColor, textColor, icon }
+  - Inline SVG icons from Heroicons (star for unicorn, dollar for acquired, sad face for dead, checkmark for active)
+  - Pill shape: rounded-full class with inline-flex for icon+text alignment
+  - Size variants via SIZE_CLASSES object with sm/md/lg options for reusability
+  - Early return pattern for null outcome or unknown outcome values
+---
+
+## 2026-01-15 - US-008
+- What was implemented: Updated reveal overlay with YC company reveal (name, logo, OutcomeBadge)
+- Files changed:
+  - ship-or-skip/src/components/voting/reveal-overlay.tsx (major update for YC company display)
+  - ship-or-skip/src/app/api/ideas/vote/route.ts (added yc_name, yc_logo_url, yc_slug, source to response)
+  - ship-or-skip/src/app/vote/voting-client.tsx (pass new YC fields to RevealOverlay)
+- **Learnings for future iterations:**
+  - RevealOverlay uses displayName pattern: ycName for YC companies, sourceCompany for others
+  - Logo URL: yc_logo_url for YC companies, favicon from link for non-YC
+  - OutcomeBadge requires casting sourceOutcome as SourceOutcome type
+  - Read More button links to /company/[slug] for YC companies (page created in US-013)
+  - Conditional rendering with isYcCompany flag (source === "yc") separates YC vs user submission behavior
+  - Vote API must return all fields needed by reveal (add new fields to both response blocks)
+---
+
+## 2026-01-15 - US-009
+- What was implemented: Created insight copy generator function in src/lib/insights.ts
+- Files changed:
+  - ship-or-skip/src/lib/insights.ts (new file)
+- **Learnings for future iterations:**
+  - getInsightCopy(userVote, outcome, companyName) returns contextual messages with emoji
+  - Import VoteType from vote-buttons.tsx, SourceOutcome from types.ts
+  - Ship + unicorn: positive reinforcement ("Nice call! You spotted a winner.")
+  - Skip + unicorn: dramatic miss ("You would have passed on a massive success.")
+  - Ship + dead: got fooled ("You got fooled. {company} didn't make it.")
+  - Skip + dead: good instincts ("Good instincts. This one failed.")
+  - Active: neutral time-will-tell message
+  - Acquired: neutral decent-outcome message
+  - Handle null/unknown outcomes with empty string fallback
+---
+
+## 2026-01-15 - US-010
+- What was implemented: Added is_correct tracking to votes for prediction accuracy
+- Files changed:
+  - ship-or-skip/supabase/migrations/013_add_vote_correctness.sql (new migration)
+  - ship-or-skip/src/lib/supabase/types.ts (added is_correct and idea_outcome to Vote type)
+  - ship-or-skip/src/app/api/ideas/vote/route.ts (added computeIsCorrect function and vote tracking)
+- **Learnings for future iterations:**
+  - computeIsCorrect(vote, outcome) function encapsulates correctness logic
+  - Ship + unicorn/acquired = correct (true)
+  - Skip + dead = correct (true)
+  - Active companies = null (no outcome yet to judge)
+  - All other combinations = incorrect (false)
+  - idea_outcome snapshot stores source_outcome at vote time for historical accuracy
+  - Add indexes on is_correct and idea_outcome columns for efficient querying
+  - Use partial indexes (WHERE column IS NOT NULL) for sparse boolean columns
+---
+
+## 2026-01-15 - US-011
+- What was implemented: Created Oracle Score calculation function in src/lib/scoring.ts
+- Files changed:
+  - ship-or-skip/src/lib/scoring.ts (new file)
+- **Learnings for future iterations:**
+  - calculateOracleScore(votes) returns percentage or null if under MIN_RESOLVED_VOTES (10)
+  - RESOLVED_OUTCOMES constant defines which outcomes count (unicorn, dead, acquired)
+  - getOracleScoreBreakdown() helper provides detailed stats (correctShips, correctSkips, etc.)
+  - Use Pick<Vote, "is_correct" | "idea_outcome"> for minimal typing requirements on input
+  - Round to 1 decimal place with Math.round(score * 10) / 10 for clean display
+  - Export MIN_RESOLVED_VOTES constant for use in UI messaging ("Need X more votes")
+---
+
+## 2026-01-15 - US-012
+- What was implemented: Added Oracle Score to session stats page and API
+- Files changed:
+  - ship-or-skip/supabase/migrations/014_add_oracle_score.sql (new migration)
+  - ship-or-skip/src/lib/supabase/types.ts (added oracle_score, resolved_votes, correct_predictions to Session type)
+  - ship-or-skip/src/app/api/stats/route.ts (added Oracle Score calculation and response fields)
+  - ship-or-skip/src/app/stats/stats-client.tsx (added Oracle Score UI section with locked/unlocked states)
+- **Learnings for future iterations:**
+  - API calculates Oracle Score on-the-fly by fetching votes with is_correct and idea_outcome fields
+  - Use getOracleScoreBreakdown() from scoring.ts to get all breakdown stats in one call
+  - Stats UI shows two states: locked (under 10 resolved votes) with progress bar, unlocked with full breakdown
+  - Added oracle_score, resolved_votes, correct_predictions to Session type even though API calculates dynamically
+  - Purple gradient theme used for Oracle Score section to make it visually prominent
+  - Progress bar uses inline style for dynamic width based on resolved_votes/10
+  - Share templates updated to include Oracle Score when available for more engaging shares
+---
+
+## 2026-01-15 - US-013
+- What was implemented: Created company deep dive page at /company/[slug] for detailed YC company view
+- Files changed:
+  - ship-or-skip/src/app/company/[slug]/page.tsx (new server component page)
+- **Learnings for future iterations:**
+  - Use `export const dynamic = "force-dynamic"` for pages that need fresh data on every request
+  - Use `notFound()` from next/navigation for clean 404 handling in Next.js
+  - Company lookup: try yc_slug first, then fall back to regular slug for flexibility
+  - Company header pattern: logo with fallback initial, name, OutcomeBadge in flex layout
+  - Metadata grid: use 2-column grid for batch/industry/location metadata display
+  - Vote visualization: progress bar with ship/skip percentages using inline style width
+  - External links: visit website as primary CTA, YC profile as secondary
+  - YC profile URL format: `https://www.ycombinator.com/companies/{yc_slug}`
+---
+
+## 2026-01-15 - US-014
+- What was implemented: Created GET /api/company/[slug] API endpoint for fetching full company data
+- Files changed:
+  - ship-or-skip/src/app/api/company/[slug]/route.ts (new API endpoint)
+- **Learnings for future iterations:**
+  - API endpoint mirrors company page logic: try yc_slug first, fallback to regular slug
+  - Use SELECT_FIELDS constant string for consistent field selection across queries
+  - CompanyResponse type with Pick<Idea, ...> ensures type-safe field selection
+  - Next.js 15+ pattern: params is Promise<{ slug: string }> and must be awaited
+  - Return explicit JSON object with all fields rather than spreading company object for clarity
+  - Include is_in_active_pool and created_at in response for potential future filtering/sorting
+---
+
+## 2026-01-15 - US-015
+- What was implemented: Verified Read More link on reveal overlay (already implemented in US-008)
+- Files changed: None - feature was already implemented in reveal-overlay.tsx during US-008
+- **Verification:**
+  - Read More link shows for YC companies (isYcCompany && ycSlug)
+  - Links to /company/{yc_slug} using Next.js Link component
+  - Styled as secondary action with border outline (vs primary bg-ship on Next button)
+  - Typecheck passes
+- **Learnings for future iterations:**
+  - Always check if acceptance criteria are already satisfied before implementing
+  - US-008 proactively added the Read More link when building the reveal overlay
+---
