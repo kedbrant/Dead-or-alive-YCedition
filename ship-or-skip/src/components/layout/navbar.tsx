@@ -23,15 +23,18 @@ export function Navbar() {
           {/* Logo */}
           <Link
             href="/"
-            className="flex items-center hover:opacity-80 transition-opacity"
+            className="flex items-center gap-2 hover:opacity-80 transition-opacity"
           >
             <Image
               src="/logo.png"
-              alt="Ship or Skip"
+              alt="YC Archive"
               width={40}
               height={40}
-              className="rounded-lg"
+              className="rounded"
             />
+            <span className="font-bold text-lg tracking-tight">
+              <span className="text-ship">YC</span> ARCHIVE
+            </span>
           </Link>
 
           {/* Desktop Navigation */}
