@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { SearchBar } from "@/components/explore/search-bar";
 import { FilterBar } from "@/components/explore/filter-bar";
 import { StatsBar } from "@/components/explore/stats-bar";
@@ -32,6 +32,14 @@ interface StatsState {
   dead: number;
 }
 
+interface ExploreApiResponse {
+  companies: Company[];
+  total: number;
+  stats: StatsState;
+}
+
+const LIMIT = 20;
+
 export function ExploreClient() {
   const [searchQuery, setSearchQuery] = useState("");
   const [filters, setFilters] = useState<FilterState>({
@@ -40,27 +48,127 @@ export function ExploreClient() {
     batch: "all",
     sort: "newest",
   });
-  const [stats] = useState<StatsState>({
-    total: 5571,
-    unicorns: 127,
-    dead: 1247,
+  const [stats, setStats] = useState<StatsState>({
+    total: 0,
+    unicorns: 0,
+    dead: 0,
   });
-  const [loading] = useState(false);
-  const [industries] = useState<string[]>([]);
-  const [industriesLoading] = useState(false);
-  const [companies] = useState<Company[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [industries, setIndustries] = useState<string[]>([]);
+  const [industriesLoading, setIndustriesLoading] = useState(true);
+  const [companies, setCompanies] = useState<Company[]>([]);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
 
-  // Suppress unused variable warnings - these will be used in future stories
-  void searchQuery;
+  // Ref for the sentinel element that triggers loading more
+  const sentinelRef = useRef<HTMLDivElement>(null);
+
+  // Fetch companies from API
+  const fetchCompanies = useCallback(
+    async (pageNum: number, append: boolean = false) => {
+      if (append) {
+        setLoadingMore(true);
+      } else {
+        setLoading(true);
+      }
+
+      try {
+        const params = new URLSearchParams();
+        if (searchQuery) params.set("search", searchQuery);
+        if (filters.outcome !== "all") params.set("outcome", filters.outcome);
+        if (filters.industry !== "all") params.set("industry", filters.industry);
+        if (filters.batch !== "all") params.set("batch", filters.batch);
+        params.set("sort", filters.sort);
+        params.set("page", pageNum.toString());
+        params.set("limit", LIMIT.toString());
+
+        const response = await fetch(`/api/explore?${params.toString()}`);
+        if (!response.ok) throw new Error("Failed to fetch companies");
+
+        const data: ExploreApiResponse = await response.json();
+
+        if (append) {
+          setCompanies((prev) => [...prev, ...data.companies]);
+        } else {
+          setCompanies(data.companies);
+          setStats(data.stats);
+        }
+
+        // Check if there are more results
+        const totalLoaded = append
+          ? companies.length + data.companies.length
+          : data.companies.length;
+        setHasMore(totalLoaded < data.total);
+      } catch (error) {
+        console.error("Error fetching companies:", error);
+      } finally {
+        setLoading(false);
+        setLoadingMore(false);
+      }
+    },
+    [searchQuery, filters, companies.length]
+  );
+
+  // Fetch industries for filter dropdown
+  useEffect(() => {
+    async function fetchIndustries() {
+      setIndustriesLoading(true);
+      try {
+        const response = await fetch("/api/explore/industries");
+        if (response.ok) {
+          const data = await response.json();
+          setIndustries(data.industries || []);
+        }
+      } catch (error) {
+        console.error("Error fetching industries:", error);
+      } finally {
+        setIndustriesLoading(false);
+      }
+    }
+    fetchIndustries();
+  }, []);
+
+  // Fetch initial data and reset on filter/search change
+  useEffect(() => {
+    setPage(1);
+    setHasMore(true);
+    fetchCompanies(1, false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchQuery, filters]);
+
+  // Set up IntersectionObserver for infinite scroll
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+    if (!sentinel) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const entry = entries[0];
+        if (entry.isIntersecting && hasMore && !loading && !loadingMore) {
+          const nextPage = page + 1;
+          setPage(nextPage);
+          fetchCompanies(nextPage, true);
+        }
+      },
+      {
+        rootMargin: "100px", // Trigger 100px before reaching bottom
+      }
+    );
+
+    observer.observe(sentinel);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [hasMore, loading, loadingMore, page, fetchCompanies]);
 
   const handleSearch = useCallback((query: string) => {
     setSearchQuery(query);
-    // TODO: Trigger API call with search query
   }, []);
 
   const handleFilterChange = useCallback((newFilters: FilterState) => {
     setFilters(newFilters);
-    // TODO: Trigger API call with new filters
   }, []);
 
   return (
@@ -120,30 +228,51 @@ export function ExploreClient() {
               </>
             ) : companies.length > 0 ? (
               // Company cards
-              companies.map((company) => (
-                <CompanyCard
-                  key={company.slug}
-                  slug={company.slug}
-                  name={company.yc_name}
-                  batch={company.yc_batch}
-                  pitch={company.hero}
-                  outcome={company.source_outcome}
-                  industry={company.yc_industry}
-                  teamSize={company.yc_team_size}
-                  shipPercentage={company.ship_percentage}
-                  totalVotes={company.total_votes}
-                />
-              ))
+              <>
+                {companies.map((company) => (
+                  <CompanyCard
+                    key={company.slug}
+                    slug={company.slug}
+                    name={company.yc_name}
+                    batch={company.yc_batch}
+                    pitch={company.hero}
+                    outcome={company.source_outcome}
+                    industry={company.yc_industry}
+                    teamSize={company.yc_team_size}
+                    shipPercentage={company.ship_percentage}
+                    totalVotes={company.total_votes}
+                  />
+                ))}
+
+                {/* Sentinel element for infinite scroll */}
+                <div ref={sentinelRef} className="h-4" />
+
+                {/* Loading more spinner */}
+                {loadingMore && (
+                  <div className="flex justify-center py-6">
+                    <div className="flex items-center gap-3 text-foreground/60">
+                      <div className="w-5 h-5 border-2 border-foreground/30 border-t-foreground/60 rounded-full animate-spin" />
+                      <span>Loading more companies...</span>
+                    </div>
+                  </div>
+                )}
+
+                {/* End of results message */}
+                {!hasMore && companies.length > 0 && (
+                  <div className="text-center py-6 text-foreground/50 text-sm">
+                    You&apos;ve reached the end ({companies.length.toLocaleString()} companies)
+                  </div>
+                )}
+              </>
             ) : (
-              // Empty state placeholder
+              // Empty state - no results
               <div className="bg-surface rounded-xl p-8 text-center">
                 <div className="text-4xl mb-4">🔍</div>
                 <h3 className="text-lg font-semibold mb-2">
-                  Company list coming soon
+                  No companies found
                 </h3>
                 <p className="text-foreground/60 text-sm">
-                  Search and filter YC companies will be available in upcoming
-                  updates
+                  Try adjusting your search or filters to find what you&apos;re looking for
                 </p>
               </div>
             )}
