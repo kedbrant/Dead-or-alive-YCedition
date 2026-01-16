@@ -233,12 +233,12 @@ export function BattleClient({ sessionId: initialSessionId }: BattleClientProps)
     <main className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
       <div className="w-full max-w-3xl mx-auto">
         {/* Question */}
-        <h1 className="text-2xl font-bold text-center mb-8">
+        <h1 className="text-xl sm:text-2xl font-bold text-center mb-4 sm:mb-8">
           Which startup was more successful?
         </h1>
 
         {/* Battle cards */}
-        <div className="grid grid-cols-2 gap-4 mb-8 items-start">
+        <div className="flex flex-col sm:grid sm:grid-cols-2 gap-3 sm:gap-4 mb-4 sm:mb-8 items-stretch sm:items-start">
           <BattleCard
             hero={battle.left.hero}
             subtitle={battle.left.subtitle}
@@ -248,6 +248,14 @@ export function BattleClient({ sessionId: initialSessionId }: BattleClientProps)
             onClick={() => handleSelectSide("left")}
             disabled={voting}
           />
+
+          {/* VS indicator for mobile */}
+          <div className="flex sm:hidden justify-center py-1">
+            <div className="w-8 h-8 bg-surface rounded-full flex items-center justify-center border border-foreground/10 text-sm font-bold text-foreground/50">
+              VS
+            </div>
+          </div>
+
           <BattleCard
             hero={battle.right.hero}
             subtitle={battle.right.subtitle}
@@ -259,8 +267,8 @@ export function BattleClient({ sessionId: initialSessionId }: BattleClientProps)
           />
         </div>
 
-        {/* VS indicator */}
-        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 hidden md:flex">
+        {/* VS indicator for desktop */}
+        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 hidden sm:flex">
           <div className="w-12 h-12 bg-surface rounded-full flex items-center justify-center border border-foreground/10 font-bold text-foreground/50">
             VS
           </div>

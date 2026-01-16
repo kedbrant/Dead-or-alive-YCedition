@@ -117,8 +117,8 @@ export function BattleResult({
         </p>
       </div>
 
-      {/* Company reveals side by side */}
-      <div className="grid grid-cols-2 gap-4 mb-6">
+      {/* Company reveals */}
+      <div className="flex flex-col sm:grid sm:grid-cols-2 gap-3 sm:gap-4 mb-6">
         <CompanyReveal company={left} />
         <CompanyReveal company={right} />
       </div>

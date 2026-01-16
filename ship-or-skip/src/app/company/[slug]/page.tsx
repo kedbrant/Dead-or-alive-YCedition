@@ -178,30 +178,33 @@ export default async function CompanyPage({ params }: CompanyPageProps) {
           {/* Left Column - Company Identity */}
           <div className="lg:col-span-1 space-y-6">
             {/* Logo & Name Card */}
-            <div className="bg-surface rounded-2xl p-6">
-              <div className="flex flex-col items-center text-center">
+            <div className="bg-surface rounded-2xl p-4 sm:p-6">
+              <div className="flex flex-row sm:flex-col items-center sm:text-center gap-4 sm:gap-0">
                 {/* Company Logo */}
                 <CompanyLogo
                   src={company.yc_logo_url}
                   alt={`${company.yc_name || "Company"} logo`}
                   name={company.yc_name || "?"}
-                  size="lg"
-                  className="rounded-2xl mb-4"
+                  size="md"
+                  className="sm:!w-24 sm:!h-24 rounded-xl sm:rounded-2xl sm:mb-4"
                 />
 
-                {/* Company Name */}
-                <h1 className="text-2xl font-bold mb-3">
-                  {company.yc_name || "Unknown Company"}
-                </h1>
+                <div className="flex-1 sm:w-full">
+                  {/* Company Name */}
+                  <h1 className="text-xl sm:text-2xl font-bold mb-2 sm:mb-3">
+                    {company.yc_name || "Unknown Company"}
+                  </h1>
 
-                {/* Outcome Badge */}
-                <OutcomeBadge
-                  outcome={company.source_outcome as SourceOutcome}
-                  size="lg"
-                />
+                  {/* Outcome Badge */}
+                  <OutcomeBadge
+                    outcome={company.source_outcome as SourceOutcome}
+                    size="md"
+                  />
+                </div>
+              </div>
 
-                {/* External Links */}
-                <div className="flex gap-3 mt-6 w-full">
+              {/* External Links */}
+              <div className="flex gap-3 mt-4 sm:mt-6 w-full">
                   {company.yc_website && (
                     <a
                       href={company.yc_website}
@@ -229,7 +232,6 @@ export default async function CompanyPage({ params }: CompanyPageProps) {
                       YC Profile
                     </a>
                   )}
-                </div>
               </div>
             </div>
 
@@ -302,16 +304,16 @@ export default async function CompanyPage({ params }: CompanyPageProps) {
           {/* Right Column - Content */}
           <div className="lg:col-span-2 space-y-6">
             {/* One-liner Card */}
-            <div className="bg-surface rounded-2xl p-6">
-              <h2 className="text-sm font-semibold text-foreground/50 uppercase tracking-wide mb-3">The Pitch</h2>
-              <p className="text-2xl font-medium leading-relaxed">{company.hero}</p>
+            <div className="bg-surface rounded-2xl p-4 sm:p-6">
+              <h2 className="text-sm font-semibold text-foreground/50 uppercase tracking-wide mb-2 sm:mb-3">The Pitch</h2>
+              <p className="text-lg sm:text-2xl font-medium leading-relaxed">{company.hero}</p>
             </div>
 
             {/* About Section */}
             {company.yc_long_description && (
-              <div className="bg-surface rounded-2xl p-6">
-                <h2 className="text-sm font-semibold text-foreground/50 uppercase tracking-wide mb-4">About</h2>
-                <p className="text-foreground/80 whitespace-pre-line leading-relaxed">
+              <div className="bg-surface rounded-2xl p-4 sm:p-6">
+                <h2 className="text-sm font-semibold text-foreground/50 uppercase tracking-wide mb-3 sm:mb-4">About</h2>
+                <p className="text-sm sm:text-base text-foreground/80 whitespace-pre-line leading-relaxed">
                   {company.yc_long_description}
                 </p>
               </div>

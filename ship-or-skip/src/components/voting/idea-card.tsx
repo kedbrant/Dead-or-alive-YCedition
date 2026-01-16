@@ -24,20 +24,20 @@ export function IdeaCard({ idea, animationState = "visible" }: IdeaCardProps) {
 
   return (
     <div
-      className={`w-full max-w-[480px] mx-auto bg-gradient-to-br from-surface to-surface/80 rounded-3xl px-8 py-14
+      className={`w-full max-w-[480px] mx-auto bg-gradient-to-br from-surface to-surface/80 rounded-2xl sm:rounded-3xl px-5 sm:px-8 py-8 sm:py-14
         border border-foreground/10 shadow-2xl shadow-black/20
         backdrop-blur-sm
         ${getAnimationClasses()}`}
     >
       {/* Decorative quote marks */}
-      <div className="text-6xl text-foreground/10 font-serif leading-none mb-2 select-none">&ldquo;</div>
-      <h2 className="text-[32px] font-bold text-center leading-tight mb-6">
+      <div className="text-4xl sm:text-6xl text-foreground/10 font-serif leading-none mb-1 sm:mb-2 select-none">&ldquo;</div>
+      <h2 className="text-xl sm:text-[32px] font-bold text-center leading-tight mb-4 sm:mb-6">
         {idea.hero}
       </h2>
-      <p className="text-[18px] text-center text-foreground/70 leading-relaxed">
+      <p className="text-base sm:text-[18px] text-center text-foreground/70 leading-relaxed">
         {idea.subtitle}
       </p>
-      <div className="text-6xl text-foreground/10 font-serif leading-none mt-2 text-right select-none">&rdquo;</div>
+      <div className="text-4xl sm:text-6xl text-foreground/10 font-serif leading-none mt-1 sm:mt-2 text-right select-none">&rdquo;</div>
 
       {/* YC batch and industry info - only shown for YC companies */}
       {idea.source === "yc" && (idea.yc_batch || idea.yc_industry) && (
