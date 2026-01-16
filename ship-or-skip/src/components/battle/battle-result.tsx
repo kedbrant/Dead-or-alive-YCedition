@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { OutcomeBadge } from "@/components/voting/outcome-badge";
 import { SourceOutcome } from "@/lib/supabase/types";
 
@@ -23,7 +24,7 @@ interface BattleResultProps {
   onNext: () => void;
 }
 
-function CompanyReveal({ company, position }: { company: BattleCompanyResult; position: "left" | "right" }) {
+function CompanyReveal({ company }: { company: BattleCompanyResult }) {
   const displayName = company.yc_name || "Unknown Company";
   const logoUrl = company.yc_logo_url;
   const initial = displayName.charAt(0).toUpperCase();
@@ -36,12 +37,14 @@ function CompanyReveal({ company, position }: { company: BattleCompanyResult; po
       `}
     >
       {/* Logo */}
-      <div className="w-16 h-16 rounded-full bg-surface flex items-center justify-center mb-3 overflow-hidden border border-foreground/10">
+      <div className="w-16 h-16 rounded-full bg-surface flex items-center justify-center mb-3 overflow-hidden border border-foreground/10 relative">
         {logoUrl ? (
-          <img
+          <Image
             src={logoUrl}
             alt={displayName}
-            className="w-full h-full object-cover"
+            fill
+            className="object-cover"
+            unoptimized
           />
         ) : (
           <span className="text-2xl font-bold text-foreground/50">{initial}</span>
@@ -113,8 +116,8 @@ export function BattleResult({
 
       {/* Company reveals side by side */}
       <div className="grid grid-cols-2 gap-4 mb-6">
-        <CompanyReveal company={left} position="left" />
-        <CompanyReveal company={right} position="right" />
+        <CompanyReveal company={left} />
+        <CompanyReveal company={right} />
       </div>
 
       {/* Your choice indicator */}

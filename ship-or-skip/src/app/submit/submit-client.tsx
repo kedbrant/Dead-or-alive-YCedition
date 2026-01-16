@@ -186,7 +186,7 @@ export function SubmitClient() {
           </div>
         )}
 
-        <SubmitForm onSubmit={handleSubmit} isSubmitting={isSubmitting} initialHero={initialPitch} />
+        <SubmitForm key={initialPitch} onSubmit={handleSubmit} isSubmitting={isSubmitting} initialHero={initialPitch} />
 
         <p className="text-center text-sm text-foreground/40 mt-6">
           By submitting, you agree to let others vote on your idea.

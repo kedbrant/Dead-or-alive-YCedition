@@ -78,7 +78,7 @@ export function BattleClient({ sessionId }: BattleClientProps) {
       const data: BattleData = await response.json();
       setBattle(data);
       setNoBattles(false);
-    } catch (err) {
+    } catch {
       setError("Failed to load battle. Please try again.");
     } finally {
       setLoading(false);
@@ -117,7 +117,7 @@ export function BattleClient({ sessionId }: BattleClientProps) {
 
       const data: BattleResultData = await response.json();
       setResult(data);
-    } catch (err) {
+    } catch {
       setError("Failed to submit vote. Please try again.");
     } finally {
       setVoting(false);
