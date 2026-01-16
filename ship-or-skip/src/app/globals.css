@@ -92,3 +92,19 @@ body::-webkit-scrollbar {
 .animate-fade-in {
   animation: fade-in 200ms ease-out forwards;
 }
+
+/* Fade in with slide up animation for staggered list items */
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fade-in-up 300ms ease-out both;
+}

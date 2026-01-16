@@ -213,35 +213,53 @@ export function ExploreClient() {
         <section>
           <div className="space-y-4">
             {loading ? (
-              // Loading skeleton
+              // Loading skeleton - matches CompanyCard layout to prevent shift
               <>
-                {[1, 2, 3].map((i) => (
+                {[1, 2, 3, 4, 5].map((i) => (
                   <div
                     key={i}
                     className="bg-surface rounded-xl p-6 animate-pulse"
                   >
-                    <div className="h-6 bg-foreground/10 rounded w-1/4 mb-3" />
-                    <div className="h-4 bg-foreground/10 rounded w-3/4 mb-2" />
-                    <div className="h-4 bg-foreground/10 rounded w-1/2" />
+                    {/* Top row: Badge and Batch placeholder */}
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="h-6 w-16 bg-foreground/10 rounded-full" />
+                      <div className="h-4 w-10 bg-foreground/10 rounded" />
+                    </div>
+                    {/* Company name placeholder */}
+                    <div className="h-6 bg-foreground/10 rounded w-2/5 mb-2" />
+                    {/* Pitch placeholder (two lines) */}
+                    <div className="h-4 bg-foreground/10 rounded w-full mb-2" />
+                    <div className="h-4 bg-foreground/10 rounded w-3/4 mb-4" />
+                    {/* Bottom row: Industry, Team size, Vote stats */}
+                    <div className="flex items-center gap-4">
+                      <div className="h-4 w-24 bg-foreground/10 rounded" />
+                      <div className="h-4 w-12 bg-foreground/10 rounded" />
+                      <div className="h-4 w-32 bg-foreground/10 rounded ml-auto" />
+                    </div>
                   </div>
                 ))}
               </>
             ) : companies.length > 0 ? (
-              // Company cards
-              <>
-                {companies.map((company) => (
-                  <CompanyCard
+              // Company cards with fade-in animation
+              <div className="animate-fade-in">
+                {companies.map((company, index) => (
+                  <div
                     key={company.slug}
-                    slug={company.slug}
-                    name={company.yc_name}
-                    batch={company.yc_batch}
-                    pitch={company.hero}
-                    outcome={company.source_outcome}
-                    industry={company.yc_industry}
-                    teamSize={company.yc_team_size}
-                    shipPercentage={company.ship_percentage}
-                    totalVotes={company.total_votes}
-                  />
+                    className="mb-4 last:mb-0 animate-fade-in-up"
+                    style={{ animationDelay: `${Math.min(index * 50, 200)}ms` }}
+                  >
+                    <CompanyCard
+                      slug={company.slug}
+                      name={company.yc_name}
+                      batch={company.yc_batch}
+                      pitch={company.hero}
+                      outcome={company.source_outcome}
+                      industry={company.yc_industry}
+                      teamSize={company.yc_team_size}
+                      shipPercentage={company.ship_percentage}
+                      totalVotes={company.total_votes}
+                    />
+                  </div>
                 ))}
 
                 {/* Sentinel element for infinite scroll */}
@@ -249,7 +267,7 @@ export function ExploreClient() {
 
                 {/* Loading more spinner */}
                 {loadingMore && (
-                  <div className="flex justify-center py-6">
+                  <div className="flex justify-center py-6 animate-fade-in">
                     <div className="flex items-center gap-3 text-foreground/60">
                       <div className="w-5 h-5 border-2 border-foreground/30 border-t-foreground/60 rounded-full animate-spin" />
                       <span>Loading more companies...</span>
@@ -259,14 +277,14 @@ export function ExploreClient() {
 
                 {/* End of results message */}
                 {!hasMore && companies.length > 0 && (
-                  <div className="text-center py-6 text-foreground/50 text-sm">
+                  <div className="text-center py-6 text-foreground/50 text-sm animate-fade-in">
                     You&apos;ve reached the end ({companies.length.toLocaleString()} companies)
                   </div>
                 )}
-              </>
+              </div>
             ) : (
-              // Empty state - no results
-              <div className="bg-surface rounded-xl p-8 text-center">
+              // Empty state - no results with fade-in
+              <div className="bg-surface rounded-xl p-8 text-center animate-fade-in">
                 <div className="text-4xl mb-4">🔍</div>
                 <h3 className="text-lg font-semibold mb-2">
                   No companies found
