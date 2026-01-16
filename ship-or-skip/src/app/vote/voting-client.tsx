@@ -46,6 +46,7 @@ export function VotingClient({ sessionId }: VotingClientProps) {
   const [showResults, setShowResults] = useState(false);
   const [resultsExiting, setResultsExiting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [totalVotesCount, setTotalVotesCount] = useState<number>(0);
 
   const fetchNextIdea = useCallback(async () => {
     setLoading(true);
@@ -62,6 +63,16 @@ export function VotingClient({ sessionId }: VotingClientProps) {
       if (response.status === 404) {
         setNoMoreIdeas(true);
         setIdea(null);
+        // Fetch vote count for the exhausted pool message
+        try {
+          const statsResponse = await fetch("/api/stats");
+          if (statsResponse.ok) {
+            const stats = await statsResponse.json();
+            setTotalVotesCount(stats.total_votes || 0);
+          }
+        } catch {
+          // Ignore stats fetch error, we'll just show 0 or no count
+        }
         return;
       }
 
@@ -253,24 +264,87 @@ Test your predictions → `;
     );
   }
 
-  // No more ideas state
+  // No more ideas state - pool exhausted
   if (noMoreIdeas) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center p-4">
-        <div className="w-full max-w-[480px] mx-auto bg-surface rounded-2xl px-6 py-12 text-center">
-          <h2 className="text-[32px] font-bold mb-4">🎉 All done!</h2>
-          <p className="text-[18px] text-foreground/80 mb-8">
-            You&apos;ve voted on all available ideas. Check back later for more!
+        <div className="w-full max-w-[480px] mx-auto bg-surface rounded-2xl px-6 py-10 text-center">
+          <div className="text-6xl mb-4">🎯</div>
+          <h2 className="text-[28px] font-bold mb-3">You&apos;ve seen them all!</h2>
+
+          {totalVotesCount > 0 && (
+            <p className="text-[18px] text-foreground/80 mb-2">
+              You&apos;ve voted on <span className="font-bold text-ship">{totalVotesCount}</span> {totalVotesCount === 1 ? "company" : "companies"}
+            </p>
+          )}
+
+          <p className="text-[16px] text-foreground/60 mb-8">
+            More companies are added to the pool regularly. Check back soon!
           </p>
-          <Link
-            href="/"
-            className="inline-block px-8 py-4 bg-ship text-white font-bold text-lg rounded-xl
-              transition-all duration-150
-              hover:shadow-[0_0_20px_rgba(34,197,94,0.5)] hover:scale-[1.02]
-              active:scale-[0.98]"
-          >
-            Back to Home
-          </Link>
+
+          <div className="space-y-4">
+            <p className="text-[14px] text-foreground/50 uppercase tracking-wide font-medium">
+              In the meantime
+            </p>
+
+            <div className="grid gap-3">
+              <Link
+                href="/leaderboard"
+                className="block px-6 py-4 bg-background border border-foreground/20 rounded-xl
+                  transition-all duration-150 hover:border-foreground/40 hover:bg-foreground/5"
+              >
+                <div className="flex items-center justify-center gap-3">
+                  <span className="text-xl">🏆</span>
+                  <span className="font-semibold">Browse Leaderboards</span>
+                </div>
+                <p className="text-sm text-foreground/60 mt-1">
+                  See the biggest misses and crowd favorites
+                </p>
+              </Link>
+
+              <Link
+                href="/stats"
+                className="block px-6 py-4 bg-background border border-foreground/20 rounded-xl
+                  transition-all duration-150 hover:border-foreground/40 hover:bg-foreground/5"
+              >
+                <div className="flex items-center justify-center gap-3">
+                  <span className="text-xl">🔮</span>
+                  <span className="font-semibold">Check Your Oracle Score</span>
+                </div>
+                <p className="text-sm text-foreground/60 mt-1">
+                  See how accurate your predictions are
+                </p>
+              </Link>
+
+              <Link
+                href="/submit"
+                className="block px-6 py-4 bg-background border border-foreground/20 rounded-xl
+                  transition-all duration-150 hover:border-foreground/40 hover:bg-foreground/5"
+              >
+                <div className="flex items-center justify-center gap-3">
+                  <span className="text-xl">💡</span>
+                  <span className="font-semibold">Submit Your Own Idea</span>
+                </div>
+                <p className="text-sm text-foreground/60 mt-1">
+                  Let others vote on your startup pitch
+                </p>
+              </Link>
+
+              <Link
+                href="/battle"
+                className="block px-6 py-4 bg-background border border-foreground/20 rounded-xl
+                  transition-all duration-150 hover:border-foreground/40 hover:bg-foreground/5"
+              >
+                <div className="flex items-center justify-center gap-3">
+                  <span className="text-xl">⚔️</span>
+                  <span className="font-semibold">Try Battle Mode</span>
+                </div>
+                <p className="text-sm text-foreground/60 mt-1">
+                  Pick the more successful startup in head-to-head matchups
+                </p>
+              </Link>
+            </div>
+          </div>
         </div>
       </div>
     );
