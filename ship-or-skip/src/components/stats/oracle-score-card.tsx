@@ -110,7 +110,7 @@ export function OracleScoreCard({
 
         {/* Branding */}
         <div className="text-center text-purple-300 text-xs">
-          shiporskip.io
+          yc-archive.com
         </div>
       </div>
 

@@ -198,7 +198,7 @@ export async function POST(request: NextRequest) {
   const insertedIdea = insertedIdeas[0];
 
   // Build share URL
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://shiporskip.app";
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://yc-archive.com";
   const shareUrl = `${baseUrl}/pitch/${insertedIdea.slug}`;
 
   const response: SubmitResponse = {

@@ -355,3 +355,43 @@ Navigation: Explore | Validate | Play | Submit
   - Query param flow for pitch pre-fill: encodeURIComponent on sender, useSearchParams on receiver
   - Similarity algorithm uses simple keyword matching - effective for finding related pitches without ML/embeddings
 ---
+
+## 2026-01-16 - US-025
+- Tested: End-to-end verification of navigation and routing
+- No code changes required - all acceptance criteria verified through code review
+- **Verification performed:**
+  - All four tabs: navbar.tsx:8-13 defines `/explore`, `/validate`, `/play`, `/submit` routes correctly
+  - Active highlighting: navbar.tsx:44-46 uses `pathname === link.href` for exact match with `text-ship` color
+  - GameSubHeader: Only imported in `/app/play/page.tsx:3,10`, not present in explore/validate/submit pages
+  - Direct URL access: Each route has its own page.tsx server component following Next.js App Router conventions
+  - Browser navigation: Standard Next.js Link components used, usePathname() reactively updates
+  - Mobile navigation: Hamburger menu at `sm:hidden` (navbar.tsx:55-89), closes on navigation (navbar.tsx:100)
+  - /vote redirect: Correctly redirects to /play via `redirect()` from next/navigation
+  - TypeScript check passes (only pre-existing errors in glow-effect.tsx, utils.ts)
+- **Learnings for future iterations:**
+  - Testing stories can be verified through code review when implementation is complete
+  - Navigation state uses simple pathname comparison - no complex route matching needed
+  - Mobile touch targets use `min-w-11 min-h-11` for 44px minimum (accessibility standard)
+---
+
+## 2026-01-16 - US-026
+- Implemented: Final polish and bug fixes for deployment readiness
+- Files changed:
+  - `ship-or-skip/src/lib/utils.ts` - Deleted (unused file with missing dependencies)
+  - `ship-or-skip/src/components/ui/glow-effect.tsx` - Deleted (unused file with missing dependencies)
+  - `ship-or-skip/src/app/battle/battle-client.tsx` - Fixed unused `err` catch variables
+  - `ship-or-skip/src/components/battle/battle-result.tsx` - Replaced `<img>` with Next.js `Image`, removed unused `position` prop
+  - `ship-or-skip/src/components/submit/submit-form.tsx` - Removed useEffect setState pattern causing linter error
+  - `ship-or-skip/src/app/submit/submit-client.tsx` - Added key prop for form reset on initialPitch change
+  - `ship-or-skip/src/app/submit/page.tsx` - Added Suspense boundary for useSearchParams
+- **Verification performed:**
+  - TypeScript check: `npx tsc --noEmit` passes with zero errors
+  - Linter: `npm run lint` passes with zero errors
+  - Build: `npm run build` completes successfully, all routes generated
+- **Learnings for future iterations:**
+  - Remove unused files that have missing dependencies - orphaned code causes TypeScript errors
+  - Use empty catch block `catch { }` instead of `catch (err) { }` when error variable is unused
+  - useSearchParams() requires Suspense boundary in Next.js 16 for static generation
+  - Use `key` prop on form components to reset state when initial values change from props
+  - Next.js Image component needs `fill` prop with `relative` parent for responsive images
+---

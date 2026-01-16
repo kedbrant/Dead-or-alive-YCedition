@@ -36,7 +36,7 @@ export async function generateMetadata({ params }: PitchPageProps): Promise<Meta
     };
   }
 
-  const siteUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://shiporskip.app";
+  const siteUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://yc-archive.com";
   const pitchUrl = `${siteUrl}/pitch/${slug}`;
 
   // Dynamic title showing the idea and current results
