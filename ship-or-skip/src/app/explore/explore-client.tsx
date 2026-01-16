@@ -3,6 +3,7 @@
 import { useState, useCallback } from "react";
 import { SearchBar } from "@/components/explore/search-bar";
 import { FilterBar } from "@/components/explore/filter-bar";
+import { StatsBar } from "@/components/explore/stats-bar";
 
 interface FilterState {
   outcome: string;
@@ -77,23 +78,12 @@ export function ExploreClient() {
 
         {/* Stats Bar Section */}
         <section className="mb-6">
-          <div className="bg-surface rounded-xl p-4">
-            <div className="flex items-center justify-center gap-4 text-sm md:text-base">
-              <span className="font-medium">
-                {stats.total.toLocaleString()} companies
-              </span>
-              <span className="text-foreground/40">|</span>
-              <span>
-                <span className="mr-1">🦄</span>
-                {stats.unicorns.toLocaleString()} unicorns
-              </span>
-              <span className="text-foreground/40">|</span>
-              <span>
-                <span className="mr-1">💀</span>
-                {stats.dead.toLocaleString()} dead
-              </span>
-            </div>
-          </div>
+          <StatsBar
+            total={stats.total}
+            unicorns={stats.unicorns}
+            dead={stats.dead}
+            loading={loading}
+          />
         </section>
 
         {/* Company List Section */}
