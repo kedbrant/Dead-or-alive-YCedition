@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from "react";
 import { SearchBar } from "@/components/explore/search-bar";
+import { FilterBar } from "@/components/explore/filter-bar";
 
 interface FilterState {
   outcome: string;
@@ -30,15 +31,20 @@ export function ExploreClient() {
     dead: 1247,
   });
   const [loading] = useState(false);
+  const [industries] = useState<string[]>([]);
+  const [industriesLoading] = useState(false);
 
   // Suppress unused variable warnings - these will be used in future stories
   void searchQuery;
-  void filters;
-  void setFilters;
 
   const handleSearch = useCallback((query: string) => {
     setSearchQuery(query);
     // TODO: Trigger API call with search query
+  }, []);
+
+  const handleFilterChange = useCallback((newFilters: FilterState) => {
+    setFilters(newFilters);
+    // TODO: Trigger API call with new filters
   }, []);
 
   return (
@@ -61,78 +67,12 @@ export function ExploreClient() {
 
         {/* Filter Bar Section */}
         <section className="mb-6">
-          <div className="bg-surface rounded-xl p-4">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              {/* Outcome Filter */}
-              <div>
-                <label className="block text-xs text-foreground/60 mb-1">
-                  Outcome
-                </label>
-                <select
-                  className="w-full px-3 py-2 bg-background border border-foreground/20 rounded-lg
-                    text-foreground text-sm
-                    focus:outline-none focus:border-ship transition-colors"
-                  disabled
-                >
-                  <option>All</option>
-                  <option>Unicorns</option>
-                  <option>Acquired</option>
-                  <option>Dead</option>
-                  <option>Active</option>
-                </select>
-              </div>
-
-              {/* Industry Filter */}
-              <div>
-                <label className="block text-xs text-foreground/60 mb-1">
-                  Industry
-                </label>
-                <select
-                  className="w-full px-3 py-2 bg-background border border-foreground/20 rounded-lg
-                    text-foreground text-sm
-                    focus:outline-none focus:border-ship transition-colors"
-                  disabled
-                >
-                  <option>All</option>
-                </select>
-              </div>
-
-              {/* Batch Filter */}
-              <div>
-                <label className="block text-xs text-foreground/60 mb-1">
-                  Batch
-                </label>
-                <select
-                  className="w-full px-3 py-2 bg-background border border-foreground/20 rounded-lg
-                    text-foreground text-sm
-                    focus:outline-none focus:border-ship transition-colors"
-                  disabled
-                >
-                  <option>All</option>
-                </select>
-              </div>
-
-              {/* Sort */}
-              <div>
-                <label className="block text-xs text-foreground/60 mb-1">
-                  Sort
-                </label>
-                <select
-                  className="w-full px-3 py-2 bg-background border border-foreground/20 rounded-lg
-                    text-foreground text-sm
-                    focus:outline-none focus:border-ship transition-colors"
-                  disabled
-                >
-                  <option>Newest</option>
-                  <option>Team size</option>
-                  <option>Most votes</option>
-                </select>
-              </div>
-            </div>
-            <p className="text-xs text-foreground/40 mt-2 text-center">
-              Filter functionality coming soon
-            </p>
-          </div>
+          <FilterBar
+            filters={filters}
+            onChange={handleFilterChange}
+            industries={industries}
+            industriesLoading={industriesLoading}
+          />
         </section>
 
         {/* Stats Bar Section */}
