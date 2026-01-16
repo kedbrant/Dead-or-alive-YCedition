@@ -241,10 +241,10 @@ async function importYCData(): Promise<void> {
     const batchNum = Math.floor(i / batchSize) + 1;
     const totalBatches = Math.ceil(ideaRecords.length / batchSize);
 
-    // Use upsert with onConflict on yc_id to allow re-running
+    // Use upsert with onConflict on slug (which has a unique constraint) to allow re-running
+    // We create unique slugs from one_liner + yc_slug so they're deterministic across runs
     const { error } = await supabase.from("ideas").upsert(batch, {
-      onConflict: "yc_id",
-      ignoreDuplicates: false,
+      onConflict: "slug",
     });
 
     if (error) {
