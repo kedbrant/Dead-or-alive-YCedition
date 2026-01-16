@@ -4,12 +4,26 @@ import { useState, useCallback } from "react";
 import { SearchBar } from "@/components/explore/search-bar";
 import { FilterBar } from "@/components/explore/filter-bar";
 import { StatsBar } from "@/components/explore/stats-bar";
+import { CompanyCard } from "@/components/explore/company-card";
+import { SourceOutcome } from "@/lib/supabase/types";
 
 interface FilterState {
   outcome: string;
   industry: string;
   batch: string;
   sort: string;
+}
+
+interface Company {
+  slug: string;
+  yc_name: string;
+  yc_batch: string | null;
+  hero: string;
+  source_outcome: SourceOutcome;
+  yc_industry: string | null;
+  yc_team_size: number | null;
+  ship_percentage: number;
+  total_votes: number;
 }
 
 interface StatsState {
@@ -34,6 +48,7 @@ export function ExploreClient() {
   const [loading] = useState(false);
   const [industries] = useState<string[]>([]);
   const [industriesLoading] = useState(false);
+  const [companies] = useState<Company[]>([]);
 
   // Suppress unused variable warnings - these will be used in future stories
   void searchQuery;
@@ -103,8 +118,24 @@ export function ExploreClient() {
                   </div>
                 ))}
               </>
+            ) : companies.length > 0 ? (
+              // Company cards
+              companies.map((company) => (
+                <CompanyCard
+                  key={company.slug}
+                  slug={company.slug}
+                  name={company.yc_name}
+                  batch={company.yc_batch}
+                  pitch={company.hero}
+                  outcome={company.source_outcome}
+                  industry={company.yc_industry}
+                  teamSize={company.yc_team_size}
+                  shipPercentage={company.ship_percentage}
+                  totalVotes={company.total_votes}
+                />
+              ))
             ) : (
-              // Placeholder for company list
+              // Empty state placeholder
               <div className="bg-surface rounded-xl p-8 text-center">
                 <div className="text-4xl mb-4">🔍</div>
                 <h3 className="text-lg font-semibold mb-2">
