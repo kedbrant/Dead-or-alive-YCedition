@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { SubmitForm, SubmitFormData } from "@/components/submit/submit-form";
 
 interface SubmitResult {
@@ -11,6 +12,9 @@ interface SubmitResult {
 }
 
 export function SubmitClient() {
+  const searchParams = useSearchParams();
+  const initialPitch = searchParams.get("pitch") || "";
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitResult, setSubmitResult] = useState<SubmitResult | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -118,7 +122,7 @@ export function SubmitClient() {
               View Your Pitch
             </Link>
             <Link
-              href="/vote"
+              href="/play"
               className="flex-1 px-6 py-4 border border-foreground/20 text-foreground font-bold rounded-xl text-center
                 transition-all duration-150
                 hover:border-foreground/40 hover:scale-[1.02]
@@ -166,13 +170,23 @@ export function SubmitClient() {
           </ul>
         </div>
 
+        {/* Link to validate page */}
+        <div className="mb-6 text-center">
+          <Link
+            href="/validate"
+            className="text-sm text-foreground/60 hover:text-ship transition-colors"
+          >
+            Want to analyze your pitch first? Compare it to 5,500+ YC companies →
+          </Link>
+        </div>
+
         {error && (
           <div className="mb-6 p-4 bg-skip/10 border border-skip/30 rounded-xl text-skip text-center">
             {error}
           </div>
         )}
 
-        <SubmitForm onSubmit={handleSubmit} isSubmitting={isSubmitting} />
+        <SubmitForm onSubmit={handleSubmit} isSubmitting={isSubmitting} initialHero={initialPitch} />
 
         <p className="text-center text-sm text-foreground/40 mt-6">
           By submitting, you agree to let others vote on your idea.

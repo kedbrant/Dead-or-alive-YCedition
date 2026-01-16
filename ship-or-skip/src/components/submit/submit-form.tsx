@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 const HERO_MAX_LENGTH = 60;
 const SUBTITLE_MAX_LENGTH = 100;
@@ -15,10 +15,18 @@ export interface SubmitFormData {
 interface SubmitFormProps {
   onSubmit: (data: SubmitFormData) => Promise<void>;
   isSubmitting?: boolean;
+  initialHero?: string;
 }
 
-export function SubmitForm({ onSubmit, isSubmitting = false }: SubmitFormProps) {
-  const [hero, setHero] = useState("");
+export function SubmitForm({ onSubmit, isSubmitting = false, initialHero = "" }: SubmitFormProps) {
+  const [hero, setHero] = useState(initialHero);
+
+  // Sync with initialHero when it changes (e.g., from URL param)
+  useEffect(() => {
+    if (initialHero) {
+      setHero(initialHero);
+    }
+  }, [initialHero]);
   const [subtitle, setSubtitle] = useState("");
   const [twitterHandle, setTwitterHandle] = useState("");
   const [link, setLink] = useState("");
