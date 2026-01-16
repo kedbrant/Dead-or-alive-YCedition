@@ -230,7 +230,7 @@ export function BattleClient({ sessionId: initialSessionId }: BattleClientProps)
   }
 
   return (
-    <main className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
+    <main className="min-h-screen bg-background flex flex-col items-center py-4 sm:py-8 px-4 sm:justify-center">
       <div className="w-full max-w-3xl mx-auto">
         {/* Question */}
         <h1 className="text-xl sm:text-2xl font-bold text-center mb-4 sm:mb-8">
@@ -238,7 +238,7 @@ export function BattleClient({ sessionId: initialSessionId }: BattleClientProps)
         </h1>
 
         {/* Battle cards */}
-        <div className="flex flex-col sm:grid sm:grid-cols-2 gap-3 sm:gap-4 mb-4 sm:mb-8 items-stretch sm:items-start">
+        <div className="flex flex-col sm:grid sm:grid-cols-2 gap-3 sm:gap-4 mb-4 sm:mb-8">
           <BattleCard
             hero={battle.left.hero}
             subtitle={battle.left.subtitle}
