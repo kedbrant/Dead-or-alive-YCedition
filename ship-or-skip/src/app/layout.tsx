@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
+import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 import { Navbar } from "@/components/layout/navbar";
 
@@ -64,6 +65,7 @@ export default function RootLayout({
       <body className={`${inter.variable} antialiased bg-background text-foreground min-h-screen`}>
         <Navbar />
         {children}
+        <Analytics />
       </body>
     </html>
   );
