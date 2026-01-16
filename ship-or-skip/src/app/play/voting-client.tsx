@@ -32,12 +32,12 @@ interface VoteResult {
 }
 
 interface VotingClientProps {
-  sessionId: string;
+  sessionId: string | null;
 }
 
 export function VotingClient({ sessionId }: VotingClientProps) {
   const [idea, setIdea] = useState<Idea | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!sessionId); // Start loading if no session
   const [voting, setVoting] = useState(false);
   const [voteResult, setVoteResult] = useState<VoteResult | null>(null);
   const [userVote, setUserVote] = useState<VoteType | null>(null);
@@ -49,6 +49,8 @@ export function VotingClient({ sessionId }: VotingClientProps) {
   const [totalVotesCount, setTotalVotesCount] = useState<number>(0);
 
   const fetchNextIdea = useCallback(async () => {
+    if (!sessionId) return;
+
     setLoading(true);
     setVoteResult(null);
     setUserVote(null);
@@ -93,11 +95,13 @@ export function VotingClient({ sessionId }: VotingClientProps) {
   }, [sessionId]);
 
   useEffect(() => {
-    fetchNextIdea();
-  }, [fetchNextIdea]);
+    if (sessionId) {
+      fetchNextIdea();
+    }
+  }, [sessionId, fetchNextIdea]);
 
   const handleVote = useCallback(async (vote: VoteType) => {
-    if (!idea || voting) return;
+    if (!idea || voting || !sessionId) return;
 
     setVoting(true);
     setUserVote(vote);

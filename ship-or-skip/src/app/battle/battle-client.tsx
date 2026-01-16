@@ -47,10 +47,11 @@ interface BattleResultData {
 }
 
 interface BattleClientProps {
-  sessionId: string;
+  sessionId: string | null;
 }
 
-export function BattleClient({ sessionId }: BattleClientProps) {
+export function BattleClient({ sessionId: initialSessionId }: BattleClientProps) {
+  const [sessionId, setSessionId] = useState<string | null>(initialSessionId);
   const [battle, setBattle] = useState<BattleData | null>(null);
   const [selectedSide, setSelectedSide] = useState<"left" | "right" | null>(null);
   const [result, setResult] = useState<BattleResultData | null>(null);
@@ -59,7 +60,26 @@ export function BattleClient({ sessionId }: BattleClientProps) {
   const [error, setError] = useState<string | null>(null);
   const [noBattles, setNoBattles] = useState(false);
 
+  // Fetch session from API if not provided
+  useEffect(() => {
+    if (sessionId) return;
+
+    async function fetchSession() {
+      try {
+        const response = await fetch("/api/session");
+        if (response.ok) {
+          const data = await response.json();
+          setSessionId(data.sessionId);
+        }
+      } catch {
+        setError("Failed to create session");
+      }
+    }
+    fetchSession();
+  }, [sessionId]);
+
   const fetchBattle = useCallback(async () => {
+    if (!sessionId) return;
     setLoading(true);
     setError(null);
     setResult(null);
@@ -86,8 +106,10 @@ export function BattleClient({ sessionId }: BattleClientProps) {
   }, [sessionId]);
 
   useEffect(() => {
-    fetchBattle();
-  }, [fetchBattle]);
+    if (sessionId) {
+      fetchBattle();
+    }
+  }, [sessionId, fetchBattle]);
 
   const handleSelectSide = (side: "left" | "right") => {
     if (voting || result) return;

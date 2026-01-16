@@ -7,11 +7,12 @@ import { VotingClient } from "./voting-client";
 type GameMode = "classic" | "battle" | null;
 
 interface PlayClientProps {
-  sessionId: string;
+  sessionId: string | null;
 }
 
-export function PlayClient({ sessionId }: PlayClientProps) {
+export function PlayClient({ sessionId: initialSessionId }: PlayClientProps) {
   const router = useRouter();
+  const [sessionId, setSessionId] = useState<string | null>(initialSessionId);
   const [handle, setHandle] = useState<string | null>(null);
   const [inputHandle, setInputHandle] = useState("");
   const [loading, setLoading] = useState(true);
@@ -19,8 +20,28 @@ export function PlayClient({ sessionId }: PlayClientProps) {
   const [error, setError] = useState<string | null>(null);
   const [gameMode, setGameMode] = useState<GameMode>(null);
 
+  // Fetch session from API if not provided
+  useEffect(() => {
+    if (sessionId) return;
+
+    async function fetchSession() {
+      try {
+        const response = await fetch("/api/session");
+        if (response.ok) {
+          const data = await response.json();
+          setSessionId(data.sessionId);
+        }
+      } catch {
+        // Session will be created on next API call
+      }
+    }
+    fetchSession();
+  }, [sessionId]);
+
   // Check if user already has a handle registered
   useEffect(() => {
+    if (!sessionId) return;
+
     async function checkHandle() {
       try {
         const response = await fetch("/api/stats");
@@ -37,7 +58,7 @@ export function PlayClient({ sessionId }: PlayClientProps) {
       }
     }
     checkHandle();
-  }, []);
+  }, [sessionId]);
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();

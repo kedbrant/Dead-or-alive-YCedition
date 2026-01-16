@@ -27,10 +27,11 @@ interface VoteResult {
 
 interface PitchClientProps {
   slug: string;
-  sessionId: string;
+  sessionId: string | null;
 }
 
-export function PitchClient({ slug, sessionId }: PitchClientProps) {
+export function PitchClient({ slug, sessionId: initialSessionId }: PitchClientProps) {
+  const [sessionId, setSessionId] = useState<string | null>(initialSessionId);
   const [pitch, setPitch] = useState<PitchData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -40,7 +41,26 @@ export function PitchClient({ slug, sessionId }: PitchClientProps) {
   const [hasVoted, setHasVoted] = useState(false);
   const [cardAnimationState, setCardAnimationState] = useState<CardAnimationState>("visible");
 
+  // Fetch session from API if not provided
+  useEffect(() => {
+    if (sessionId) return;
+
+    async function fetchSession() {
+      try {
+        const response = await fetch("/api/session");
+        if (response.ok) {
+          const data = await response.json();
+          setSessionId(data.sessionId);
+        }
+      } catch {
+        // Session will be created on next API call
+      }
+    }
+    fetchSession();
+  }, [sessionId]);
+
   const fetchPitch = useCallback(async () => {
+    if (!sessionId) return;
     setLoading(true);
     setError(null);
 
@@ -89,11 +109,13 @@ export function PitchClient({ slug, sessionId }: PitchClientProps) {
   }, [slug, sessionId]);
 
   useEffect(() => {
-    fetchPitch();
-  }, [fetchPitch]);
+    if (sessionId) {
+      fetchPitch();
+    }
+  }, [sessionId, fetchPitch]);
 
   const handleVote = async (vote: VoteType) => {
-    if (!pitch || voting || hasVoted) return;
+    if (!pitch || voting || hasVoted || !sessionId) return;
 
     setVoting(true);
     setUserVote(vote);
