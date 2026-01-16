@@ -137,7 +137,7 @@ export default async function CompanyPage({ params }: CompanyPageProps) {
       <div className="max-w-2xl mx-auto">
         {/* Back link */}
         <Link
-          href="/vote"
+          href="/play"
           className="inline-flex items-center gap-2 text-foreground/60 hover:text-foreground transition-colors mb-6"
         >
           <svg
@@ -361,7 +361,7 @@ export default async function CompanyPage({ params }: CompanyPageProps) {
         {/* Back to voting CTA */}
         <div className="mt-8 text-center">
           <Link
-            href="/vote"
+            href="/play"
             className="text-foreground/60 hover:text-foreground transition-colors"
           >
             ← Continue voting on more companies

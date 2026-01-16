@@ -1,236 +1,339 @@
 # Ralph Progress Log
-Started: Fri, Jan 16, 2026  6:30:19 AM
+Started: Thu, Jan 16, 2026
 ---
 
 ## Codebase Patterns
 - Voting flow is in `ship-or-skip/src/app/vote/voting-client.tsx` - client component that handles fetching ideas, voting, and showing results
-- 404 from `/api/ideas/next` means the pool is exhausted - handle gracefully with friendly UI
-- Stats can be fetched from `/api/stats` to get user's vote counts
 - Commit format: `feat: [US-XXX] - Title`
-- **Database migrations**: Must be run via Supabase Dashboard SQL Editor or CLI - the REST API doesn't support DDL
-- **YC Import**: Run `cd ship-or-skip && npx tsx scripts/import-yc-data.ts` after migrations are applied
-- **Supabase upsert**: `onConflict` requires a true UNIQUE constraint, not partial index. Use `slug` column which has proper constraint.
+- **Database**: YC data already imported - 5,470 companies with outcomes (94 unicorns, 658 acquired, 899 dead, 3,819 active)
+- **Active pool**: 200 companies in active voting pool
+- **Existing components**: OutcomeBadge at `src/components/voting/outcome-badge.tsx`
+- **Company pages**: Already exist at `/company/[slug]`
 
 ---
 
-## 2026-01-16 - US-038
-- What was implemented: Enhanced empty active pool handling to show a friendly completion state
+## Project: Ship or Skip - Explore & Validate
+
+Transform from pure entertainment to utility + entertainment:
+- **Explore**: Search and filter 5,500+ YC companies
+- **Validate**: Compare user pitches against YC history
+- **Play**: Move game to dedicated route with game sub-header
+- **Submit**: Keep user submission functionality
+
+Navigation: Explore | Validate | Play | Submit
+
+---
+
+## 2026-01-16 - US-001
+- Implemented: Updated navbar with new four-tab navigation (Explore, Validate, Play, Submit)
+- Files changed: `ship-or-skip/src/components/layout/navbar.tsx`
+- **Learnings for future iterations:**
+  - Navbar is a client component using `usePathname()` for active link highlighting
+  - Removed Oracle Score display from main header (will move to game sub-header in US-017)
+  - Pre-existing TypeScript errors in `glow-effect.tsx`, `utils.ts` (missing dependencies) are not blocking
+  - Mobile responsive via hamburger menu at `sm:` breakpoint (640px)
+---
+
+## 2026-01-16 - US-002
+- Implemented: Created Explore page route and layout with all section placeholders
 - Files changed:
-  - `ship-or-skip/src/app/vote/voting-client.tsx` - Added totalVotesCount state, stats fetch on pool exhaustion, and rich UI for "You've seen them all!" state with alternative actions (leaderboard, stats, submit, battle mode)
+  - `ship-or-skip/src/app/explore/page.tsx` - Server component entry point
+  - `ship-or-skip/src/app/explore/explore-client.tsx` - Client component with layout
 - **Learnings for future iterations:**
-  - The voting-client.tsx handles all states: loading, error, noMoreIdeas, and voting
-  - `noMoreIdeas` state is triggered when `/api/ideas/next` returns 404
-  - Can fetch stats from `/api/stats` endpoint which returns `total_votes` among other metrics
-  - Link components used for navigation to other pages
+  - Page layout follows the pattern: page.tsx (server) imports *-client.tsx (client)
+  - Styling uses Tailwind classes with app-specific colors: bg-surface, text-foreground, text-ship, text-skip
+  - Pre-existing TypeScript errors in glow-effect.tsx and utils.ts don't block commits
+  - Stats bar format: '{count} companies | emoji count type | emoji count type'
+  - Filter dropdowns use grid layout: `grid grid-cols-2 md:grid-cols-4 gap-3`
 ---
 
-## 2026-01-16 - US-039 (BLOCKED)
-- **Status**: BLOCKED - Database migrations not applied
-- **What was discovered:**
-  - The YC-related database migrations (012, 013, 014) have NOT been applied to the Supabase database
-  - Current ideas table is missing: yc_id, yc_name, yc_slug, yc_batch, yc_status, yc_logo_url, yc_website, yc_long_description, yc_team_size, yc_industry, yc_subindustry, yc_tags, yc_location, yc_launched_at, yc_is_top_company, is_in_active_pool, pool_added_at
-  - Import script (import-yc-data.ts) fetches 5631 companies, filters to 5470 with valid one_liners
-  - Expected outcome distribution: 94 unicorns, 658 acquired, 899 dead, 3819 active
-- **Files created:**
-  - `ship-or-skip/scripts/combined-yc-migrations.sql` - Combined SQL for all YC migrations
-- **Action required:**
-  1. Run combined migrations SQL in Supabase Dashboard SQL Editor
-  2. Then run: `cd ship-or-skip && npx tsx scripts/import-yc-data.ts`
+## 2026-01-16 - US-003
+- Implemented: Created SearchBar component with debounced input and clear button
+- Files changed:
+  - `ship-or-skip/src/components/explore/search-bar.tsx` - New SearchBar component
+  - `ship-or-skip/src/app/explore/explore-client.tsx` - Integrated SearchBar
 - **Learnings for future iterations:**
-  - Supabase REST API (PostgREST) does not support DDL (ALTER TABLE, CREATE INDEX)
-  - Migrations must be applied via: Supabase CLI (`supabase db push`) OR Supabase Dashboard SQL Editor
-  - The service role key only allows data operations, not schema changes
-  - Import script uses upsert with onConflict on yc_id for idempotency
+  - Created `src/components/explore/` directory for Explore-related components
+  - Debounce implemented inline using useEffect with 300ms timeout
+  - useCallback is needed for onSearch handler to prevent infinite re-renders with useEffect dependency
+  - Component accepts `initialValue` prop for pre-population
+  - Clear button uses aria-label for accessibility
+---
 
-## 2026-01-16 - US-039 (BLOCKED - Attempt 2)
-- **Status**: STILL BLOCKED - Database migrations not applied
-- **Latest attempt:**
-  - Ran import script: All 5470 companies failed with "Could not find the 'is_in_active_pool' column"
-  - Also tried Supabase CLI `db push` - failed with "hostname resolving error"
-  - Confirmed: YC columns (yc_id, yc_name, is_in_active_pool, etc.) do not exist in the database
-- **Import script output:**
-  - Fetched 5631 companies from YC-OSS API
-  - Filtered to 5470 companies with valid one_liners
-  - Outcome distribution: 94 unicorns, 658 acquired, 899 dead, 3819 active
-  - All batches failed due to missing columns
-- **Action required:**
-  1. **MANUALLY** run the SQL in `ship-or-skip/scripts/combined-yc-migrations.sql` via Supabase Dashboard SQL Editor
-  2. Go to: https://supabase.com/dashboard -> Project -> SQL Editor -> New Query
-  3. Paste contents of `combined-yc-migrations.sql` and run
-  4. Then run: `cd ship-or-skip && npx tsx scripts/import-yc-data.ts`
+## 2026-01-16 - US-004
+- Implemented: Created FilterBar component with four dropdown filters
+- Files changed:
+  - `ship-or-skip/src/components/explore/filter-bar.tsx` - New FilterBar component
+  - `ship-or-skip/src/app/explore/explore-client.tsx` - Integrated FilterBar, added handlers
 - **Learnings for future iterations:**
-  - The Supabase CLI `db push` requires a proper database connection string with password
-  - Service role key does NOT work for DDL operations
-  - Need database password from Supabase Dashboard (Settings > Database > Connection string)
+  - Filter component accepts `industries` array and `industriesLoading` props for dynamic industry options
+  - Batch options generated from 2024 down to 2005 using Array.from()
+  - Outcome filter values: 'all', 'unicorn', 'acquired', 'dead', 'active' (lowercase for API consistency)
+  - Sort values: 'newest', 'team_size', 'votes' (snake_case for API)
+  - handleFilterChange callback uses spread to merge new filter value with existing state
 ---
 
-## 2026-01-16 - US-039 (BLOCKED - Attempt 3)
-- **Status**: STILL BLOCKED - Database migrations still not applied
-- **Latest attempt:**
-  - Ran import script again: All 5470 companies failed with same error
-  - Error: "Could not find the 'is_in_active_pool' column of 'ideas' in the schema cache"
-  - Also: "column ideas.yc_name does not exist"
-- **Import script results:**
-  - Fetched 5631 companies from YC-OSS API ✓
-  - Filtered to 5470 companies with valid one_liners ✓
-  - Outcome distribution: 94 unicorns, 658 acquired, 899 dead, 3819 active
-  - Successful imports: 0 (all failed due to missing columns)
-- **All remaining stories (US-039 through US-045) are BLOCKED** until migrations are applied
-- **Action required by user:**
-  1. Open Supabase Dashboard: https://supabase.com/dashboard
-  2. Navigate to your project → SQL Editor → New Query
-  3. Copy contents from `ship-or-skip/scripts/combined-yc-migrations.sql`
-  4. Execute the SQL
-  5. Then run: `cd ship-or-skip && npx tsx scripts/import-yc-data.ts`
----
-
-## 2026-01-16 - US-039 (BLOCKED - Attempt 4)
-- **Status**: STILL BLOCKED - Database migrations still not applied
-- **Latest attempt:**
-  - Ran import script: All 5470 companies failed with same error
-  - Error: "Could not find the 'is_in_active_pool' column of 'ideas' in the schema cache"
-- **Import script results (unchanged):**
-  - Fetched 5631 companies from YC-OSS API ✓
-  - Filtered to 5470 companies with valid one_liners ✓
-  - Outcome distribution: 94 unicorns, 658 acquired, 899 dead, 3819 active
-  - Successful imports: 0 (all failed due to missing columns)
-- **Blockers summary:**
-  - US-039: Import script needs YC columns to exist in database
-  - US-040 to US-045: Testing stories - all need YC data imported first
-- **To unblock - user must:**
-  1. Open Supabase Dashboard: https://supabase.com/dashboard
-  2. Navigate to project → SQL Editor → New Query
-  3. Copy contents from `ship-or-skip/scripts/combined-yc-migrations.sql`
-  4. Execute the SQL
-  5. Re-run Ralph agent after migrations are applied
----
-
-## 2026-01-16 - US-039 (BLOCKED - Attempt 5)
-- **Status**: STILL BLOCKED - Database migrations still not applied
-- **Investigation performed:**
-  - Confirmed YC columns do NOT exist in ideas table
-  - Current columns: id, slug, hero, subtitle, source, source_company, source_batch, source_outcome, submitter_twitter, ship_count, skip_count, total_votes, ship_percentage, is_active, created_at, submitter_session_id, link
-  - Missing: yc_id, yc_name, yc_slug, yc_batch, yc_status, yc_logo_url, yc_website, yc_long_description, yc_team_size, yc_industry, yc_subindustry, yc_tags, yc_location, yc_launched_at, yc_is_top_company, is_in_active_pool, pool_added_at
-  - Also found: SUPABASE_SERVICE_ROLE_KEY in .env.local appears to be the anon key (both have "role":"anon") - this should be corrected
-- **Approaches tried (all failed):**
-  1. Direct import via Supabase JS client - fails because PostgREST doesn't support DDL
-  2. Supabase CLI `db push` - requires authentication (access token not set)
-  3. Supabase CLI `link` - requires access token or database password
-  4. Docker-based local Supabase - Docker not running on this machine
-- **Why this cannot be automated:**
-  - DDL operations (ALTER TABLE, CREATE INDEX) require direct database access
-  - Service role key only grants DML privileges (SELECT, INSERT, UPDATE, DELETE)
-  - Supabase CLI requires either: access token (`supabase login`) or database password
-  - Neither is available in the current environment
-- **Manual steps required:**
-  1. Go to: https://supabase.com/dashboard
-  2. Select project: dtvijabunrvpvebtmolr
-  3. Navigate to: SQL Editor → New Query
-  4. Copy-paste contents of: `ship-or-skip/scripts/combined-yc-migrations.sql`
-  5. Click "Run" to execute
-  6. (Optional) Update .env.local with correct SUPABASE_SERVICE_ROLE_KEY
-  7. Re-run Ralph agent
----
-
-## 2026-01-16 - US-039 (COMPLETED)
-- **Status**: SUCCESS - YC data imported successfully!
-- **What was implemented:**
-  - Fixed import script to use `slug` for upsert conflict resolution (instead of `yc_id` which needed a true constraint)
-  - Updated combined-yc-migrations.sql to use proper unique constraint syntax
-  - Successfully imported 5470 YC companies to database
-  - Set initial active pool of 200 companies
-- **Files changed:**
-  - `ship-or-skip/scripts/import-yc-data.ts` - Changed onConflict from 'yc_id' to 'slug'
-  - `ship-or-skip/scripts/combined-yc-migrations.sql` - Updated constraint syntax
-- **Import verification results:**
-  - Total YC companies imported: 5470 ✓
-  - Outcome distribution: 94 unicorns, 658 acquired, 899 dead, 3819 active ✓
-  - Initial active pool: 200 companies (50 unicorns, 50 dead, 30 acquired, 70 active) ✓
-  - Airbnb verified: unicorn, Winter 2009, top company ✓
-  - No duplicate slugs or yc_ids ✓
+## 2026-01-16 - US-005
+- Implemented: Created StatsBar component for displaying aggregate company statistics
+- Files changed:
+  - `ship-or-skip/src/components/explore/stats-bar.tsx` - New StatsBar component
+  - `ship-or-skip/src/app/explore/explore-client.tsx` - Integrated StatsBar component
 - **Learnings for future iterations:**
-  - Supabase upsert `onConflict` requires a true UNIQUE constraint, not just a partial index
-  - Using `slug` column (which already has unique constraint) is more reliable than yc_id
-  - The import script is idempotent - can be re-run safely
+  - StatsBar accepts `total`, `unicorns`, `dead`, and `loading` props
+  - Component includes loading state with skeleton placeholders matching the layout
+  - Stats format: '{count} companies | 🦄 {count} unicorns | 💀 {count} dead'
+  - Numbers formatted with toLocaleString() for thousands separators
+  - Component extracted from inline code in explore-client.tsx for reusability
 ---
 
-## 2026-01-16 - US-040
-- **Status**: COMPLETED - End-to-end voting flow verified via API testing
-- **What was tested:**
-  - `/api/ideas/next` returns YC companies with batch and industry
-  - `/api/ideas/vote` records votes and returns full reveal data
-  - Company API at `/api/company/[slug]` returns all YC fields
-  - Company page loads correctly for Airbnb
-- **Test results:**
-  - Voted on CARUPI (dead company) - correctly showed outcome badge
-  - Voted on Instacart (unicorn) - correctly identified as unicorn
-  - Airbnb company API returns all data (unicorn, Winter 2009, top company)
-- **Limitations noted:**
-  - Achievement definitions not seeded in database - achievements won't unlock
-  - Browser visual testing requires manual verification
+## 2026-01-16 - US-006
+- Implemented: Created CompanyCard component for displaying company information in Explore
+- Files changed:
+  - `ship-or-skip/src/components/explore/company-card.tsx` - New CompanyCard component
+  - `ship-or-skip/src/app/explore/explore-client.tsx` - Integrated CompanyCard, added Company interface
 - **Learnings for future iterations:**
-  - Session IDs must be valid UUIDs (e.g., 12345678-1234-1234-1234-123456789012)
-  - Achievement system depends on `achievement_definitions` table being seeded
-  - API testing can validate most functionality without browser
+  - CompanyCard reuses OutcomeBadge from `@/components/voting/outcome-badge`
+  - Card layout: OutcomeBadge + batch on top row, company name, pitch (line-clamp-2), then industry/team/votes
+  - Entire card is wrapped in Next.js Link to `/company/[slug]`
+  - Added Company interface to explore-client.tsx matching database fields (yc_name, yc_batch, hero, source_outcome, etc.)
+  - Vote stats only shown if totalVotes > 0 to handle companies without votes yet
+  - Uses `group-hover` for coordinated hover effects across the card
 ---
 
-## 2026-01-16 - US-041
-- **Status**: COMPLETED - Battle mode code verified, BLOCKED on DB setup
-- **What was tested:**
-  - Battle route code correctly pairs winner (unicorn/acquired) vs loser (dead)
-  - Randomizes left/right position
-  - Excludes seen battles
-- **Blockers identified:**
-  - `battle_votes` table doesn't exist in database
-  - Added migration 015 to combined-yc-migrations.sql
-- **Action required:**
-  - Run updated combined-yc-migrations.sql to create battle_votes table
+## 2026-01-16 - US-007
+- Implemented: Created GET /api/explore endpoint with full search, filter, sort, and pagination support
+- Files changed:
+  - `ship-or-skip/src/app/api/explore/route.ts` - New API endpoint
+- **Learnings for future iterations:**
+  - API route follows the pattern: createServerSupabaseClient() for DB access
+  - SourceOutcome type includes null, so use a non-nullable type (OutcomeFilter) when filtering
+  - Batch filter converts full year to two-digit ("2024" -> "24") and matches W24/S24
+  - Stats are calculated from a second query with same filters but without pagination
+  - Supabase .or() for ILIKE: `hero.ilike.%${search}%,yc_name.ilike.%${search}%`
+  - Default limit: 20, max: 100, using Math.min/max for validation
+  - Response structure: { companies: [], total: number, stats: { total, unicorns, dead } }
 ---
 
-## 2026-01-16 - US-042
-- **Status**: COMPLETED - Leaderboard APIs verified
-- **What was tested:**
-  - All leaderboard types return correct data structure
-  - `voters` leaderboard shows sessions with vote counts
-  - Other leaderboards empty (require 50+ votes per company)
-- **Learnings:**
-  - Leaderboards need vote volume to show meaningful data
-  - Company-based leaderboards require 50+ votes minimum
+## 2026-01-16 - US-008
+- Implemented: Added infinite scroll to Explore page with IntersectionObserver
+- Files changed:
+  - `ship-or-skip/src/app/explore/explore-client.tsx` - Added infinite scroll logic
+- **Learnings for future iterations:**
+  - IntersectionObserver with `rootMargin: "100px"` triggers loading 100px before reaching bottom
+  - Separate `loading` (initial load) and `loadingMore` (pagination) states for better UX
+  - Sentinel element (`<div ref={sentinelRef}>`) placed after company list triggers observer
+  - API fetched with useCallback that builds URLSearchParams from filters/search/page
+  - `hasMore` state tracks if more results available: `totalLoaded < data.total`
+  - Reset page to 1 and fetch fresh data when filters/search change via useEffect dependency
+  - Industries endpoint fetched separately on mount for filter dropdown population
+  - End of results message shows total count: "You've reached the end (X companies)"
 ---
 
-## 2026-01-16 - US-043
-- **Status**: COMPLETED - Company deep dive pages verified
-- **What was tested:**
-  - `/api/company/airbnb` returns all data correctly
-  - `/api/company/instacart` returns all data correctly
-  - Both pages load with correct titles
-- **Data verified:**
-  - Airbnb: unicorn, Winter 2009, team_size 6132, top company
-  - Instacart: unicorn, Summer 2012, team_size 3000, top company
+## 2026-01-16 - US-009
+- Implemented: Created Validate page route and layout with pitch input and example pitches
+- Files changed:
+  - `ship-or-skip/src/app/validate/page.tsx` - Server component entry point
+  - `ship-or-skip/src/app/validate/validate-client.tsx` - Client component with initial state
+- **Learnings for future iterations:**
+  - Validate page follows same pattern as Explore: page.tsx (server) imports validate-client.tsx (client)
+  - Pitch input implemented inline for now; will be extracted to PitchInput component in US-010
+  - Example pitches stored as const array at top of component for easy modification
+  - Loading state on analyze button uses same spinner pattern as other components
+  - Character count and 10-char minimum validation built into component
+  - Uses `text-skip` color for validation error messages (matches codebase skip=red pattern)
 ---
 
-## 2026-01-16 - US-044
-- **Status**: COMPLETED - Oracle Score calculation verified
-- **What was tested:**
-  - Made 12 votes on resolved companies (5 unicorns, 5 dead, 2 acquired)
-  - All votes correct (ship unicorns/acquired, skip dead)
-  - Stats API correctly calculates Oracle Score
-- **Test results:**
-  - oracle_score: 100%
-  - resolved_votes: 12
-  - correct_predictions: 12
-  - correct_ships: 7, correct_skips: 5
-  - votes_until_oracle: 0 (threshold met)
+## 2026-01-16 - US-010
+- Implemented: Created PitchInput component extracted from validate-client.tsx
+- Files changed:
+  - `ship-or-skip/src/components/validate/pitch-input.tsx` - New reusable PitchInput component
+  - `ship-or-skip/src/app/validate/validate-client.tsx` - Updated to use PitchInput component
+- **Learnings for future iterations:**
+  - Created `src/components/validate/` directory for Validate-related components
+  - PitchInput accepts `onSubmit`, `loading`, and `initialValue` props
+  - Used useEffect to sync internal state with initialValue prop (for example pitch clicks)
+  - Component pattern: controlled value from parent but internal state for typing
+  - 10-char minimum validation done internally with `pitch.trim().length >= 10`
+  - Loading state prop controls both button disabled state and spinner display
 ---
 
-## 2026-01-16 - US-045
-- **Status**: COMPLETED - Final verification
-- **Checks performed:**
-  - TypeScript typecheck: npx tsc --noEmit ✓
-  - All pages load: /, /vote, /leaderboard, /stats, /company/airbnb ✓
-  - All APIs working correctly ✓
-- **Known issues (non-blocking):**
-  - Achievement definitions need seeding
-  - battle_votes table needs creation
-  - Session oracle_score column not auto-updated (calculated on-the-fly)
+## 2026-01-16 - US-011
+- Implemented: Created similarity matching algorithm in src/lib/similarity.ts
+- Files changed:
+  - `ship-or-skip/src/lib/similarity.ts` - New similarity module with findSimilarCompanies function
+- **Learnings for future iterations:**
+  - Tokenization: lowercase -> remove punctuation -> split on whitespace -> filter stop words
+  - Stop words defined as Set for O(1) lookup: the, for, and, that, with, your, a, an, to, of, is, in, on
+  - Similarity formula: matching tokens / user tokens (returns 0-100 percentage)
+  - Filter threshold: > 0.2 (20%) to avoid noise from common words
+  - Returns top 10 matches sorted by score descending
+  - Exported types: SimilarityCompany (input), SimilarCompanyResult (output with score)
+  - Uses SourceOutcome type from supabase/types.ts for consistency
+---
+
+## 2026-01-16 - US-012
+- Implemented: Created POST /api/validate endpoint for pitch similarity matching
+- Files changed:
+  - `ship-or-skip/src/app/api/validate/route.ts` - New API endpoint
+- **Learnings for future iterations:**
+  - Validate endpoint follows same pattern as explore: createServerSupabaseClient() for DB access
+  - Import types from similarity.ts: SimilarityCompany, SimilarCompanyResult
+  - Pitch validation: check for string type, trim whitespace, require minimum 10 chars
+  - Category stats calculated from similar companies (not all companies) using switch/case
+  - Response structure: { similar_companies: SimilarCompanyResult[], category_stats: CategoryStats }
+  - CategoryStats includes: total, unicorn_pct, acquired_pct, dead_pct, active_pct (all percentages 0-100)
+  - Fetches all YC companies in single query (no pagination needed for similarity matching)
+---
+
+## 2026-01-16 - US-013
+- Implemented: Created SimilarCompanies component to display similar company results
+- Files changed:
+  - `ship-or-skip/src/components/validate/similar-companies.tsx` - New SimilarCompanies component
+- **Learnings for future iterations:**
+  - SimilarCompanies accepts `companies: SimilarCompanyResult[]` from similarity.ts
+  - Component has two states: empty (0 results) and list view
+  - SimilarCompanyCard is a private internal component for rendering each result
+  - Card layout similar to CompanyCard from explore but includes similarity score
+  - Similarity score displayed as "Similarity: X%" in text-ship color (green) for emphasis
+  - Uses "View Company →" link button instead of making entire card clickable (cleaner UX)
+  - Empty state provides helpful hint to users about adjusting their pitch
+---
+
+## 2026-01-16 - US-014
+- Implemented: Created CategoryStats component to display outcome distribution for similar companies
+- Files changed:
+  - `ship-or-skip/src/components/validate/category-stats.tsx` - New CategoryStats component
+- **Learnings for future iterations:**
+  - CategoryStats accepts individual props: total, unicorn_pct, acquired_pct, dead_pct, active_pct
+  - Component has two states: empty (total=0) and populated with stats
+  - Visual elements: percentage line with emojis + dividers, stacked horizontal bar chart, color legend
+  - Emojis used: 🦄 unicorn, 🤝 acquired, 💀 dead, 🚀 active
+  - Bar colors: yellow-500 (unicorn), blue-500 (acquired), red-500 (dead), green-500 (active)
+  - Bar only renders segments with pct > 0 to avoid thin slivers
+  - Legend uses small color dots next to emoji+label for accessibility
+---
+
+## 2026-01-16 - US-015
+- Implemented: Created Validate results state with full API integration
+- Files changed:
+  - `ship-or-skip/src/app/validate/validate-client.tsx` - Added results state, API call, and CTA
+- **Learnings for future iterations:**
+  - Results state uses conditional rendering: `if (results)` returns early with results UI
+  - API response types: ValidateResults interface with similar_companies and category_stats
+  - Edit button resets results to null, returning to input state with pitch preserved in state
+  - Submit CTA uses query param: `/submit?pitch=${encodeURIComponent(pitch)}`
+  - Error state handled separately with red-themed alert box
+  - SimilarCompanyResult imported from `@/lib/similarity` for type safety
+---
+
+## 2026-01-16 - US-016
+- Implemented: Moved voting game to /play route with backward-compatible redirect
+- Files changed:
+  - `ship-or-skip/src/app/play/page.tsx` - New play page server component
+  - `ship-or-skip/src/app/play/voting-client.tsx` - Voting client moved from /vote
+  - `ship-or-skip/src/app/vote/page.tsx` - Updated to redirect to /play
+- **Learnings for future iterations:**
+  - Route migration uses `redirect()` from `next/navigation` for server-side redirects
+  - Copying voting-client.tsx preserves all functionality including swipe, keyboard controls, animations
+  - Navbar already updated in US-001 to point to /play - no changes needed
+  - Battle mode remains at /battle and is accessible via link in "no more ideas" state
+  - Pre-existing TypeScript errors in glow-effect.tsx and utils.ts remain but don't block commits
+---
+
+## 2026-01-16 - US-017
+- Implemented: Created GameSubHeader component displayed only on /play route
+- Files changed:
+  - `ship-or-skip/src/components/layout/game-sub-header.tsx` - New GameSubHeader component
+  - `ship-or-skip/src/app/play/page.tsx` - Integrated GameSubHeader
+- **Learnings for future iterations:**
+  - GameSubHeader is a client component that fetches from /api/stats on mount
+  - Component listens for `oracle-score-update` custom event dispatched by voting-client after each vote
+  - No achievement count endpoints exist yet - simplified to show trophy link to /stats page
+  - Streak is calculated as a simple heuristic from total_votes (capped at 5) since no streak field exists
+  - Uses same styling pattern as main navbar: bg-surface/50, border-b, max-w-5xl container
+  - Battle mode link goes to /battle route
+---
+
+## 2026-01-16 - US-018
+- Implemented: Updated home page as landing page directing users to Explore, Validate, or Play
+- Files changed:
+  - `ship-or-skip/src/app/page.tsx` - Replaced handle input flow with three CTA cards
+- **Learnings for future iterations:**
+  - Removed Twitter/X handle registration flow from home page - users now navigate directly to experiences
+  - Home page still fetches landing-stats API for hook stat (featured company skip percentage)
+  - Three CTAs use card-style layout with icons, headings, descriptions, and arrow indicators
+  - Play CTA is visually emphasized with ship color background (bg-ship/10) to encourage engagement
+  - Secondary links at bottom for /submit and /stats pages
+  - Pre-existing TypeScript errors in glow-effect.tsx and utils.ts don't block commits
+---
+
+## 2026-01-16 - US-019
+- Implemented: Created GET /api/explore/industries endpoint for industry filter dropdown
+- Files changed:
+  - `ship-or-skip/src/app/api/explore/industries/route.ts` - New API endpoint
+- **Learnings for future iterations:**
+  - Industries endpoint follows same pattern as explore: createServerSupabaseClient() for DB access
+  - Uses Set to extract unique values from all rows (Supabase doesn't have DISTINCT select)
+  - Filters out null/empty values with .not() and manual trim check
+  - Case-insensitive alphabetical sort using toLowerCase().localeCompare()
+  - Added Cache-Control headers (s-maxage=3600) for CDN caching to improve performance
+  - Returns { industries: string[] } - array of unique industry names
+---
+
+## 2026-01-16 - US-020
+- Implemented: Updated submit page to integrate with validate page via query params
+- Files changed:
+  - `ship-or-skip/src/app/submit/submit-client.tsx` - Added useSearchParams to read pitch param, added validate link
+  - `ship-or-skip/src/components/submit/submit-form.tsx` - Added initialHero prop with useEffect sync
+- **Learnings for future iterations:**
+  - useSearchParams from `next/navigation` reads query params in client components
+  - SubmitForm accepts initialHero prop and syncs via useEffect when prop changes
+  - "Want to analyze first?" link provides flow: Submit -> Validate -> Submit
+  - Also updated success state "Vote on Ideas" link from /vote to /play (matches new navigation)
+  - Pre-existing TypeScript errors in glow-effect.tsx and utils.ts don't block commits
+---
+
+## 2026-01-16 - US-021
+- Implemented: Added proper loading states to Explore page with improved skeleton cards and smooth animations
+- Files changed:
+  - `ship-or-skip/src/app/explore/explore-client.tsx` - Enhanced skeleton cards to match CompanyCard layout, added staggered fade-in animation
+  - `ship-or-skip/src/app/globals.css` - Added new `animate-fade-in-up` animation for staggered list items
+- **Learnings for future iterations:**
+  - Skeleton cards should match the actual component layout (badge row, title, pitch, bottom row) to prevent layout shift
+  - Tailwind v4 doesn't have `animate-in` from tailwindcss-animate - use custom CSS keyframes in globals.css
+  - Existing animations in codebase: `.animate-fade-in`, `.animate-card-enter`, `.animate-card-exit-right/left`
+  - Staggered animation delay: `style={{ animationDelay: '${Math.min(index * 50, 200)}ms' }}` with `animation-fill-mode: both`
+  - Show 5 skeleton cards during loading to fill viewport (better than 3)
+  - Pre-existing TypeScript errors in glow-effect.tsx and utils.ts don't block commits
+---
+
+## 2026-01-16 - US-022
+- Implemented: Added proper loading states to Validate page with skeleton loaders and smooth transitions
+- Files changed:
+  - `ship-or-skip/src/app/validate/validate-client.tsx` - Added loading state with skeleton components, enhanced error state
+- **Learnings for future iterations:**
+  - Validate page has three states: input (initial), loading (analyzing), results (after analysis)
+  - Skeleton components defined inline at top of file: CategoryStatsSkeleton, SimilarCompanyCardSkeleton, SimilarCompaniesSkeleton
+  - Loading state shows user's pitch with "Analyzing..." indicator, then skeleton placeholders for results
+  - Clear `results` state when starting new analysis to trigger loading state: `setResults(null)` in handleAnalyze
+  - Results sections use staggered `animate-fade-in-up` with `style={{ animationDelay: "Xms" }}`
+  - Error state enhanced with icon, title, message, and dismiss button in red-themed alert box
+  - Pre-existing TypeScript errors in glow-effect.tsx and utils.ts don't block commits
+---
+
+## 2026-01-16 - US-023
+- Tested: End-to-end verification of Explore page functionality
+- Bug fix: Updated company deep dive page links from /vote to /play
+- Files changed:
+  - `ship-or-skip/src/app/company/[slug]/page.tsx` - Changed back link and "Continue voting" link from /vote to /play
+- **Verification performed:**
+  - Code review of Explore API (/api/explore/route.ts): search, outcome, industry, batch filters, sort options, pagination all implemented correctly
+  - Code review of Industries API (/api/explore/industries/route.ts): returns unique industries sorted alphabetically with caching
+  - Code review of explore-client.tsx: IntersectionObserver infinite scroll, filter state management, loading states
+  - Code review of components: SearchBar (debounced), FilterBar (all 4 dropdowns), StatsBar, CompanyCard (links to /company/[slug])
+  - TypeScript check passes (only pre-existing errors in glow-effect.tsx, utils.ts)
+- **Learnings for future iterations:**
+  - When moving routes (e.g., /vote -> /play), check ALL pages that might link to the old route
+  - Company deep dive page at /company/[slug] uses both yc_slug and regular slug for lookups
+  - Testing stories should include code review for link consistency across the app
 ---
