@@ -35,24 +35,24 @@ export function BattleCard({
       onClick={onClick}
       disabled={disabled}
       className={`
-        w-full bg-gradient-to-br from-surface to-surface/80 rounded-2xl p-5
+        w-full bg-gradient-to-br from-surface to-surface/80 rounded-2xl p-6
         border-2 transition-all duration-200
         ${getBorderStyle()}
         ${!disabled ? "cursor-pointer hover:scale-[1.02] active:scale-[0.98]" : "cursor-default"}
         ${disabled && !isWinner && !isLoser ? "opacity-60" : ""}
-        flex flex-col text-left min-h-[200px]
+        flex flex-col text-left
       `}
     >
       {/* Quote mark */}
       <div className="text-3xl text-foreground/10 font-serif leading-none mb-1 select-none">&ldquo;</div>
 
       {/* Hero pitch */}
-      <h3 className="text-lg font-bold leading-tight mb-2 flex-grow">
+      <h3 className="text-xl font-bold leading-tight mb-3">
         {hero}
       </h3>
 
       {/* Subtitle */}
-      <p className="text-sm text-foreground/70 leading-relaxed mb-3 line-clamp-2">
+      <p className="text-sm text-foreground/70 leading-relaxed mb-4 flex-grow">
         {subtitle}
       </p>
 

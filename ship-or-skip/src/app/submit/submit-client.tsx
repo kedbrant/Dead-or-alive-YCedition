@@ -176,7 +176,7 @@ export function SubmitClient() {
             href="/validate"
             className="text-sm text-foreground/60 hover:text-ship transition-colors"
           >
-            Want to analyze your pitch first? Compare it to 5,500+ YC companies →
+            Want to analyze your pitch first? Compare it to 5,400+ YC companies →
           </Link>
         </div>
 

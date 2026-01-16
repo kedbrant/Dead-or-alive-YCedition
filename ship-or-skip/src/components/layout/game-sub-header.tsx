@@ -76,24 +76,37 @@ export function GameSubHeader() {
             </div>
 
             {/* Oracle Score */}
-            <div className="flex items-center gap-1.5">
+            <Link
+              href="/stats"
+              className="flex items-center gap-1.5 hover:opacity-80 transition-opacity"
+              title="Oracle Score - Your accuracy at predicting startup outcomes"
+            >
               <span className="text-base">🔮</span>
               {stats?.oracle_score !== null && stats?.oracle_score !== undefined ? (
                 <span className="text-purple-400 font-semibold">{stats.oracle_score}%</span>
               ) : (
                 <span className="text-foreground/50 text-xs">
-                  Vote {stats?.votes_until_oracle ?? 10} more
+                  {stats?.votes_until_oracle ?? 10} to unlock
                 </span>
               )}
-            </div>
+            </Link>
 
-            {/* Achievements - link to stats page */}
+            {/* Stats link */}
             <Link
               href="/stats"
               className="flex items-center gap-1.5 hover:text-ship transition-colors"
             >
+              <span className="text-base">📊</span>
+              <span className="text-foreground/70 text-xs hidden sm:inline">Stats</span>
+            </Link>
+
+            {/* Leaderboard link */}
+            <Link
+              href="/leaderboard"
+              className="flex items-center gap-1.5 hover:text-ship transition-colors"
+            >
               <span className="text-base">🏆</span>
-              <span className="text-foreground/70 text-xs">Stats</span>
+              <span className="text-foreground/70 text-xs hidden sm:inline">Leaders</span>
             </Link>
           </div>
 

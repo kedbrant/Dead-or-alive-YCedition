@@ -49,7 +49,7 @@ export function CompanyCard({
         </h3>
 
         {/* One-liner pitch */}
-        <p className="text-foreground/80 text-sm mb-4 line-clamp-2">{pitch}</p>
+        <p className="text-foreground/80 text-sm mb-4">{pitch}</p>
 
         {/* Bottom row: Industry, Team size, Vote stats */}
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-foreground/60">

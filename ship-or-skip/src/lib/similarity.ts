@@ -1,5 +1,78 @@
 import { SourceOutcome } from "./supabase/types";
 
+// Industry keywords mapping - maps keywords to YC industry categories
+const INDUSTRY_KEYWORDS: Record<string, string[]> = {
+  "Fintech": [
+    "payment", "payments", "banking", "bank", "finance", "financial", "fintech",
+    "lending", "loan", "loans", "credit", "insurance", "investing", "investment",
+    "crypto", "cryptocurrency", "blockchain", "defi", "wallet", "money", "trading"
+  ],
+  "Healthcare": [
+    "health", "healthcare", "medical", "medicine", "doctor", "hospital", "patient",
+    "diagnosis", "therapy", "clinical", "biotech", "pharma", "drug", "wellness",
+    "mental health", "telemedicine", "telehealth"
+  ],
+  "B2B Software and Services": [
+    "saas", "b2b", "enterprise", "software", "platform", "api", "automation",
+    "workflow", "productivity", "crm", "erp", "analytics", "dashboard", "tool"
+  ],
+  "Consumer": [
+    "consumer", "shopping", "retail", "ecommerce", "e-commerce", "marketplace",
+    "food", "delivery", "restaurant", "fashion", "clothing", "travel", "booking",
+    "social", "dating", "entertainment", "gaming", "game", "music", "video"
+  ],
+  "Education": [
+    "education", "learning", "school", "university", "student", "teacher", "course",
+    "training", "edtech", "tutoring", "classroom", "curriculum"
+  ],
+  "Real Estate and Construction": [
+    "real estate", "property", "housing", "home", "apartment", "rent", "rental",
+    "construction", "building", "architecture", "mortgage"
+  ],
+  "Industrials": [
+    "manufacturing", "factory", "industrial", "supply chain", "logistics",
+    "warehouse", "shipping", "freight", "robotics", "automation", "hardware"
+  ],
+  "Government": [
+    "government", "civic", "public sector", "municipal", "federal", "compliance",
+    "regulation", "policy"
+  ],
+};
+
+/**
+ * Detects the most likely industry based on pitch keywords
+ */
+export function detectIndustry(pitch: string): string | null {
+  const lowerPitch = pitch.toLowerCase();
+  const scores: Record<string, number> = {};
+
+  for (const [industry, keywords] of Object.entries(INDUSTRY_KEYWORDS)) {
+    let score = 0;
+    for (const keyword of keywords) {
+      if (lowerPitch.includes(keyword)) {
+        // Longer keywords are more specific, give them more weight
+        score += keyword.length > 5 ? 2 : 1;
+      }
+    }
+    if (score > 0) {
+      scores[industry] = score;
+    }
+  }
+
+  // Find the industry with the highest score
+  let bestIndustry: string | null = null;
+  let bestScore = 0;
+
+  for (const [industry, score] of Object.entries(scores)) {
+    if (score > bestScore) {
+      bestScore = score;
+      bestIndustry = industry;
+    }
+  }
+
+  return bestIndustry;
+}
+
 // Stop words to filter out during tokenization
 const STOP_WORDS = new Set([
   "the",

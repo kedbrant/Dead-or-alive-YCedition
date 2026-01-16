@@ -3,25 +3,8 @@
 import { useState, useEffect, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { OutcomeBadge } from "@/components/voting/outcome-badge";
-import type { SourceOutcome } from "@/lib/supabase/types";
 
-type LeaderboardType = "biggest_misses" | "biggest_fools" | "controversial" | "favorites" | "user_submissions" | "voters";
-
-interface LeaderboardItem {
-  id: string;
-  slug: string;
-  hero: string;
-  subtitle: string;
-  ship_percentage: number;
-  total_votes: number;
-  submitter_twitter: string | null;
-  source: string;
-  source_company: string | null;
-  yc_slug: string | null;
-  yc_name: string | null;
-  source_outcome: SourceOutcome;
-}
+type LeaderboardType = "voters" | "most_ships";
 
 interface VoterItem {
   id: string;
@@ -35,15 +18,11 @@ interface VoterItem {
 }
 
 const TABS: { type: LeaderboardType; label: string }[] = [
-  { type: "biggest_misses", label: "Biggest Misses" },
-  { type: "biggest_fools", label: "Biggest Fools" },
-  { type: "controversial", label: "Controversial" },
-  { type: "favorites", label: "Crowd Favorites" },
-  { type: "user_submissions", label: "User Submissions" },
   { type: "voters", label: "Top Voters" },
+  { type: "most_ships", label: "Most Ships" },
 ];
 
-const DEFAULT_TAB: LeaderboardType = "biggest_misses";
+const DEFAULT_TAB: LeaderboardType = "voters";
 
 function isValidTab(tab: string | null): tab is LeaderboardType {
   return tab !== null && TABS.some((t) => t.type === tab);
@@ -55,7 +34,6 @@ export function LeaderboardClient() {
   const tabParam = searchParams.get("tab");
   const activeTab = isValidTab(tabParam) ? tabParam : DEFAULT_TAB;
 
-  const [items, setItems] = useState<LeaderboardItem[]>([]);
   const [voters, setVoters] = useState<VoterItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -70,13 +48,7 @@ export function LeaderboardClient() {
         throw new Error("Failed to fetch leaderboard");
       }
       const data = await response.json();
-      if (type === "voters") {
-        setVoters(data);
-        setItems([]);
-      } else {
-        setItems(data);
-        setVoters([]);
-      }
+      setVoters(data);
     } catch {
       setError("Failed to load leaderboard. Please try again.");
     } finally {
@@ -90,31 +62,6 @@ export function LeaderboardClient() {
 
   const handleTabChange = (type: LeaderboardType) => {
     router.push(`/leaderboard?tab=${type}`, { scroll: false });
-  };
-
-  const getDisplayName = (item: LeaderboardItem) => {
-    // For YC companies, show the company name
-    if (item.source === "yc" && item.yc_name) {
-      return item.yc_name;
-    }
-    if (item.submitter_twitter) {
-      return `@${item.submitter_twitter}`;
-    }
-    if (item.source_company) {
-      return item.source_company;
-    }
-    if (item.source === "famous") {
-      return "Famous";
-    }
-    return "User";
-  };
-
-  const getItemLink = (item: LeaderboardItem) => {
-    // YC companies link to /company/[slug], others to /pitch/[slug]
-    if (item.source === "yc" && item.yc_slug) {
-      return `/company/${item.yc_slug}`;
-    }
-    return `/pitch/${item.slug}`;
   };
 
   return (
@@ -181,70 +128,17 @@ export function LeaderboardClient() {
         )}
 
         {/* Empty State */}
-        {!loading && !error && items.length === 0 && voters.length === 0 && (
+        {!loading && !error && voters.length === 0 && (
           <div className="text-center py-12">
             <p className="text-foreground/60 text-lg">
-              {activeTab === "voters"
-                ? "No voters yet. Be the first!"
-                : activeTab === "user_submissions"
-                ? "No user submissions with enough votes yet."
-                : "No ideas to show yet."}
+              No voters yet. Be the first!
             </p>
             <Link
-              href="/vote"
+              href="/play"
               className="inline-block mt-4 px-6 py-3 bg-ship text-background font-semibold rounded-lg hover:scale-[1.02] active:scale-[0.98] transition-transform"
             >
               Start Voting
             </Link>
-          </div>
-        )}
-
-        {/* Leaderboard Rows */}
-        {!loading && !error && items.length > 0 && (
-          <div className="space-y-2">
-            {items.map((item, index) => (
-              <Link
-                key={item.id}
-                href={getItemLink(item)}
-                className="block bg-surface rounded-lg p-4 hover:bg-surface/80 transition-colors group"
-              >
-                <div className="flex items-center gap-4">
-                  {/* Rank */}
-                  <div className="w-8 h-8 flex items-center justify-center rounded-full bg-foreground/10 text-foreground/80 font-bold text-sm">
-                    {index + 1}
-                  </div>
-
-                  {/* Idea Info */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <h3 className="font-semibold text-foreground truncate group-hover:text-ship transition-colors">
-                        {item.hero}
-                      </h3>
-                      {item.source_outcome && (
-                        <OutcomeBadge outcome={item.source_outcome} size="sm" />
-                      )}
-                    </div>
-                    <p className="text-sm text-foreground/60">
-                      {getDisplayName(item)}
-                    </p>
-                  </div>
-
-                  {/* Stats */}
-                  <div className="text-right flex-shrink-0">
-                    <p
-                      className={`font-bold ${
-                        item.ship_percentage >= 50 ? "text-ship" : "text-skip"
-                      }`}
-                    >
-                      {item.ship_percentage}% 🚀
-                    </p>
-                    <p className="text-sm text-foreground/60">
-                      {item.total_votes.toLocaleString()} votes
-                    </p>
-                  </div>
-                </div>
-              </Link>
-            ))}
           </div>
         )}
 
@@ -272,11 +166,17 @@ export function LeaderboardClient() {
                     </p>
                   </div>
 
-                  {/* Stats */}
+                  {/* Stats - show ships for most_ships tab, votes for voters tab */}
                   <div className="text-right flex-shrink-0">
-                    <p className="font-bold text-ship">
-                      {voter.total_votes.toLocaleString()} votes
-                    </p>
+                    {activeTab === "most_ships" ? (
+                      <p className="font-bold text-ship">
+                        {voter.ship_votes.toLocaleString()} 🚀
+                      </p>
+                    ) : (
+                      <p className="font-bold text-ship">
+                        {voter.total_votes.toLocaleString()} votes
+                      </p>
+                    )}
                     {voter.oracle_score !== null && voter.resolved_votes && voter.resolved_votes >= 10 && (
                       <p className="text-sm text-foreground/60">
                         🔮 {voter.oracle_score}%
@@ -289,19 +189,13 @@ export function LeaderboardClient() {
           </div>
         )}
 
-        {/* Footer CTAs */}
-        <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-center">
+        {/* Footer CTA */}
+        <div className="mt-8 flex justify-center">
           <Link
-            href="/vote"
+            href="/play"
             className="px-6 py-3 bg-ship text-background font-semibold rounded-lg text-center hover:scale-[1.02] active:scale-[0.98] transition-transform"
           >
-            Vote on Ideas
-          </Link>
-          <Link
-            href="/submit"
-            className="px-6 py-3 border border-foreground/20 text-foreground font-semibold rounded-lg text-center hover:border-foreground/40 hover:scale-[1.02] active:scale-[0.98] transition-transform"
-          >
-            Submit Your Idea
+            Start Playing
           </Link>
         </div>
       </div>

@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { VoteType } from "./vote-buttons";
@@ -81,6 +82,7 @@ export function RevealOverlay({
   source,
 }: RevealOverlayProps) {
   void _userVote;
+  const [imgError, setImgError] = useState(false);
   const emoji = shipPercentage >= 50 ? "🚀" : "💀";
   const crowdVerdict = shipPercentage >= 50 ? "shipped" : "skipped";
   const outcomeInfo = sourceOutcome ? getOutcomeLabel(sourceOutcome) : null;
@@ -90,6 +92,7 @@ export function RevealOverlay({
   const displayName = isYcCompany && ycName ? ycName : sourceCompany;
   // Logo URL: YC logo for YC companies, favicon from link for others
   const logoUrl = isYcCompany && ycLogoUrl ? ycLogoUrl : (link ? getFaviconUrl(link) : null);
+  const initial = (displayName || "?")[0].toUpperCase();
 
   return (
     <div className={`w-full max-w-[480px] mx-auto bg-surface rounded-2xl px-6 py-8 text-center transition-all duration-200 ${isExiting ? "opacity-0 scale-95" : "animate-fade-in"}`}>
@@ -97,9 +100,9 @@ export function RevealOverlay({
       {displayName && (
         <div className="mb-6">
           {/* Company logo */}
-          {logoUrl && (
-            <div className="mb-4">
-              {link ? (
+          <div className="mb-4">
+            {logoUrl && !imgError ? (
+              link ? (
                 <a
                   href={link}
                   target="_blank"
@@ -108,25 +111,31 @@ export function RevealOverlay({
                 >
                   <Image
                     src={logoUrl}
-                    alt={displayName}
+                    alt={displayName || "Company"}
                     width={80}
                     height={80}
                     className="rounded-xl shadow-lg mx-auto"
                     unoptimized
+                    onError={() => setImgError(true)}
                   />
                 </a>
               ) : (
                 <Image
                   src={logoUrl}
-                  alt={displayName}
+                  alt={displayName || "Company"}
                   width={80}
                   height={80}
                   className="rounded-xl shadow-lg mx-auto"
                   unoptimized
+                  onError={() => setImgError(true)}
                 />
-              )}
-            </div>
-          )}
+              )
+            ) : (
+              <div className="w-20 h-20 rounded-xl bg-foreground/10 flex items-center justify-center mx-auto">
+                <span className="text-3xl font-bold text-foreground/40">{initial}</span>
+              </div>
+            )}
+          </div>
 
           {/* Company name */}
           <h2 className="text-[28px] font-bold mb-3">{displayName}</h2>

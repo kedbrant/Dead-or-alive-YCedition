@@ -90,12 +90,10 @@ export async function GET(request: NextRequest) {
     query = query.eq("yc_industry", industry);
   }
 
-  // Apply batch filter (match year part of batch like W24, S24)
+  // Apply batch filter (match year in batch like "Winter 2024", "Summer 2024", "Fall 2025", "Spring 2025")
   if (batch !== "all") {
-    // Convert full year to two-digit format: "2024" -> "24"
-    const yearShort = batch.slice(-2);
-    // Match batches like W24 or S24
-    query = query.or(`yc_batch.ilike.W${yearShort},yc_batch.ilike.S${yearShort}`);
+    // Match batches containing the year (e.g., "Winter 2025", "Summer 2025")
+    query = query.ilike("yc_batch", `%${batch}`);
   }
 
   // Apply sorting
@@ -143,8 +141,7 @@ export async function GET(request: NextRequest) {
     statsQuery = statsQuery.eq("yc_industry", industry);
   }
   if (batch !== "all") {
-    const yearShort = batch.slice(-2);
-    statsQuery = statsQuery.or(`yc_batch.ilike.W${yearShort},yc_batch.ilike.S${yearShort}`);
+    statsQuery = statsQuery.ilike("yc_batch", `%${batch}`);
   }
 
   const { data: statsData } = await statsQuery;

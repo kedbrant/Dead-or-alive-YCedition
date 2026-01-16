@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import type { Idea, Session } from "@/lib/supabase/types";
 
-type LeaderboardType = "top" | "voted" | "controversial" | "biggest_misses" | "biggest_fools" | "favorites" | "user_submissions" | "voters";
+type LeaderboardType = "top" | "voted" | "controversial" | "biggest_misses" | "biggest_fools" | "favorites" | "user_submissions" | "voters" | "most_ships";
 
 // Type for idea leaderboard response items
 type LeaderboardItem = Pick<
@@ -45,7 +45,7 @@ export async function GET(request: NextRequest) {
   const limit = limitParam ? Math.min(Math.max(1, parseInt(limitParam, 10) || DEFAULT_LIMIT), 100) : DEFAULT_LIMIT;
 
   // Validate type parameter
-  const validTypes = ["top", "voted", "controversial", "biggest_misses", "biggest_fools", "favorites", "user_submissions", "voters"];
+  const validTypes = ["top", "voted", "controversial", "biggest_misses", "biggest_fools", "favorites", "user_submissions", "voters", "most_ships"];
   if (!validTypes.includes(type)) {
     return NextResponse.json(
       { error: `Invalid type. Must be one of: ${validTypes.join(", ")}` },
@@ -70,6 +70,28 @@ export async function GET(request: NextRequest) {
     if (voterError) {
       return NextResponse.json(
         { error: "Failed to fetch voters leaderboard" },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json(voters ?? []);
+  }
+
+  // Handle most_ships leaderboard (voters sorted by ship_votes)
+  if (type === "most_ships") {
+    const voterSelectFields = "id, twitter_handle, total_votes, ship_votes, skip_votes, crowd_agreements, oracle_score, resolved_votes";
+
+    const { data: voters, error: voterError } = await supabase
+      .from("sessions")
+      .select(voterSelectFields)
+      .gte("ship_votes", 1) // Only show users who have shipped
+      .order("ship_votes", { ascending: false })
+      .limit(limit)
+      .returns<VoterLeaderboardItem[]>();
+
+    if (voterError) {
+      return NextResponse.json(
+        { error: "Failed to fetch most ships leaderboard" },
         { status: 500 }
       );
     }

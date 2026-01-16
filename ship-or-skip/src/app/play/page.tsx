@@ -1,5 +1,5 @@
 import { getSessionId } from "@/lib/session/manager";
-import { VotingClient } from "./voting-client";
+import { PlayClient } from "./play-client";
 import { GameSubHeader } from "@/components/layout/game-sub-header";
 
 export default async function PlayPage() {
@@ -8,7 +8,7 @@ export default async function PlayPage() {
   return (
     <>
       <GameSubHeader />
-      <VotingClient sessionId={sessionId} />
+      <PlayClient sessionId={sessionId} />
     </>
   );
 }

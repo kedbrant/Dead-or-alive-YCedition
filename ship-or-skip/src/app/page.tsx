@@ -1,13 +1,15 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 
 export default function Home() {
+  const router = useRouter();
+  const [searchQuery, setSearchQuery] = useState("");
   const [companyCount, setCompanyCount] = useState<number | null>(null);
-  const [featuredCompany, setFeaturedCompany] = useState<string | null>(null);
-  const [featuredSkipPct, setFeaturedSkipPct] = useState<number | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   // Fetch landing stats on mount
   useEffect(() => {
@@ -17,10 +19,6 @@ export default function Home() {
         if (response.ok) {
           const data = await response.json();
           setCompanyCount(data.company_count);
-          if (data.featured_has_votes) {
-            setFeaturedCompany(data.featured_company_name);
-            setFeaturedSkipPct(data.featured_skip_percentage);
-          }
         }
       } catch {
         // Silently fail - will show fallback
@@ -29,116 +27,129 @@ export default function Home() {
     fetchStats();
   }, []);
 
-  // Format company count (e.g., "5,500+")
+  // Format company count (e.g., "5,400+")
   const displayCount = companyCount
     ? `${Math.floor(companyCount / 100) * 100}+`
-    : "5,500+";
+    : "5,400+";
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      router.push(`/explore?search=${encodeURIComponent(searchQuery.trim())}`);
+    } else {
+      router.push("/explore");
+    }
+  };
+
+  // Focus input on / key
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "/" && document.activeElement !== inputRef.current) {
+        e.preventDefault();
+        inputRef.current?.focus();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
 
   return (
     <div className="flex min-h-screen items-center justify-center px-4 py-8">
-      <main className="flex flex-col items-center gap-8 max-w-2xl text-center">
+      <main className="flex flex-col items-center gap-8 max-w-2xl text-center w-full">
         {/* Logo */}
         <Image
           src="/logo.png"
-          alt="Ship or Skip"
-          width={120}
-          height={120}
-          className="rounded-2xl shadow-2xl"
+          alt="YC Startup Database"
+          width={80}
+          height={80}
+          className="rounded-xl shadow-lg"
           priority
         />
 
-        {/* Headline */}
-        <h1 className="text-3xl sm:text-4xl font-bold leading-tight">
-          Can you spot a <span className="text-purple-500">unicorn</span>?
-        </h1>
-
-        {/* Hook stat */}
-        <div className="bg-surface rounded-2xl px-6 py-4">
-          <p className="text-lg sm:text-xl">
-            <span className="text-skip font-bold">
-              {featuredSkipPct !== null ? `${featuredSkipPct}%` : "67%"}
-            </span>{" "}
-            would have skipped {featuredCompany || "Airbnb"}.
-          </p>
-          <p className="text-sm text-foreground/60 mt-1">
-            {displayCount} real YC startups. What would you have invested in?
+        {/* Headline - emphasis on data */}
+        <div>
+          <h1 className="text-4xl sm:text-5xl font-bold mb-3">
+            <span className="text-ship">{displayCount}</span> YC Startups
+          </h1>
+          <p className="text-foreground/60 text-lg sm:text-xl max-w-md mx-auto">
+            Search outcomes, discover unicorns, and see what failed.
+            Real data from Y Combinator companies.
           </p>
         </div>
 
-        {/* Three CTAs */}
-        <div className="grid gap-4 w-full">
-          {/* Explore CTA */}
-          <Link
-            href="/explore"
-            className="group bg-surface border border-foreground/10 rounded-xl p-5 hover:border-purple-500/50 hover:bg-surface/80 transition-all text-left"
-          >
-            <div className="flex items-start gap-4">
-              <span className="text-2xl">🔍</span>
-              <div className="flex-1">
-                <h2 className="font-bold text-lg text-foreground group-hover:text-purple-400 transition-colors">
-                  Explore Companies
-                </h2>
-                <p className="text-sm text-foreground/60 mt-1">
-                  Search and filter {displayCount} YC startups. Discover unicorns, acquisitions, and what didn&apos;t make it.
-                </p>
-              </div>
-              <span className="text-foreground/30 group-hover:text-purple-400 transition-colors">
-                →
-              </span>
-            </div>
-          </Link>
+        {/* Search Bar - wider */}
+        <form onSubmit={handleSearch} className="w-full">
+          <div className="relative">
+            <svg
+              className="absolute left-5 top-1/2 -translate-y-1/2 w-6 h-6 text-foreground/40"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+              />
+            </svg>
+            <input
+              ref={inputRef}
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search companies, pitches, industries..."
+              className="w-full pl-14 pr-28 py-5 bg-surface border border-foreground/20 rounded-2xl
+                text-lg placeholder:text-foreground/40
+                focus:outline-none focus:border-ship focus:ring-2 focus:ring-ship/20
+                transition-all shadow-lg"
+            />
+            <button
+              type="submit"
+              className="absolute right-3 top-1/2 -translate-y-1/2 px-6 py-2.5 bg-ship text-white font-semibold rounded-xl
+                hover:bg-ship/90 transition-colors"
+            >
+              Search
+            </button>
+          </div>
+        </form>
 
-          {/* Validate CTA */}
+        {/* Quick filters */}
+        <div className="flex flex-wrap justify-center gap-2">
           <Link
-            href="/validate"
-            className="group bg-surface border border-foreground/10 rounded-xl p-5 hover:border-ship/50 hover:bg-surface/80 transition-all text-left"
+            href="/explore?outcome=unicorn"
+            className="px-4 py-2 bg-surface border border-foreground/10 rounded-full text-sm
+              hover:border-purple-500/50 hover:text-purple-400 transition-colors"
           >
-            <div className="flex items-start gap-4">
-              <span className="text-2xl">✨</span>
-              <div className="flex-1">
-                <h2 className="font-bold text-lg text-foreground group-hover:text-ship transition-colors">
-                  Validate Your Pitch
-                </h2>
-                <p className="text-sm text-foreground/60 mt-1">
-                  Compare your startup idea to YC history. See similar companies and their outcomes.
-                </p>
-              </div>
-              <span className="text-foreground/30 group-hover:text-ship transition-colors">
-                →
-              </span>
-            </div>
+            🦄 Unicorns
           </Link>
-
-          {/* Play CTA */}
           <Link
-            href="/play"
-            className="group bg-ship/10 border border-ship/30 rounded-xl p-5 hover:border-ship hover:bg-ship/20 transition-all text-left"
+            href="/explore?outcome=dead"
+            className="px-4 py-2 bg-surface border border-foreground/10 rounded-full text-sm
+              hover:border-skip/50 hover:text-skip transition-colors"
           >
-            <div className="flex items-start gap-4">
-              <span className="text-2xl">🎮</span>
-              <div className="flex-1">
-                <h2 className="font-bold text-lg text-ship">
-                  Start Playing
-                </h2>
-                <p className="text-sm text-foreground/60 mt-1">
-                  Swipe through real pitches. Vote Ship or Skip. Build your Oracle Score.
-                </p>
-              </div>
-              <span className="text-ship/50 group-hover:text-ship transition-colors">
-                →
-              </span>
-            </div>
+            💀 Dead
+          </Link>
+          <Link
+            href="/explore?outcome=acquired"
+            className="px-4 py-2 bg-surface border border-foreground/10 rounded-full text-sm
+              hover:border-blue-500/50 hover:text-blue-400 transition-colors"
+          >
+            🤝 Acquired
           </Link>
         </div>
 
-        {/* Secondary links */}
-        <div className="flex flex-wrap justify-center gap-4 text-sm text-foreground/60">
-          <Link href="/submit" className="hover:text-foreground underline">
-            Submit your startup
+        {/* Divider */}
+        <div className="w-full h-px bg-foreground/10 my-2" />
+
+        {/* Other features */}
+        <div className="flex flex-wrap justify-center gap-x-6 gap-y-3 text-sm text-foreground/60">
+          <Link href="/play" className="hover:text-ship transition-colors underline underline-offset-2">
+            Play the prediction game
           </Link>
           <span className="text-foreground/30">•</span>
-          <Link href="/stats" className="hover:text-foreground underline">
-            Check your stats
+          <Link href="/validate" className="hover:text-ship transition-colors underline underline-offset-2">
+            Validate your startup idea
           </Link>
         </div>
       </main>

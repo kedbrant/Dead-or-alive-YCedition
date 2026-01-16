@@ -5,6 +5,9 @@ import Link from "next/link";
 import { PitchInput } from "@/components/validate/pitch-input";
 import { SimilarCompanies } from "@/components/validate/similar-companies";
 import { CategoryStats } from "@/components/validate/category-stats";
+import { ViabilityScore } from "@/components/validate/viability-score";
+import { InsightsFlags } from "@/components/validate/insights-flags";
+import { IndustryInsights } from "@/components/validate/industry-insights";
 import { SimilarCompanyResult } from "@/lib/similarity";
 
 // Example pitches for inspiration
@@ -23,12 +26,79 @@ interface CategoryStatsData {
   active_pct: number;
 }
 
+interface IndustryInsightsData {
+  detected_industry: string | null;
+  total_in_industry: number;
+  unicorn_rate: number;
+  dead_rate: number;
+  active_rate: number;
+  avg_unicorn_rate: number;
+}
+
+interface InsightFlag {
+  type: "green" | "red" | "yellow";
+  message: string;
+}
+
 interface ValidateResults {
   similar_companies: SimilarCompanyResult[];
   category_stats: CategoryStatsData;
+  viability_score: number;
+  industry_insights: IndustryInsightsData;
+  flags: InsightFlag[];
+  competition_level: number;
+  top_unicorn: SimilarCompanyResult | null;
 }
 
 // Skeleton components for loading state
+function ViabilityScoreSkeleton() {
+  return (
+    <section className="bg-surface rounded-xl p-6 animate-pulse">
+      <div className="h-4 w-24 bg-foreground/10 rounded mx-auto mb-6" />
+      <div className="flex flex-col items-center">
+        <div className="w-32 h-32 rounded-full bg-foreground/10 mb-4" />
+        <div className="h-6 w-24 bg-foreground/10 rounded mb-4" />
+        <div className="h-4 w-40 bg-foreground/10 rounded" />
+      </div>
+    </section>
+  );
+}
+
+function InsightsFlagsSkeleton() {
+  return (
+    <section className="bg-surface rounded-xl p-6 animate-pulse">
+      <div className="h-4 w-24 bg-foreground/10 rounded mb-4" />
+      <div className="space-y-3">
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="h-14 bg-foreground/10 rounded-lg" />
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function IndustryInsightsSkeleton() {
+  return (
+    <section className="bg-surface rounded-xl p-6 animate-pulse">
+      <div className="h-4 w-32 bg-foreground/10 rounded mb-4" />
+      <div className="text-center mb-6">
+        <div className="h-8 w-8 bg-foreground/10 rounded mx-auto mb-2" />
+        <div className="h-6 w-24 bg-foreground/10 rounded mx-auto mb-1" />
+        <div className="h-4 w-40 bg-foreground/10 rounded mx-auto" />
+      </div>
+      <div className="grid grid-cols-3 gap-4 mb-6">
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="text-center">
+            <div className="h-8 w-12 bg-foreground/10 rounded mx-auto mb-1" />
+            <div className="h-3 w-16 bg-foreground/10 rounded mx-auto" />
+          </div>
+        ))}
+      </div>
+      <div className="h-16 bg-foreground/10 rounded-lg" />
+    </section>
+  );
+}
+
 function CategoryStatsSkeleton() {
   return (
     <section className="bg-surface rounded-xl p-6 animate-pulse">
@@ -52,7 +122,6 @@ function CategoryStatsSkeleton() {
 function SimilarCompanyCardSkeleton() {
   return (
     <div className="bg-surface rounded-xl p-6 animate-pulse">
-      {/* Top row: Badge and score */}
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-3">
           <div className="h-6 w-20 bg-foreground/10 rounded-full" />
@@ -60,12 +129,9 @@ function SimilarCompanyCardSkeleton() {
         </div>
         <div className="h-4 w-24 bg-foreground/10 rounded" />
       </div>
-      {/* Company name */}
       <div className="h-6 w-48 bg-foreground/10 rounded mb-2" />
-      {/* Pitch */}
       <div className="h-4 w-full bg-foreground/10 rounded mb-2" />
       <div className="h-4 w-3/4 bg-foreground/10 rounded mb-4" />
-      {/* Button */}
       <div className="h-10 w-32 bg-foreground/10 rounded-lg" />
     </div>
   );
@@ -94,7 +160,7 @@ export function ValidateClient() {
     setPitch(submittedPitch);
     setIsAnalyzing(true);
     setError(null);
-    setResults(null); // Clear previous results to show loading state
+    setResults(null);
 
     try {
       const response = await fetch("/api/validate", {
@@ -129,22 +195,22 @@ export function ValidateClient() {
     setResults(null);
   };
 
-  // Loading state - show skeleton while analyzing
+  // Loading state
   if (isAnalyzing) {
     return (
       <div className="min-h-screen p-4">
-        <div className="max-w-3xl mx-auto">
+        <div className="max-w-4xl mx-auto">
           {/* Header */}
           <div className="text-center mb-8 pt-8">
             <h1 className="text-[32px] md:text-[40px] font-bold mb-2">
               ANALYZING YOUR PITCH
             </h1>
             <p className="text-[16px] md:text-[18px] text-foreground/70">
-              Comparing against 5,500+ YC companies...
+              Comparing against 5,400+ YC companies...
             </p>
           </div>
 
-          {/* User's Pitch Section - show the pitch being analyzed */}
+          {/* User's Pitch Section */}
           <section className="bg-surface rounded-xl p-6 mb-6 animate-fade-in">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-bold">YOUR PITCH</h2>
@@ -156,12 +222,17 @@ export function ValidateClient() {
             <p className="text-foreground/80 text-lg">{pitch}</p>
           </section>
 
-          {/* Category Stats Skeleton */}
+          {/* Skeletons */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            <ViabilityScoreSkeleton />
+            <IndustryInsightsSkeleton />
+          </div>
+          <div className="mb-6">
+            <InsightsFlagsSkeleton />
+          </div>
           <div className="mb-6">
             <CategoryStatsSkeleton />
           </div>
-
-          {/* Similar Companies Skeleton */}
           <div className="mb-8">
             <SimilarCompaniesSkeleton />
           </div>
@@ -170,13 +241,13 @@ export function ValidateClient() {
     );
   }
 
-  // Results state - show after successful analysis
+  // Results state
   if (results) {
     const submitUrl = `/submit?pitch=${encodeURIComponent(pitch)}`;
 
     return (
       <div className="min-h-screen p-4">
-        <div className="max-w-3xl mx-auto animate-fade-in">
+        <div className="max-w-4xl mx-auto animate-fade-in">
           {/* Header */}
           <div className="text-center mb-8 pt-8">
             <h1 className="text-[32px] md:text-[40px] font-bold mb-2">
@@ -201,8 +272,36 @@ export function ValidateClient() {
             <p className="text-foreground/80 text-lg">{pitch}</p>
           </section>
 
+          {/* Viability Score + Industry Insights */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            <div className="animate-fade-in-up" style={{ animationDelay: "50ms" }}>
+              <ViabilityScore
+                score={results.viability_score}
+                similarCount={results.similar_companies.length}
+              />
+            </div>
+            <div className="animate-fade-in-up" style={{ animationDelay: "100ms" }}>
+              <IndustryInsights
+                detected_industry={results.industry_insights.detected_industry}
+                total_in_industry={results.industry_insights.total_in_industry}
+                unicorn_rate={results.industry_insights.unicorn_rate}
+                dead_rate={results.industry_insights.dead_rate}
+                active_rate={results.industry_insights.active_rate}
+                avg_unicorn_rate={results.industry_insights.avg_unicorn_rate}
+                competition_level={results.competition_level}
+              />
+            </div>
+          </div>
+
+          {/* Insights Flags */}
+          {results.flags.length > 0 && (
+            <div className="mb-6 animate-fade-in-up" style={{ animationDelay: "150ms" }}>
+              <InsightsFlags flags={results.flags} />
+            </div>
+          )}
+
           {/* Category Stats Section */}
-          <div className="mb-6 animate-fade-in-up" style={{ animationDelay: "100ms" }}>
+          <div className="mb-6 animate-fade-in-up" style={{ animationDelay: "200ms" }}>
             <CategoryStats
               total={results.category_stats.total}
               unicorn_pct={results.category_stats.unicorn_pct}
@@ -213,7 +312,7 @@ export function ValidateClient() {
           </div>
 
           {/* Similar Companies Section */}
-          <div className="mb-8 animate-fade-in-up" style={{ animationDelay: "200ms" }}>
+          <div className="mb-8 animate-fade-in-up" style={{ animationDelay: "250ms" }}>
             <SimilarCompanies companies={results.similar_companies} />
           </div>
 
@@ -239,7 +338,7 @@ export function ValidateClient() {
     );
   }
 
-  // Input state - initial state
+  // Input state
   return (
     <div className="min-h-screen p-4">
       <div className="max-w-3xl mx-auto">
@@ -249,7 +348,7 @@ export function ValidateClient() {
             VALIDATE YOUR STARTUP PITCH
           </h1>
           <p className="text-[16px] md:text-[18px] text-foreground/70">
-            See how your idea compares to 5,500 YC companies
+            See how your idea compares to 5,400+ YC companies
           </p>
         </div>
 

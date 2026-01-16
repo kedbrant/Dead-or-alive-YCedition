@@ -152,7 +152,7 @@ export function BattleClient({ sessionId }: BattleClientProps) {
           </p>
           <div className="flex flex-col gap-3">
             <Link
-              href="/vote"
+              href="/play"
               className="px-6 py-3 bg-ship text-white font-semibold rounded-full hover:bg-ship/90 transition-all"
             >
               Try Ship or Skip
@@ -216,7 +216,7 @@ export function BattleClient({ sessionId }: BattleClientProps) {
         </h1>
 
         {/* Battle cards */}
-        <div className="grid grid-cols-2 gap-4 mb-8">
+        <div className="grid grid-cols-2 gap-4 mb-8 items-start">
           <BattleCard
             hero={battle.left.hero}
             subtitle={battle.left.subtitle}

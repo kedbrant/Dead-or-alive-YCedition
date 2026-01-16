@@ -193,7 +193,7 @@ export function StatsClient() {
             Start voting on startup ideas to track your stats!
           </p>
           <Link
-            href="/vote"
+            href="/play"
             className="inline-block w-full px-6 py-4 bg-ship text-white font-bold rounded-xl
               transition-all duration-150
               hover:shadow-[0_0_20px_rgba(34,197,94,0.5)] hover:scale-[1.02]
@@ -254,7 +254,10 @@ export function StatsClient() {
               <p className="text-6xl font-bold text-purple-400 mb-2">
                 {stats.oracle_score}%
               </p>
-              <p className="text-foreground/60 text-sm">
+              <p className="text-foreground/60 text-sm mb-1">
+                Your accuracy at predicting startup outcomes
+              </p>
+              <p className="text-foreground/50 text-xs">
                 {stats.correct_predictions} of {stats.resolved_votes} predictions correct
               </p>
               {/* Percentile Rank */}
@@ -265,20 +268,26 @@ export function StatsClient() {
                   </p>
                 </div>
               )}
-              {/* Breakdown */}
+              {/* Breakdown with clearer labels */}
               <div className="grid grid-cols-3 gap-2 mt-4 text-xs">
-                <div className="bg-background/30 rounded-lg p-2">
+                <div className="bg-background/30 rounded-lg p-2" title="Unicorns/Acquired you shipped">
                   <p className="text-ship font-bold">{stats.correct_ships}</p>
-                  <p className="text-foreground/50">Ships Hit</p>
+                  <p className="text-foreground/50">Winners Shipped</p>
                 </div>
-                <div className="bg-background/30 rounded-lg p-2">
+                <div className="bg-background/30 rounded-lg p-2" title="Dead companies you skipped">
                   <p className="text-ship font-bold">{stats.correct_skips}</p>
-                  <p className="text-foreground/50">Skips Hit</p>
+                  <p className="text-foreground/50">Duds Skipped</p>
                 </div>
-                <div className="bg-background/30 rounded-lg p-2">
+                <div className="bg-background/30 rounded-lg p-2" title="Wrong predictions">
                   <p className="text-skip font-bold">{stats.wrong_predictions}</p>
-                  <p className="text-foreground/50">Missed</p>
+                  <p className="text-foreground/50">Wrong Calls</p>
                 </div>
+              </div>
+              {/* How it works */}
+              <div className="mt-4 pt-4 border-t border-white/10">
+                <p className="text-xs text-foreground/40">
+                  Ship a unicorn = correct. Skip a dead company = correct.
+                </p>
               </div>
             </div>
           ) : (
@@ -288,8 +297,11 @@ export function StatsClient() {
                 <p className="text-foreground/60 font-semibold">Oracle Score</p>
               </div>
               <p className="text-4xl font-bold text-foreground/30 mb-2">Locked</p>
-              <p className="text-foreground/60 text-sm">
+              <p className="text-foreground/60 text-sm mb-2">
                 Vote on {stats.votes_until_oracle} more YC companies to unlock
+              </p>
+              <p className="text-foreground/40 text-xs">
+                Measures how well you predict which startups succeed or fail
               </p>
               {stats.resolved_votes > 0 && (
                 <div className="mt-3 bg-foreground/5 rounded-lg p-2">
@@ -378,7 +390,7 @@ export function StatsClient() {
         {/* Footer CTAs */}
         <div className="mt-6 flex flex-col sm:flex-row gap-3">
           <Link
-            href="/vote"
+            href="/play"
             className="flex-1 px-6 py-4 bg-ship text-white font-bold rounded-xl text-center
               transition-all duration-150
               hover:shadow-[0_0_20px_rgba(34,197,94,0.5)] hover:scale-[1.02]

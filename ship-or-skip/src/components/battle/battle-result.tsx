@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { OutcomeBadge } from "@/components/voting/outcome-badge";
@@ -28,6 +29,7 @@ function CompanyReveal({ company }: { company: BattleCompanyResult }) {
   const displayName = company.yc_name || "Unknown Company";
   const logoUrl = company.yc_logo_url;
   const initial = displayName.charAt(0).toUpperCase();
+  const [imgError, setImgError] = useState(false);
 
   return (
     <div
@@ -38,13 +40,14 @@ function CompanyReveal({ company }: { company: BattleCompanyResult }) {
     >
       {/* Logo */}
       <div className="w-16 h-16 rounded-full bg-surface flex items-center justify-center mb-3 overflow-hidden border border-foreground/10 relative">
-        {logoUrl ? (
+        {logoUrl && !imgError ? (
           <Image
             src={logoUrl}
             alt={displayName}
             fill
             className="object-cover"
             unoptimized
+            onError={() => setImgError(true)}
           />
         ) : (
           <span className="text-2xl font-bold text-foreground/50">{initial}</span>

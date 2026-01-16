@@ -151,9 +151,9 @@ function transformToIdea(company: YCCompanyRaw): IdeaInsert {
   // Create hero line: truncate one_liner to 60 chars
   const hero = truncateAtWord(company.one_liner, 60);
 
-  // Create subtitle: truncate long_description to 100 chars
+  // Create subtitle: truncate long_description to 250 chars
   const subtitle = company.long_description
-    ? truncateAtWord(company.long_description, 100)
+    ? truncateAtWord(company.long_description, 250)
     : `${company.industry || "Technology"} startup from YC ${company.batch || ""}`.trim();
 
   // Create unique slug

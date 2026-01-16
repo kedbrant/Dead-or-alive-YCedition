@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect, useRef } from "react";
+import { useSearchParams } from "next/navigation";
 import { SearchBar } from "@/components/explore/search-bar";
 import { FilterBar } from "@/components/explore/filter-bar";
 import { StatsBar } from "@/components/explore/stats-bar";
@@ -41,9 +42,13 @@ interface ExploreApiResponse {
 const LIMIT = 20;
 
 export function ExploreClient() {
-  const [searchQuery, setSearchQuery] = useState("");
+  const searchParams = useSearchParams();
+  const initialSearch = searchParams.get("search") || "";
+  const initialOutcome = searchParams.get("outcome") || "all";
+
+  const [searchQuery, setSearchQuery] = useState(initialSearch);
   const [filters, setFilters] = useState<FilterState>({
-    outcome: "all",
+    outcome: initialOutcome,
     industry: "all",
     batch: "all",
     sort: "newest",
@@ -177,7 +182,7 @@ export function ExploreClient() {
         {/* Header */}
         <div className="text-center mb-8 pt-8">
           <h1 className="text-[32px] md:text-[40px] font-bold mb-2">
-            EXPLORE 5,500+ YC STARTUPS
+            EXPLORE <span className="text-ship">{stats.total > 0 ? `${Math.floor(stats.total / 100) * 100}+` : "5,400+"}</span> YC STARTUPS
           </h1>
           <p className="text-[16px] md:text-[18px] text-foreground/70">
             Search, filter, and discover the complete YC company database

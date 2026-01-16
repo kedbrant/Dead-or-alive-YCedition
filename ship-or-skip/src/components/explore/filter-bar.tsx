@@ -14,11 +14,11 @@ interface FilterBarProps {
   industriesLoading?: boolean;
 }
 
-// Generate batch options from 2024 down to 2005
+// Generate batch options from 2026 down to 2005
 const BATCH_OPTIONS = [
   { value: "all", label: "All" },
-  ...Array.from({ length: 20 }, (_, i) => {
-    const year = 2024 - i;
+  ...Array.from({ length: 22 }, (_, i) => {
+    const year = 2026 - i;
     return { value: year.toString(), label: year.toString() };
   }),
 ];
