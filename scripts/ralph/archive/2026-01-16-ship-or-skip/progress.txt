@@ -1,0 +1,915 @@
+# Ralph Progress Log
+Started: Wed, Jan 15, 2026
+
+## Codebase Patterns
+- Next.js 16+ uses Tailwind v4 with `@theme inline` in globals.css for custom colors
+- Use `--color-*` CSS variables in @theme block for Tailwind utility class support
+- Inter font loaded via `next/font/google` with `variable: "--font-inter"`
+- Dark theme enforced via `className="dark"` on html element
+- Supabase clients: `client.ts` for browser, `server.ts` for server-side with service role key
+- TypeScript types in `lib/supabase/types.ts` - import `Database` for createClient generic
+- **CRITICAL:** Supabase Database type MUST include `Relationships: []` in each table and `CompositeTypes` in schema for proper type inference
+- API routes use `.limit(1).returns<Type[]>()` instead of `.single()` for single record fetches to avoid `never` type issues
+- For Supabase write operations, use explicitly typed variables (e.g., `const insert: VoteInsert = {...}`)
+- SQL migrations in `supabase/migrations/` numbered 001_, 002_, etc.
+- Components organized in `src/components/` by feature (e.g., `voting/`, `submit/`, `layout/`)
+- Session management: `lib/session/manager.ts` with `getOrCreateSessionId()` for server components
+- Seed scripts: `npx tsx scripts/seed-*.ts` - use dotenv to load .env.local, batch upserts for performance
+- YC data source: YC-OSS API at `https://yc-oss.github.io/api/companies/all.json` for public YC company data
+- Swipe gestures: SwipeContainer component uses native touch/mouse events with 100px threshold, card tilt, and elastic rubber-band cancel animation
+- OG meta tags: Default in layout.tsx with metadataBase, dynamic via generateMetadata() in pages, dynamic OG images via /api/og edge endpoint
+- YC API endpoint: https://yc-oss.github.io/api/companies/all.json
+- YC company status values: 'Public', 'Active', 'Inactive', 'Acquired'
+- Source outcome mapping: top_company=true OR status='Public' -> 'unicorn', status='Acquired' -> 'acquired', status='Inactive' -> 'dead', else -> 'active'
+- Active pool: is_in_active_pool=true marks companies that appear in voting rotation
+---
+
+## 2026-01-15 - US-001
+- What was implemented: Initialized Next.js project with Tailwind CSS and Ship or Skip theme
+- Files changed:
+  - ship-or-skip/src/app/globals.css (custom color theme)
+  - ship-or-skip/src/app/layout.tsx (Inter font, dark theme)
+  - ship-or-skip/src/app/page.tsx (simple placeholder)
+- **Learnings for future iterations:**
+  - Next.js 16+ create-next-app uses Tailwind v4 with new @theme syntax
+  - Custom colors are defined in globals.css using CSS variables and @theme inline block
+  - Build and typecheck run from ship-or-skip directory with `npm run build`
+  - Project structure: src/app/ for App Router pages
+---
+
+## 2026-01-15 - US-002
+- What was implemented: Set up Supabase database connection and SQL migrations
+- Files changed:
+  - ship-or-skip/src/lib/supabase/client.ts (browser Supabase client)
+  - ship-or-skip/src/lib/supabase/server.ts (server Supabase client)
+  - ship-or-skip/src/lib/supabase/types.ts (TypeScript types for all tables)
+  - ship-or-skip/supabase/migrations/001_create_ideas_table.sql
+  - ship-or-skip/supabase/migrations/002_create_votes_table.sql
+  - ship-or-skip/supabase/migrations/003_create_sessions_table.sql
+  - ship-or-skip/package.json (added @supabase/supabase-js dependency)
+- **Learnings for future iterations:**
+  - Use `createClient<Database>` generic to get typed Supabase queries
+  - Server client uses SUPABASE_SERVICE_ROLE_KEY for admin access
+  - Browser client uses NEXT_PUBLIC_SUPABASE_ANON_KEY for public access
+  - Types file exports convenience types: Idea, IdeaInsert, Vote, VoteInsert, etc.
+  - SQL migrations should use IF NOT EXISTS for idempotency
+---
+
+## 2026-01-15 - US-003
+- What was implemented: Built IdeaCard component for displaying startup ideas
+- Files changed:
+  - ship-or-skip/src/components/voting/idea-card.tsx (new component)
+- **Learnings for future iterations:**
+  - Components go in `src/components/` organized by feature (e.g., `voting/`, `submit/`)
+  - Use `Pick<Idea, "hero" | "subtitle">` to type props with only needed fields from Idea type
+  - Tailwind custom colors work via `bg-surface`, `text-foreground` etc. from @theme inline
+  - Use `rounded-2xl` for 16px border-radius in Tailwind
+  - Use `py-12` for 48px vertical padding (12 * 4px = 48px)
+---
+
+## 2026-01-15 - US-004
+- What was implemented: Built VoteButtons component with Ship and Skip buttons
+- Files changed:
+  - ship-or-skip/src/components/voting/vote-buttons.tsx (new component)
+- **Learnings for future iterations:**
+  - Export `VoteType = "ship" | "skip"` type for consistent vote type handling
+  - Use `"use client"` directive for components with onClick handlers
+  - Hover glow: `hover:shadow-[0_0_20px_rgba(R,G,B,0.5)]` with color-matched RGBA
+  - Hover scale: `hover:scale-[1.02]`, active press: `active:scale-[0.98]`
+  - Use `min-h-16` (64px) for large tap targets
+  - `flex-col sm:flex-row` for responsive stacking (full width mobile, side-by-side desktop)
+  - Disabled state: `disabled:opacity-50 disabled:cursor-not-allowed` plus reset hover effects
+---
+
+## 2026-01-15 - US-005
+- What was implemented: Built RevealOverlay component for showing voting results
+- Files changed:
+  - ship-or-skip/src/components/voting/reveal-overlay.tsx (new component)
+- **Learnings for future iterations:**
+  - Import `VoteType` from vote-buttons.tsx for consistent vote type handling
+  - Use `bg-background/50` for subtle nested background contrast
+  - Conditional rendering with `{condition && <element>}` for optional sections
+  - Use `.toLocaleString()` for formatted vote counts (e.g., "1,234")
+  - Border button style: `border border-foreground/20` with hover `border-foreground/40`
+---
+
+## 2026-01-15 - US-006
+- What was implemented: Created session management utility for cookie-based anonymous user tracking
+- Files changed:
+  - ship-or-skip/src/lib/session/manager.ts (new file)
+- **Learnings for future iterations:**
+  - Use `cookies()` from `next/headers` for server-side cookie access (requires await in Next.js 16+)
+  - Use `crypto.randomUUID()` for generating UUID v4 session IDs
+  - Session cookie settings: httpOnly, secure in production, sameSite: "lax", 1 year maxAge
+  - Export both `getOrCreateSessionId()` (creates if missing) and `getSessionId()` (returns null if missing)
+  - Cookie name: "ship-or-skip-session" for this project
+---
+
+## 2026-01-15 - US-007
+- What was implemented: Created GET /api/ideas/next endpoint for fetching next unvoted idea
+- Files changed:
+  - ship-or-skip/src/app/api/ideas/next/route.ts (new file)
+- **Learnings for future iterations:**
+  - Supabase typed client with partial selects may return `never` types - use `.returns<Type[]>()` to fix
+  - Import convenience types (Vote, Idea) from types.ts for explicit return typing
+  - Weighted random selection: use inverse weight (1/(total_votes+1)) to favor low-vote ideas
+  - Handle conditional `.not()` filter by using ternary with two separate query chains
+  - API routes in Next.js App Router: export named `GET`/`POST` functions from route.ts
+---
+
+## 2026-01-15 - US-008
+- What was implemented: Created POST /api/ideas/vote endpoint for recording votes and returning results
+- Files changed:
+  - ship-or-skip/src/app/api/ideas/vote/route.ts (new file)
+  - ship-or-skip/src/lib/supabase/types.ts (added Relationships: [] and CompositeTypes to Database type)
+- **Learnings for future iterations:**
+  - Supabase v2.90+ requires `Relationships: []` and `CompositeTypes` in Database type definition for proper type inference
+  - Use `.limit(1).returns<Type[]>()` instead of `.single()` to avoid type inference issues with `never` types
+  - For write operations (insert/update), use explicit type annotations like `VoteInsert`, `IdeaUpdate` etc.
+  - Create separate supabase client for write operations if type chain gets confused after `.returns<>()` calls
+  - Calculate user_agreed_with_crowd based on updated stats (after the vote is counted) to avoid off-by-one logic issues
+  - Session stats tracking: create new session on first vote, update existing session on subsequent votes
+---
+
+## 2026-01-15 - US-009
+- What was implemented: Built voting page with full voting flow
+- Files changed:
+  - ship-or-skip/src/app/vote/page.tsx (server component wrapper)
+  - ship-or-skip/src/app/vote/voting-client.tsx (client component with voting logic)
+- **Learnings for future iterations:**
+  - Split page into server component (page.tsx) and client component for session handling
+  - Server component fetches session ID via `getOrCreateSessionId()` and passes to client
+  - Client component manages state: loading, voting, voteResult, userVote, noMoreIdeas
+  - Use `useCallback` for fetch functions to avoid infinite re-renders with `useEffect`
+  - API returns 404 when no more ideas - handle this to show "all done" state
+  - Use `navigator.share()` for native sharing with fallback to `clipboard.writeText()`
+  - Loading skeleton with `animate-pulse` for better UX while fetching
+---
+
+## 2026-01-15 - US-010
+- What was implemented: Built landing page with hook stat and call to action
+- Files changed:
+  - ship-or-skip/src/app/page.tsx (updated with full landing page)
+- **Learnings for future iterations:**
+  - Use `next/link` Link component for client-side navigation
+  - Use `&apos;` entity for single quotes in JSX to avoid eslint errors
+  - Hook stats in colored highlights: `<span className="text-skip font-bold">73%</span>` draws attention
+  - Same hover/active animation pattern as vote buttons: `hover:scale-[1.02] active:scale-[0.98]`
+  - Simple "How it works" section with `space-y-1` and muted text helps explain app
+---
+
+## 2026-01-15 - US-011
+- What was implemented: Built submit idea form component with validation
+- Files changed:
+  - ship-or-skip/src/components/submit/submit-form.tsx (new component)
+- **Learnings for future iterations:**
+  - Export `SubmitFormData` interface for consistent data typing between form and parent
+  - Use `maxLength` attribute on inputs for built-in browser enforcement
+  - Character counter pattern: show count/max with conditional color (`text-skip` when over limit)
+  - Form validation: use state object `errors: { field?: string }` and display inline below inputs
+  - Twitter handle: strip leading @ on input change with `.replace(/^@/, "")`
+  - Input prefix styling: use `relative` container with `absolute` prefix span and extra `pl-8` padding
+  - Textarea: use `resize-none` to prevent resizing, set explicit `rows`
+  - Export both the component and the `SubmitFormData` interface for use by the submit page
+---
+
+## 2026-01-15 - US-012
+- What was implemented: Created POST /api/ideas/submit endpoint for submitting new ideas
+- Files changed:
+  - ship-or-skip/src/app/api/ideas/submit/route.ts (new file)
+  - ship-or-skip/supabase/migrations/004_add_submitter_session.sql (new migration)
+  - ship-or-skip/src/lib/supabase/types.ts (added submitter_session_id field)
+  - ship-or-skip/src/app/vote/voting-client.tsx (lint fix: Link instead of anchor)
+  - ship-or-skip/src/components/voting/reveal-overlay.tsx (lint fix: unused var)
+- **Learnings for future iterations:**
+  - Generate URL-friendly slugs: lowercase, remove special chars, replace spaces with hyphens
+  - Handle slug uniqueness by appending random suffix if base slug exists
+  - Rate limiting by session requires tracking `submitter_session_id` on ideas table
+  - Use `.returns<Pick<Idea, "id">[]>()` for select queries to avoid type inference issues
+  - Get session ID from request cookies via `request.cookies.get("ship-or-skip-session")`
+  - Return 401 if no session, 429 for rate limit exceeded
+  - Build share URL from env var `NEXT_PUBLIC_BASE_URL` with fallback
+---
+
+## 2026-01-15 - US-013
+- What was implemented: Built submit page with form and success confirmation
+- Files changed:
+  - ship-or-skip/src/app/submit/page.tsx (new server component wrapper)
+  - ship-or-skip/src/app/submit/submit-client.tsx (new client component)
+- **Learnings for future iterations:**
+  - Submit page doesn't need sessionId prop - cookies are sent automatically with API calls
+  - Success state shows: shareable pitch page link with copy button, tweet template, action buttons
+  - Use `encodeURIComponent()` for Twitter intent URLs with text and URL params
+  - X (Twitter) icon SVG path for modern branding (not old bird logo)
+  - Error state: show error message in red box with `bg-skip/10 border border-skip/30`
+  - Link component from `next/link` for internal navigation to pitch page and vote page
+---
+
+## 2026-01-15 - US-014
+- What was implemented: Created GET /api/pitch/[slug] endpoint for fetching idea data by slug
+- Files changed:
+  - ship-or-skip/src/app/api/pitch/[slug]/route.ts (new file)
+- **Learnings for future iterations:**
+  - Dynamic route params in Next.js 16+ are passed as `Promise<{ slug: string }>` and must be awaited
+  - Use `Pick<Idea, ...>` type alias for API response to explicitly select returned fields
+  - Filter by `is_active: true` when fetching ideas to exclude inactive/hidden ideas
+  - Pattern: `{ params }: { params: Promise<{ slug: string }> }` for typed dynamic route handlers
+---
+
+## 2026-01-15 - US-015
+- What was implemented: Built personal pitch page - the shareable viral engine
+- Files changed:
+  - ship-or-skip/src/app/pitch/[slug]/page.tsx (server component wrapper)
+  - ship-or-skip/src/app/pitch/[slug]/pitch-client.tsx (client component with voting/reveal flow)
+  - ship-or-skip/src/app/api/ideas/vote/check/route.ts (new endpoint to check if user voted)
+- **Learnings for future iterations:**
+  - Pitch page reuses existing components: IdeaCard, VoteButtons from voting/
+  - Created /api/ideas/vote/check endpoint to check if user already voted on an idea
+  - Vote check endpoint returns `{ has_voted: boolean, vote?: string }` for conditional UI
+  - When user has already voted, show results immediately without vote buttons
+  - Share functionality: native `navigator.share()` with clipboard fallback
+  - Twitter/X share: use twitter.com/intent/tweet with encodeURIComponent for text/URL params
+  - CTAs at bottom guide users to vote on more ideas or submit their own
+---
+
+## 2026-01-15 - US-016
+- What was implemented: Created GET /api/leaderboard endpoint for fetching ranked ideas
+- Files changed:
+  - ship-or-skip/src/app/api/leaderboard/route.ts (new file)
+- **Learnings for future iterations:**
+  - Leaderboard types: "top" (highest ship_percentage, min 100 votes), "voted" (most total_votes), "controversial" (closest to 50%)
+  - For "controversial" sorting by ABS(ship_percentage - 50), fetch more records and sort in JS since Supabase doesn't support ABS() in order
+  - Use `Pick<Idea, ...>` type alias for LeaderboardItem to explicitly type API response
+  - Validate query param `type` with includes() check before using as query modifier
+  - Default to "top" if no type parameter provided
+---
+
+## 2026-01-15 - US-017
+- What was implemented: Built leaderboard page with tab navigation for top/most voted/controversial ideas
+- Files changed:
+  - ship-or-skip/src/app/leaderboard/page.tsx (server component wrapper)
+  - ship-or-skip/src/app/leaderboard/leaderboard-client.tsx (client component with tabs and data fetching)
+- **Learnings for future iterations:**
+  - Tab navigation pattern: use state for activeTab, border-b-2 for active indicator
+  - Loading skeleton: use `animate-pulse` with `bg-foreground/10` for placeholder rectangles
+  - Leaderboard rows link to `/pitch/[slug]` using Link component from next/link
+  - Display name logic: show @twitter handle first, then source_company, then source type fallback
+  - Ship percentage color: green if >= 50%, red if < 50% using conditional className
+  - Empty state: show contextual message (e.g., "No ideas with 100+ votes yet" for top tab)
+---
+
+## 2026-01-15 - US-018
+- What was implemented: Built navbar component with logo, nav links, and responsive hamburger menu
+- Files changed:
+  - ship-or-skip/src/components/layout/navbar.tsx (new component)
+  - ship-or-skip/src/app/layout.tsx (added Navbar import and component)
+- **Learnings for future iterations:**
+  - Navbar pattern: sticky top with `bg-background/80 backdrop-blur-md` for glassmorphism effect
+  - Responsive nav: `hidden sm:flex` for desktop links, `sm:hidden` for mobile hamburger
+  - Active link highlighting: use `usePathname()` from `next/navigation` to detect current route
+  - Mobile menu toggle: useState for isMenuOpen, close menu on link click via onClick handler
+  - SVG hamburger icon (3 lines) and X close icon patterns for menu toggle button
+  - Nav links array pattern: centralize `{ href, label }` objects for consistent rendering
+---
+
+## 2026-01-15 - US-019
+- What was implemented: Created seed script for famous startups with 30 startup ideas
+- Files changed:
+  - ship-or-skip/scripts/seed-famous.ts (new file)
+  - ship-or-skip/package.json (added dotenv dependency)
+- **Learnings for future iterations:**
+  - Scripts go in `ship-or-skip/scripts/` directory
+  - Use `dotenv` package with `config({ path: resolve(__dirname, "../.env.local") })` to load env vars
+  - Generate slugs with: lowercase, remove special chars, replace spaces with hyphens
+  - Supabase upsert with `onConflict: "slug"` handles duplicates gracefully
+  - Run scripts with: `npx tsx scripts/seed-famous.ts`
+  - Outcome types: "success", "failure", "acquired", "shutdown" for source_outcome field
+---
+
+## 2026-01-15 - US-020
+- What was implemented: Created YCDB seed script to seed 500+ YC startup ideas from public API
+- Files changed:
+  - ship-or-skip/scripts/seed-ycdb.ts (new file)
+- **Learnings for future iterations:**
+  - YC-OSS API at `https://yc-oss.github.io/api/companies/all.json` provides public YC company data
+  - YC company fields: `name`, `one_liner`, `long_description`, `batch`, `status`, `top_company`, `industry`
+  - Map `one_liner` to hero (truncate to 60 chars if needed), `long_description` to subtitle (100 chars max)
+  - Status mapping: "acquired" -> "acquired", "inactive"/"dead" -> "shutdown", "active"/"public" -> "success"
+  - Process large datasets in batches (50 records) for better Supabase performance
+  - Prioritize records: top_company first, then by batch (newer first) to get best quality data
+  - Use `source: "yc"` to distinguish from "famous" and "user" submitted ideas
+  - Run script with: `npx tsx scripts/seed-ycdb.ts`
+---
+
+## 2026-01-15 - US-021
+- What was implemented: Added smooth card and reveal animations to the voting experience
+- Files changed:
+  - ship-or-skip/src/app/globals.css (added CSS keyframes and animation classes)
+  - ship-or-skip/src/components/voting/idea-card.tsx (added CardAnimationState type and animation support)
+  - ship-or-skip/src/components/voting/reveal-overlay.tsx (added fade-in animation class)
+  - ship-or-skip/src/app/vote/voting-client.tsx (added animation state management)
+  - ship-or-skip/src/app/pitch/[slug]/pitch-client.tsx (added entrance animation for pitch page)
+- **Learnings for future iterations:**
+  - Use CSS keyframes in globals.css with custom `.animate-*` classes for complex animations
+  - Animation states as union types (e.g., `"entering" | "visible" | "exiting-ship" | "exiting-skip"`) for type-safe animation management
+  - Card exit animations: use `showResults` state separate from `voteResult` to delay reveal until exit animation completes (250ms setTimeout)
+  - Animation timing: entrance 300ms ease-out, exit 250ms ease-in, fade-in 200ms ease-out
+  - Button hover/press animations already use Tailwind transitions (`hover:scale-[1.02] active:scale-[0.98]`)
+  - Export animation state types from components for use in parent components
+---
+
+## 2026-01-15 - US-022
+- What was implemented: Added swipe gestures for mobile voting with touch and mouse support
+- Files changed:
+  - ship-or-skip/src/components/voting/swipe-container.tsx (new component)
+  - ship-or-skip/src/app/vote/voting-client.tsx (integrated SwipeContainer)
+  - ship-or-skip/src/app/pitch/[slug]/pitch-client.tsx (integrated SwipeContainer)
+- **Learnings for future iterations:**
+  - Native touch events (touchstart/move/end) work well for swipe gestures in React 19 without external libs
+  - Use `touchAction: 'pan-y'` CSS to allow vertical scroll while capturing horizontal swipes
+  - Swipe state: track startX, currentX, isDragging for calculating delta and progress
+  - Card tilt: calculate rotation from delta (e.g., `deltaX / threshold * maxRotation`)
+  - Rubber band effect: use CSS cubic-bezier(0.34, 1.56, 0.64, 1) for elastic snap-back animation
+  - Progress indicator: scale icon based on `progress = min(abs(deltaX) / threshold, 1)`
+  - Support both touch (mobile) and mouse (desktop testing) events in same component
+  - Wrap conditionally: only show SwipeContainer when voting is allowed, show plain IdeaCard after voting
+---
+
+## 2026-01-15 - US-023
+- What was implemented: Added Open Graph and Twitter Card meta tags for rich social sharing
+- Files changed:
+  - ship-or-skip/src/app/layout.tsx (added default OG and Twitter meta tags)
+  - ship-or-skip/src/app/pitch/[slug]/page.tsx (added generateMetadata for dynamic OG tags)
+  - ship-or-skip/src/app/api/og/route.tsx (new dynamic OG image endpoint)
+  - ship-or-skip/scripts/seed-ycdb.ts (lint fixes for unused vars)
+- **Learnings for future iterations:**
+  - Next.js Metadata API: use `metadataBase` with `new URL()` for proper absolute URLs
+  - Title template: `{ default: "...", template: "%s | Site" }` for page-specific titles
+  - Dynamic metadata: export `generateMetadata({ params })` async function in page.tsx
+  - OG image API: use `next/og` ImageResponse with `runtime = "edge"` for dynamic OG images
+  - Dynamic OG images use JSX-like syntax with inline styles (no className, only style objects)
+  - Twitter card: use `card: "summary_large_image"` for large preview images
+  - Twitter creator: set `creator: "@handle"` for attribution on tweets
+  - For pitch pages, encode params in OG image URL: `/api/og?hero=...&ship=...&votes=...`
+---
+
+## 2026-01-15 - US-024
+- What was implemented: Added user stats tracking page with API endpoint
+- Files changed:
+  - ship-or-skip/src/app/api/stats/route.ts (new endpoint to fetch user session stats)
+  - ship-or-skip/src/app/stats/page.tsx (server component wrapper)
+  - ship-or-skip/src/app/stats/stats-client.tsx (client component with stats display and share functionality)
+  - ship-or-skip/src/components/layout/navbar.tsx (added Stats nav link)
+- **Learnings for future iterations:**
+  - Session stats already tracked by /api/ideas/vote endpoint: total_votes, ship_votes, skip_votes, crowd_agreements
+  - Stats API pattern: get session ID from cookies, query sessions table, calculate derived percentages (ship_rate, crowd_agreement_rate)
+  - Share stats pattern: generateTweetTemplate() for X/Twitter, handleShare() for native share API with clipboard fallback
+  - Stats display pattern: large hero number, grid of breakdown cards, crowd agreement highlight
+  - Empty state: check for total_votes === 0 and show CTA to start voting
+---
+
+## 2026-01-15 - US-025
+- What was implemented: Final polish and mobile testing improvements
+- Files changed:
+  - ship-or-skip/src/components/layout/navbar.tsx (increased touch targets to 44px)
+  - ship-or-skip/src/app/vote/voting-client.tsx (added user-friendly error states)
+  - ship-or-skip/src/app/pitch/[slug]/pitch-client.tsx (removed console.error)
+- **Learnings for future iterations:**
+  - Touch target minimum: use `min-w-11 min-h-11` (44px) for mobile accessibility
+  - Mobile nav links: add padding and min-height for proper touch targets
+  - Error handling pattern: use state (error, setError) with both full-page error state and inline error banners
+  - Remove console.error from client components - show user-friendly messages instead
+  - Build passes: all pages responsive, touch targets ≥44px, loading states on async ops, error handling throughout
+---
+
+## 2026-01-15 - US-001 (YC Pivot)
+- What was implemented: Extended ideas table schema with YC company fields via migration
+- Files changed:
+  - ship-or-skip/supabase/migrations/012_add_yc_company_fields.sql (new migration)
+  - ship-or-skip/src/app/stats/stats-client.tsx (fixed pre-existing TypeScript error)
+- **Learnings for future iterations:**
+  - Migration uses ALTER TABLE ADD COLUMN IF NOT EXISTS for idempotent column additions
+  - YC-specific fields prefixed with yc_ (e.g., yc_id, yc_name, yc_slug, yc_batch, etc.)
+  - Active pool management via is_in_active_pool BOOLEAN and pool_added_at TIMESTAMPTZ
+  - yc_tags uses TEXT[] (array) type for multiple tags
+  - Added indexes for yc_id, yc_slug, source_outcome, and is_in_active_pool for query performance
+  - source_outcome column already exists from original schema, no need to add again
+---
+
+## 2026-01-15 - US-002
+- What was implemented: Updated TypeScript types for YC company fields in types.ts
+- Files changed:
+  - ship-or-skip/src/lib/supabase/types.ts (added YC fields to Idea type, created YCCompanyRaw interface)
+- **Learnings for future iterations:**
+  - Created SourceOutcome type alias: `'unicorn' | 'acquired' | 'dead' | 'active' | null` for type-safe outcome handling
+  - All yc_* fields added to Row/Insert/Update types with appropriate nullability (most are nullable)
+  - yc_is_top_company and is_in_active_pool are non-nullable booleans (have defaults in DB)
+  - YCCompanyRaw interface matches the LaunchedCompany interface from yc-api/fetcher.ts exactly
+  - YC API fields: id (number), name, slug, one_liner, long_description, team_size, industry, subindustry, tags, batch, status, top_company, etc.
+  - YC status values: 'Public', 'Active', 'Inactive', 'Acquired' - used to compute source_outcome
+---
+
+## 2026-01-15 - US-003
+- What was implemented: Created YC data import script at ship-or-skip/scripts/import-yc-data.ts
+- Files changed:
+  - ship-or-skip/scripts/import-yc-data.ts (new file - complete import script)
+  - ship-or-skip/supabase/migrations/012_add_yc_company_fields.sql (added unique constraint on yc_id)
+- **Learnings for future iterations:**
+  - Import script uses YCCompanyRaw and IdeaInsert types from types.ts for type safety
+  - Supabase upsert with onConflict requires a UNIQUE constraint/index on the conflict column
+  - Created unique partial index: `CREATE UNIQUE INDEX IF NOT EXISTS idx_ideas_yc_id_unique ON ideas (yc_id) WHERE yc_id IS NOT NULL`
+  - Source outcome computed: top_company=true OR status='Public' -> 'unicorn', 'Acquired' -> 'acquired', 'Inactive' -> 'dead', else -> 'active'
+  - Slug creation: slugify(one_liner first 30 chars) + yc_slug for uniqueness
+  - Batch size of 100 for imports to avoid Supabase timeout
+  - Script also includes setInitialActivePool() function for US-004 (not yet called automatically)
+  - Run with: `npx tsx scripts/import-yc-data.ts`
+---
+
+## 2026-01-15 - US-004
+- What was implemented: Added expandActivePool() helper function to import script for future pool expansion
+- Files changed:
+  - ship-or-skip/scripts/import-yc-data.ts (added expandActivePool function)
+- **Learnings for future iterations:**
+  - setInitialActivePool() already existed and is called automatically after import
+  - expandActivePool(count, outcomeFilter?) allows adding more companies of specific outcome type
+  - Both functions sort by yc_team_size descending to prioritize larger companies
+  - Functions skip companies already in pool via is_in_active_pool=false filter
+  - Export functions so they can be used from other scripts if needed
+---
+
+## 2026-01-15 - US-005
+- What was implemented: Updated /api/ideas/next to use active pool with weighted outcome distribution
+- Files changed:
+  - ship-or-skip/src/app/api/ideas/next/route.ts (major rewrite for active pool + weighted selection)
+  - ship-or-skip/src/app/vote/voting-client.tsx (fixed lint warning for handleNext dependency)
+  - ship-or-skip/src/components/voting/idea-card.tsx (fixed quote escaping lint errors)
+- **Learnings for future iterations:**
+  - Active pool filtering: add `.eq("is_in_active_pool", true)` to Supabase queries
+  - Weighted random by outcome: group ideas by source_outcome, adjust weights for available categories, normalize
+  - OUTCOME_WEIGHTS: { unicorn: 0.4, dead: 0.3, acquired: 0.15, active: 0.15 } for engaging distribution
+  - Within-category selection still uses inverse vote count weighting for vote balancing
+  - Fall back to any available category when preferred category is exhausted
+  - Use useCallback for functions referenced in useEffect dependency arrays
+  - Use HTML entities (&ldquo; &rdquo;) for curly quotes in JSX to satisfy react/no-unescaped-entities
+---
+
+## 2026-01-15 - US-006
+- What was implemented: Updated idea-card component to show YC batch and industry for YC companies
+- Files changed:
+  - ship-or-skip/src/components/voting/idea-card.tsx (added YC batch/industry display)
+  - ship-or-skip/src/app/api/ideas/next/route.ts (added source, yc_batch, yc_industry to response)
+  - ship-or-skip/src/app/api/pitch/[slug]/route.ts (added source, yc_batch, yc_industry to response)
+  - ship-or-skip/src/app/vote/voting-client.tsx (updated Idea interface with YC fields)
+  - ship-or-skip/src/app/pitch/[slug]/pitch-client.tsx (updated PitchData interface with YC fields)
+- **Learnings for future iterations:**
+  - IdeaCard uses Pick<Idea, ...> to require only needed fields from the Idea type
+  - Format YC batch as "YC {batch}" (e.g., "YC W09") with • separator for industry
+  - Conditional display: check source === "yc" and existence of yc_batch/yc_industry
+  - API endpoints must be updated to include new fields when adding to component props
+  - Client components with local interfaces need to be updated in parallel with API changes
+---
+
+## 2026-01-15 - US-007
+- What was implemented: Created OutcomeBadge component for displaying company outcomes (unicorn/acquired/dead/active)
+- Files changed:
+  - ship-or-skip/src/components/voting/outcome-badge.tsx (new component)
+- **Learnings for future iterations:**
+  - OutcomeBadge uses SourceOutcome type from types.ts for type-safe outcome props
+  - OUTCOME_CONFIG object pattern maps each outcome to { label, bgColor, textColor, icon }
+  - Inline SVG icons from Heroicons (star for unicorn, dollar for acquired, sad face for dead, checkmark for active)
+  - Pill shape: rounded-full class with inline-flex for icon+text alignment
+  - Size variants via SIZE_CLASSES object with sm/md/lg options for reusability
+  - Early return pattern for null outcome or unknown outcome values
+---
+
+## 2026-01-15 - US-008
+- What was implemented: Updated reveal overlay with YC company reveal (name, logo, OutcomeBadge)
+- Files changed:
+  - ship-or-skip/src/components/voting/reveal-overlay.tsx (major update for YC company display)
+  - ship-or-skip/src/app/api/ideas/vote/route.ts (added yc_name, yc_logo_url, yc_slug, source to response)
+  - ship-or-skip/src/app/vote/voting-client.tsx (pass new YC fields to RevealOverlay)
+- **Learnings for future iterations:**
+  - RevealOverlay uses displayName pattern: ycName for YC companies, sourceCompany for others
+  - Logo URL: yc_logo_url for YC companies, favicon from link for non-YC
+  - OutcomeBadge requires casting sourceOutcome as SourceOutcome type
+  - Read More button links to /company/[slug] for YC companies (page created in US-013)
+  - Conditional rendering with isYcCompany flag (source === "yc") separates YC vs user submission behavior
+  - Vote API must return all fields needed by reveal (add new fields to both response blocks)
+---
+
+## 2026-01-15 - US-009
+- What was implemented: Created insight copy generator function in src/lib/insights.ts
+- Files changed:
+  - ship-or-skip/src/lib/insights.ts (new file)
+- **Learnings for future iterations:**
+  - getInsightCopy(userVote, outcome, companyName) returns contextual messages with emoji
+  - Import VoteType from vote-buttons.tsx, SourceOutcome from types.ts
+  - Ship + unicorn: positive reinforcement ("Nice call! You spotted a winner.")
+  - Skip + unicorn: dramatic miss ("You would have passed on a massive success.")
+  - Ship + dead: got fooled ("You got fooled. {company} didn't make it.")
+  - Skip + dead: good instincts ("Good instincts. This one failed.")
+  - Active: neutral time-will-tell message
+  - Acquired: neutral decent-outcome message
+  - Handle null/unknown outcomes with empty string fallback
+---
+
+## 2026-01-15 - US-010
+- What was implemented: Added is_correct tracking to votes for prediction accuracy
+- Files changed:
+  - ship-or-skip/supabase/migrations/013_add_vote_correctness.sql (new migration)
+  - ship-or-skip/src/lib/supabase/types.ts (added is_correct and idea_outcome to Vote type)
+  - ship-or-skip/src/app/api/ideas/vote/route.ts (added computeIsCorrect function and vote tracking)
+- **Learnings for future iterations:**
+  - computeIsCorrect(vote, outcome) function encapsulates correctness logic
+  - Ship + unicorn/acquired = correct (true)
+  - Skip + dead = correct (true)
+  - Active companies = null (no outcome yet to judge)
+  - All other combinations = incorrect (false)
+  - idea_outcome snapshot stores source_outcome at vote time for historical accuracy
+  - Add indexes on is_correct and idea_outcome columns for efficient querying
+  - Use partial indexes (WHERE column IS NOT NULL) for sparse boolean columns
+---
+
+## 2026-01-15 - US-011
+- What was implemented: Created Oracle Score calculation function in src/lib/scoring.ts
+- Files changed:
+  - ship-or-skip/src/lib/scoring.ts (new file)
+- **Learnings for future iterations:**
+  - calculateOracleScore(votes) returns percentage or null if under MIN_RESOLVED_VOTES (10)
+  - RESOLVED_OUTCOMES constant defines which outcomes count (unicorn, dead, acquired)
+  - getOracleScoreBreakdown() helper provides detailed stats (correctShips, correctSkips, etc.)
+  - Use Pick<Vote, "is_correct" | "idea_outcome"> for minimal typing requirements on input
+  - Round to 1 decimal place with Math.round(score * 10) / 10 for clean display
+  - Export MIN_RESOLVED_VOTES constant for use in UI messaging ("Need X more votes")
+---
+
+## 2026-01-15 - US-012
+- What was implemented: Added Oracle Score to session stats page and API
+- Files changed:
+  - ship-or-skip/supabase/migrations/014_add_oracle_score.sql (new migration)
+  - ship-or-skip/src/lib/supabase/types.ts (added oracle_score, resolved_votes, correct_predictions to Session type)
+  - ship-or-skip/src/app/api/stats/route.ts (added Oracle Score calculation and response fields)
+  - ship-or-skip/src/app/stats/stats-client.tsx (added Oracle Score UI section with locked/unlocked states)
+- **Learnings for future iterations:**
+  - API calculates Oracle Score on-the-fly by fetching votes with is_correct and idea_outcome fields
+  - Use getOracleScoreBreakdown() from scoring.ts to get all breakdown stats in one call
+  - Stats UI shows two states: locked (under 10 resolved votes) with progress bar, unlocked with full breakdown
+  - Added oracle_score, resolved_votes, correct_predictions to Session type even though API calculates dynamically
+  - Purple gradient theme used for Oracle Score section to make it visually prominent
+  - Progress bar uses inline style for dynamic width based on resolved_votes/10
+  - Share templates updated to include Oracle Score when available for more engaging shares
+---
+
+## 2026-01-15 - US-013
+- What was implemented: Created company deep dive page at /company/[slug] for detailed YC company view
+- Files changed:
+  - ship-or-skip/src/app/company/[slug]/page.tsx (new server component page)
+- **Learnings for future iterations:**
+  - Use `export const dynamic = "force-dynamic"` for pages that need fresh data on every request
+  - Use `notFound()` from next/navigation for clean 404 handling in Next.js
+  - Company lookup: try yc_slug first, then fall back to regular slug for flexibility
+  - Company header pattern: logo with fallback initial, name, OutcomeBadge in flex layout
+  - Metadata grid: use 2-column grid for batch/industry/location metadata display
+  - Vote visualization: progress bar with ship/skip percentages using inline style width
+  - External links: visit website as primary CTA, YC profile as secondary
+  - YC profile URL format: `https://www.ycombinator.com/companies/{yc_slug}`
+---
+
+## 2026-01-15 - US-014
+- What was implemented: Created GET /api/company/[slug] API endpoint for fetching full company data
+- Files changed:
+  - ship-or-skip/src/app/api/company/[slug]/route.ts (new API endpoint)
+- **Learnings for future iterations:**
+  - API endpoint mirrors company page logic: try yc_slug first, fallback to regular slug
+  - Use SELECT_FIELDS constant string for consistent field selection across queries
+  - CompanyResponse type with Pick<Idea, ...> ensures type-safe field selection
+  - Next.js 15+ pattern: params is Promise<{ slug: string }> and must be awaited
+  - Return explicit JSON object with all fields rather than spreading company object for clarity
+  - Include is_in_active_pool and created_at in response for potential future filtering/sorting
+---
+
+## 2026-01-15 - US-015
+- What was implemented: Verified Read More link on reveal overlay (already implemented in US-008)
+- Files changed: None - feature was already implemented in reveal-overlay.tsx during US-008
+- **Verification:**
+  - Read More link shows for YC companies (isYcCompany && ycSlug)
+  - Links to /company/{yc_slug} using Next.js Link component
+  - Styled as secondary action with border outline (vs primary bg-ship on Next button)
+  - Typecheck passes
+- **Learnings for future iterations:**
+  - Always check if acceptance criteria are already satisfied before implementing
+  - US-008 proactively added the Read More link when building the reveal overlay
+---
+
+## 2026-01-15 - US-016
+- What was implemented: Created Biggest Misses leaderboard tab showing unicorns with lowest ship percentage
+- Files changed:
+  - ship-or-skip/src/app/api/leaderboard/route.ts (added biggest_misses type, yc fields to response)
+  - ship-or-skip/src/app/leaderboard/leaderboard-client.tsx (added tab, OutcomeBadge, YC company links)
+- **Learnings for future iterations:**
+  - MIN_VOTES_YC_LEADERBOARD = 50 for YC-specific leaderboard tabs
+  - LeaderboardItem type expanded with yc_slug, yc_name, source_outcome for company links and badges
+  - getItemLink() helper determines /company/[yc_slug] for YC vs /pitch/[slug] for others
+  - OutcomeBadge with size="sm" fits well in leaderboard rows
+  - Default tab changed to "biggest_misses" as most engaging content
+---
+
+## 2026-01-15 - US-017
+- What was implemented: Created Biggest Fools leaderboard tab showing dead companies with highest ship percentage
+- Files changed:
+  - ship-or-skip/src/app/api/leaderboard/route.ts (added biggest_fools case to switch statement)
+  - ship-or-skip/src/app/leaderboard/leaderboard-client.tsx (added biggest_fools to type and TABS array)
+- **Learnings for future iterations:**
+  - Biggest Fools is opposite of Biggest Misses: dead companies with highest ship_percentage
+  - Follows same pattern: MIN_VOTES_YC_LEADERBOARD (50), filter by source_outcome, order by ship_percentage
+  - Tab order places Biggest Fools second after Biggest Misses for engagement
+---
+
+## 2026-01-15 - US-018
+- What was implemented: Added 50 vote minimum requirement to Most Controversial leaderboard tab
+- Files changed:
+  - ship-or-skip/src/app/api/leaderboard/route.ts (updated controversial case to use MIN_VOTES_YC_LEADERBOARD)
+- **Learnings for future iterations:**
+  - The Controversial tab was already implemented in earlier work, but was missing the 50 vote minimum
+  - Uses `.gte("total_votes", MIN_VOTES_YC_LEADERBOARD)` consistently with other YC leaderboard tabs
+  - Client-side sorting with ABS(ship_percentage - 50) required for Supabase which doesn't support ABS() in ORDER BY
+  - Fetches 500 records then sorts and slices to LIMIT (20) for proper controversial ranking
+---
+
+## 2026-01-15 - US-019
+- What was implemented: Created Crowd Favorites leaderboard tab showing companies with highest ship percentage
+- Files changed:
+  - ship-or-skip/src/app/api/leaderboard/route.ts (added favorites case to switch statement)
+  - ship-or-skip/src/app/leaderboard/leaderboard-client.tsx (added favorites to type and TABS array)
+- **Learnings for future iterations:**
+  - Crowd Favorites is similar to "top" but with minimum 50 votes requirement for quality filter
+  - Removed "Top Ideas" and "Most Voted" tabs in favor of focused YC outcome leaderboards
+  - Final tab order: Biggest Misses, Biggest Fools, Controversial, Crowd Favorites (4 tabs)
+---
+
+## 2026-01-15 - US-020
+- What was implemented: Refactored leaderboard API to support all leaderboard types with configurable limit
+- Files changed:
+  - ship-or-skip/src/app/api/leaderboard/route.ts (added user_submissions and voters types, limit param)
+- **Learnings for future iterations:**
+  - LeaderboardType union expanded: top, voted, controversial, biggest_misses, biggest_fools, favorites, user_submissions, voters
+  - VoterLeaderboardItem type created for sessions-based leaderboard (different table than ideas)
+  - user_submissions: filter by source='user' with MIN_VOTES_USER_SUBMISSIONS=20 (lower threshold)
+  - voters: query sessions table, order by total_votes DESC, requires at least 1 vote to appear
+  - limit query param: parsed with parseInt, clamped between 1-100, defaults to 20
+  - Switch statement handles type routing cleanly, voters handled separately before the switch
+---
+
+## 2026-01-15 - US-021
+- What was implemented: Updated leaderboard page with 6 tabs and URL query param state
+- Files changed:
+  - ship-or-skip/src/app/leaderboard/leaderboard-client.tsx (added tabs, URL params, voters rendering)
+  - ship-or-skip/src/app/leaderboard/page.tsx (added Suspense wrapper for useSearchParams)
+- **Learnings for future iterations:**
+  - useSearchParams requires Suspense boundary in Next.js - wrap client component in Suspense
+  - URL param state pattern: useSearchParams to read, router.push with { scroll: false } to update
+  - isValidTab type guard pattern: check if string matches union type before casting
+  - Horizontal scrolling tabs: overflow-x-auto container with min-w-max inner div, whitespace-nowrap on buttons
+  - VoterItem interface separate from LeaderboardItem since it comes from sessions table
+  - Voters leaderboard shows Oracle Score with crystal ball emoji when >= 10 resolved votes
+---
+
+## 2026-01-15 - US-022
+- What was implemented: Created battle mode API for winner vs loser matchups with outcome-based battles
+- Files changed:
+  - ship-or-skip/supabase/migrations/015_create_battle_votes_table.sql (new migration for battle tracking)
+  - ship-or-skip/src/lib/supabase/types.ts (added BattleVote types to Database and exports)
+  - ship-or-skip/src/app/api/battle/next/route.ts (new API endpoint for battle matchups)
+- **Learnings for future iterations:**
+  - Battle mode pairs winners (unicorn/acquired) vs losers (dead) for meaningful comparisons
+  - battle_votes table stores: session_id, winner_idea_id, loser_idea_id, user_choice, correct_answer, is_correct
+  - Randomize left/right position with 50/50 Math.random() to avoid position bias
+  - battle_id format: `${winner_id}:${loser_id}:${correct_answer}` for vote submission tracking
+  - Seen pairs stored in Set with both orderings (A-B and B-A) for quick lookup
+  - Shuffle arrays before searching for unseen pairs to ensure randomness
+  - BattleCompany interface contains only display fields (no outcome reveal before voting)
+---
+
+## 2026-01-15 - US-023
+- What was implemented: Created full battle mode UI with YC company cards and result reveal
+- Files changed:
+  - ship-or-skip/src/components/battle/battle-card.tsx (new component for compact battle cards)
+  - ship-or-skip/src/components/battle/battle-result.tsx (new component for result reveal with company info)
+  - ship-or-skip/src/app/api/battle/vote/route.ts (new API for submitting battle votes)
+  - ship-or-skip/src/app/battle/page.tsx (new server component wrapper)
+  - ship-or-skip/src/app/battle/battle-client.tsx (new client component with full battle flow)
+  - ship-or-skip/src/components/layout/navbar.tsx (added Battle link to navigation)
+- **Learnings for future iterations:**
+  - BattleCard shows hero, subtitle, yc_batch, yc_industry without revealing company name/outcome
+  - Click-to-select pattern: user clicks card, then confirms choice with button
+  - BattleResult shows side-by-side company reveals with logos, names, OutcomeBadges
+  - Vote API returns crowd_accuracy calculated from all votes on that battle pair
+  - isWinner/isLoser props control visual distinction (green border vs red border)
+  - CompanyReveal component links to /company/[yc_slug] for deep dive
+  - Grid layout with grid-cols-2 gap-4 works well for side-by-side battle cards
+---
+
+## 2026-01-15 - US-024
+- What was implemented: Updated landing page with YC hook stats, company count, and Oracle Score teaser
+- Files changed:
+  - ship-or-skip/src/app/page.tsx (updated headline, hook stat, company count, Oracle Score teaser, CTAs)
+  - ship-or-skip/src/app/api/landing-stats/route.ts (new API for company count)
+- **Learnings for future iterations:**
+  - Headline changed from generic to YC-specific: "Can you spot a unicorn?"
+  - Hook stat: "67% would have skipped Airbnb" - hardcoded for now, can be made dynamic later
+  - Company count fetched from API, rounded down to nearest 100 with "+" suffix
+  - Oracle Score teaser shown alongside company count to preview gamification
+  - CTA changed from "Start Voting" to "Start Predicting" for accuracy framing
+  - Secondary CTA links to /stats for returning users
+  - "How it works" updated to mention YC, unicorns, and Oracle Score
+---
+
+## 2026-01-15 - US-025
+- What was implemented: Added Oracle Score display in navbar with automatic updates after voting
+- Files changed:
+  - ship-or-skip/src/components/layout/navbar.tsx (added Oracle Score display with fetch and event listener)
+  - ship-or-skip/src/app/vote/voting-client.tsx (dispatch oracle-score-update event after vote)
+- **Learnings for future iterations:**
+  - Oracle Score shown only when user has 10+ resolved votes (MIN_RESOLVED_VOTES)
+  - Format: crystal ball emoji + percentage in purple pill badge
+  - Score updates without page refresh via custom event "oracle-score-update"
+  - window.dispatchEvent(new CustomEvent("oracle-score-update")) triggers navbar re-fetch
+  - useCallback for fetchOracleScore to enable stable effect dependencies
+  - Re-fetch on pathname change covers navigation-based updates
+  - title attribute used for tooltip: "Your Oracle Score - prediction accuracy"
+  - Mobile menu shows expanded Oracle Score display with label
+---
+
+## 2026-01-15 - US-026
+- What was implemented: Created OracleScoreCard shareable component for social sharing
+- Files changed:
+  - ship-or-skip/src/components/stats/oracle-score-card.tsx (new shareable card component)
+- **Learnings for future iterations:**
+  - OracleScoreCard shows: large score %, predictions correct, percentile rank, breakdown
+  - Purple gradient theme (from-purple-900 via-purple-800 to-indigo-900) matches Oracle brand
+  - Breakdown grid: correct ships, correct skips, wrong predictions
+  - Share on X button generates tweet with score and stats
+  - Copy Share Link uses clipboard fallback when navigator.share unavailable
+  - Component accepts percentileRank prop (optional) for comparison messaging
+  - Branding footer shows shiporskip.io URL
+  - Component can be used standalone or embedded in stats page
+---
+
+## 2026-01-15 - US-029
+- What was implemented: Verified that user submissions leaderboard tab was already implemented in US-020/US-021
+- Files changed: None (feature already existed)
+- **Verification:**
+  - User Submissions tab exists in leaderboard TABS array
+  - API filters by source='user' with MIN_VOTES_USER_SUBMISSIONS=20
+  - Sorted by total_votes descending
+  - getDisplayName shows @submitter_twitter if available
+  - getItemLink returns /pitch/[slug] for non-YC items
+  - OutcomeBadge only shows when source_outcome is truthy (null for user submissions)
+- **Learnings for future iterations:**
+  - Always check if acceptance criteria are already satisfied before implementing
+  - The user_submissions leaderboard type was added in US-020 when refactoring the API
+---
+
+## 2026-01-15 - US-030
+- What was implemented: Added clarity messaging to submit page explaining user submissions vs YC companies
+- Files changed:
+  - ship-or-skip/src/app/submit/submit-client.tsx (added info box explaining how user submissions work)
+- **Learnings for future iterations:**
+  - Info box added before the form to set expectations
+  - Key messages: separate from YC, no known outcome, doesn't affect Oracle Score
+  - Mentions 20+ votes threshold for User Submissions leaderboard
+  - Used bullet list with ship-colored dots for visual consistency
+  - HTML entity &apos; for apostrophe in JSX string
+---
+
+## 2026-01-15 - US-031
+- What was implemented: Created pool expansion admin utility script
+- Files changed:
+  - ship-or-skip/scripts/expand-pool.ts (new admin script for pool expansion)
+- **Learnings for future iterations:**
+  - Script run with: npx tsx scripts/expand-pool.ts [count] [outcome]
+  - expandActivePool function is exported for reuse in other scripts
+  - Prioritizes by yc_team_size descending (bigger companies first)
+  - Filters out companies already in pool (is_in_active_pool=false)
+  - Sets pool_added_at timestamp on added companies
+  - getPoolStats shows breakdown by outcome before/after expansion
+  - Validates outcome argument against allowed values
+  - Returns count of companies successfully added
+---
+
+## 2026-01-15 - US-032
+- What was implemented: Created /api/stats/compare endpoint for percentile rankings
+- Files changed:
+  - ship-or-skip/src/app/api/stats/compare/route.ts (new API for percentile comparison)
+- **Learnings for future iterations:**
+  - Percentile calculation: (users with lower score / total users) * 100
+  - Qualified players = those with 10+ resolved votes (MIN_RESOLVED_VOTES)
+  - Average Oracle Score calculated from all qualified players
+  - is_qualified flag indicates if user meets the 10-vote threshold
+  - Returns null for percentile_rank if user isn't qualified yet
+  - Uses supabase .single() for user session, handles PGRST116 (not found) error
+  - CompareResponse interface documents the response shape
+---
+
+## 2026-01-15 - US-033
+- What was implemented: Made landing page hook stat dynamic with real vote data
+- Files changed:
+  - ship-or-skip/src/app/api/landing-stats/route.ts (added featured company lookup)
+  - ship-or-skip/src/app/page.tsx (updated to use dynamic skip percentage)
+- **Learnings for future iterations:**
+  - FEATURED_COMPANY_NAME constant in API makes rotation easy
+  - API returns featured_skip_percentage (100 - ship_percentage)
+  - Landing page falls back to hardcoded "67%" if no real data
+  - featured_has_votes flag indicates whether to use dynamic data
+  - Updates live as votes come in (fetched on page load)
+---
+
+## 2026-01-15 - US-034
+- What was implemented: Added percentile ranking to stats page Oracle Score section
+- Files changed:
+  - ship-or-skip/src/app/stats/stats-client.tsx (added compareStats fetch and percentile display)
+- **Learnings for future iterations:**
+  - Fetch /api/stats and /api/stats/compare in parallel with Promise.all
+  - CompareStats interface for percentile_rank, average_oracle_score, total_qualified_players
+  - Percentile displayed inline below predictions count
+  - Condition: compareStats?.percentile_rank !== null && !== undefined
+  - Oracle Score section was mostly complete from previous iteration
+  - Added "Better than X% of players" messaging
+---
+
+## 2026-01-15 - US-027
+- What was implemented: Added YC-themed achievement definitions table and seed script
+- Files changed:
+  - ship-or-skip/supabase/migrations/016_create_achievement_definitions.sql (new migration with table and seeds)
+  - ship-or-skip/src/lib/supabase/types.ts (added AchievementDefinition types)
+  - ship-or-skip/scripts/seed-achievements.ts (new seed script for achievements)
+- **Learnings for future iterations:**
+  - Achievement definitions stored in achievement_definitions table with id, name, description, icon, rarity, category, trigger_type, trigger_threshold
+  - Rarity levels: common, uncommon, rare, epic, legendary
+  - Categories: voting, outcome, streak, social, special
+  - YC-themed achievements: Unicorn Hunter, Visionary, Missed Opportunity, Gravedigger, Fooled, Oracle
+  - Additional achievements: Good Instincts, Deal Maker, First Vote, Prediction Spree, Venture Scout, Veteran VC
+  - Migration uses INSERT ... ON CONFLICT for idempotent seeding
+  - TypeScript types exported: AchievementDefinition, AchievementRarity, AchievementCategory
+  - Run seed script with: `npx tsx scripts/seed-achievements.ts`
+---
+
+## 2026-01-16 - US-028
+- What was implemented: Added achievement progress tracking for outcome-based achievements
+- Files changed:
+  - ship-or-skip/supabase/migrations/017_create_achievement_progress_table.sql (new migration for progress tracking)
+  - ship-or-skip/src/lib/supabase/types.ts (added AchievementProgress, SessionAchievement types)
+  - ship-or-skip/src/lib/achievements.ts (new utility for achievement checking)
+  - ship-or-skip/src/app/api/ideas/vote/route.ts (integrated achievement tracking on vote)
+- **Learnings for future iterations:**
+  - achievement_progress table tracks counters per session: total_votes, unicorns_voted/shipped/skipped, dead_voted/shipped/skipped, acquired_voted/shipped/skipped
+  - session_achievements junction table stores unlocked achievements with unique constraint (session_id, achievement_id)
+  - getProgressUpdates(vote, outcome) returns increment values based on vote and idea outcome
+  - checkAchievements() compares progress against definitions and returns newly unlocked achievement IDs
+  - Oracle achievement requires both oracleScore >= 80 AND resolvedVotes >= trigger_threshold (50)
+  - Achievement tracking is non-critical: wrapped in try/catch, errors logged but don't fail the vote
+  - Vote API now returns unlocked_achievements array with full AchievementDefinition objects for UI display
+  - TRIGGER_TO_FIELD mapping links trigger_type strings to progress field names for dynamic checking
+---
+
+## 2026-01-16 - US-035
+- What was implemented: Added InsightCard component to company deep dive page showing crowd prediction analysis
+- Files changed:
+  - ship-or-skip/src/components/voting/insight-card.tsx (new component)
+  - ship-or-skip/src/app/company/[slug]/page.tsx (integrated InsightCard)
+- **Learnings for future iterations:**
+  - InsightCard shows dynamic copy based on outcome (unicorn/dead/acquired/active) and ship/skip percentages
+  - getInsightCopy() generates headlines like "X% would have missed this success" for unicorns that were skipped
+  - getOutcomeStyle() returns border/bg colors and icons matching the OutcomeBadge color scheme
+  - Card only renders if total_votes >= 10 to avoid showing insights on low-vote companies
+  - Each outcome type has two variations: one for majority shipped, one for majority skipped
+  - Component is self-contained with all styling logic internal
+---
+
+## 2026-01-16 - US-036
+- What was implemented: Added vote CTA to company deep dive page for users who haven't voted yet
+- Files changed:
+  - ship-or-skip/src/components/voting/company-vote-cta.tsx (new client component)
+  - ship-or-skip/src/app/company/[slug]/page.tsx (integrated CompanyVoteCta, added session ID)
+- **Learnings for future iterations:**
+  - Company page is server component, vote CTA needs client component for interactivity
+  - Use getSessionId() from session manager in server component, pass to client via props
+  - Vote check uses /api/ideas/vote/check endpoint with idea_id and session_id
+  - Three states for CTA: loading (skeleton), hasVoted (shows user's vote), voting (Ship/Skip buttons)
+  - After voting, dispatch "oracle-score-update" custom event to refresh navbar Oracle Score
+  - VoteResult shows updated ship_percentage and total_votes after vote is recorded
+  - Standard VoteButtons component reused from existing voting flow
+---
+
+## 2026-01-16 - US-037
+- What was implemented: Enhanced share functionality on reveal overlay with contextual prediction messages
+- Files changed:
+  - ship-or-skip/src/app/vote/voting-client.tsx (updated handleShare function)
+- **Learnings for future iterations:**
+  - Share message format: "I {shipped/skipped} {companyName} on Ship or Skip{outcomeText}"
+  - Outcome text includes emoji: unicorn (🦄), acquired (💰), dead (💀), active (🚀)
+  - Use NEXT_PUBLIC_BASE_URL env var for share URL with window.location.origin fallback
+  - Web Share API supports title, text, and url parameters
+  - navigator.clipboard.writeText() for fallback copy-to-clipboard functionality
+  - The reveal-overlay component already had a Share button wired to onShare prop
+---

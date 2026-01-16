@@ -1,0 +1,787 @@
+{
+  "project": "Ship or Skip - YC Pivot",
+  "branchName": "ralph/yc-pivot",
+  "description": "Pivot Ship or Skip from user-submitted ideas to 5,500+ real Y Combinator companies with known outcomes. Users predict startup success from just a pitch, earning an Oracle Score based on accuracy. Features outcome badges (unicorn/dead/acquired/active), company deep dives, multiple leaderboards (Biggest Misses, Biggest Fools), and an active pool system to concentrate votes.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Extend ideas table schema for YC data",
+      "description": "Add new columns to the ideas table to store YC company data including yc_id, yc_name, yc_slug, yc_batch, yc_status, yc_logo_url, yc_website, yc_long_description, yc_team_size, yc_industry, yc_subindustry, yc_tags (TEXT[]), yc_location, yc_launched_at, yc_is_top_company, source_outcome (unicorn/acquired/dead/active), is_in_active_pool, and pool_added_at. Use a migration file following the pattern NNN_description_in_snake_case.sql.",
+      "acceptanceCriteria": [
+        "Migration file 012_add_yc_company_fields.sql exists in supabase/migrations/",
+        "All new columns use IF NOT EXISTS to be idempotent",
+        "source_outcome column is TEXT with values: unicorn, acquired, dead, active",
+        "is_in_active_pool is BOOLEAN DEFAULT false",
+        "pool_added_at is TIMESTAMPTZ",
+        "yc_tags is TEXT ARRAY",
+        "Typecheck passes: npx tsc --noEmit"
+      ],
+      "priority": 1,
+      "passes": true,
+      "notes": "The source_outcome is computed: top_company=true OR status='Public' -> unicorn, status='Acquired' -> acquired, status='Inactive' -> dead, else -> active"
+    },
+    {
+      "id": "US-002",
+      "title": "Update TypeScript types for YC company fields",
+      "description": "Update the Idea type in src/lib/supabase/types.ts to include all new YC fields. Add a new YCCompanyData type interface for the raw API response shape. Add convenience type exports at the bottom of the file.",
+      "acceptanceCriteria": [
+        "Idea type includes all new yc_* fields with correct types",
+        "New YCCompanyRaw interface matches the YC API response schema",
+        "source_outcome type is 'unicorn' | 'acquired' | 'dead' | 'active' | null",
+        "is_in_active_pool and pool_added_at fields added to Idea type",
+        "IdeaInsert and IdeaUpdate types updated accordingly",
+        "Typecheck passes: npx tsc --noEmit"
+      ],
+      "priority": 2,
+      "passes": true,
+      "notes": "Reference yc-api/README.md for exact field names from the API"
+    },
+    {
+      "id": "US-003",
+      "title": "Create YC data import script",
+      "description": "Create scripts/import-yc-data.ts that fetches all companies from https://yc-oss.github.io/api/companies/all.json and imports them into the ideas table. The script should: filter companies with valid one_liners (>= 10 chars), compute source_outcome from status/top_company, create slugs, truncate one_liner to 60 chars for hero field, and use long_description (truncated to 100 chars) for subtitle. Load .env.local with dotenv for Supabase credentials.",
+      "acceptanceCriteria": [
+        "Script exists at ship-or-skip/scripts/import-yc-data.ts",
+        "Fetches from https://yc-oss.github.io/api/companies/all.json",
+        "Filters out companies with missing or short one_liner (< 10 chars)",
+        "Computes source_outcome correctly: top_company OR status='Public' -> unicorn, 'Acquired' -> acquired, 'Inactive' -> dead, else -> active",
+        "Creates unique slugs using slugify on one_liner + yc_slug",
+        "Sets source='yc' for all imported records",
+        "Handles batch inserts in chunks to avoid timeout",
+        "Console logs progress and final count",
+        "Typecheck passes: npx tsc --noEmit"
+      ],
+      "priority": 3,
+      "passes": true,
+      "notes": "Use supabase.from('ideas').upsert() with onConflict on yc_id to allow re-running"
+    },
+    {
+      "id": "US-004",
+      "title": "Create initial active pool seeding function",
+      "description": "Add a function in the import script (or separate script) to set is_in_active_pool=true for an initial 200 companies: 50 unicorns (sorted by team_size desc), 50 dead companies, 30 acquired, and 70 active companies. This concentrates votes on a manageable subset.",
+      "acceptanceCriteria": [
+        "Function setInitialActivePool() exists in import script",
+        "Marks exactly 200 companies as is_in_active_pool=true",
+        "Distribution: 50 unicorns, 50 dead, 30 acquired, 70 active",
+        "Unicorns sorted by yc_team_size descending (biggest first)",
+        "Sets pool_added_at to current timestamp",
+        "Console logs count per category added to pool",
+        "Typecheck passes"
+      ],
+      "priority": 4,
+      "passes": true,
+      "notes": "Can also create expandPool(count, criteria) helper for future use"
+    },
+    {
+      "id": "US-005",
+      "title": "Update /api/ideas/next to use active pool",
+      "description": "Modify the next idea API to only return ideas where is_in_active_pool=true. Add weighted distribution: 40% unicorns, 30% dead, 15% acquired, 15% active. Still exclude ideas the session has already voted on.",
+      "acceptanceCriteria": [
+        "GET /api/ideas/next only returns ideas with is_in_active_pool=true",
+        "Implements weighted random selection by source_outcome",
+        "40% chance unicorn, 30% dead, 15% acquired, 15% active",
+        "Falls back to any active pool idea if weighted category is exhausted",
+        "Still excludes ideas session has voted on",
+        "Returns 404 when pool is exhausted for session",
+        "Typecheck passes"
+      ],
+      "priority": 5,
+      "passes": true,
+      "notes": "The weighted distribution ensures users see the most engaging outcomes (unicorns and dead companies) more often"
+    },
+    {
+      "id": "US-006",
+      "title": "Update idea-card component to show YC info",
+      "description": "Update the idea-card.tsx component to display YC batch (e.g., 'YC W09') and industry category below the pitch. Only show this for YC companies (source='yc'). Keep the company name, logo, and outcome hidden until reveal.",
+      "acceptanceCriteria": [
+        "Idea card shows yc_batch formatted as 'YC {batch}' (e.g., 'YC W09')",
+        "Shows yc_industry below batch",
+        "Only displays batch/industry for source='yc' ideas",
+        "Company name, logo, and outcome remain hidden",
+        "User submissions (source='user') display as before",
+        "Styling matches existing design with subtle secondary text",
+        "Typecheck passes"
+      ],
+      "priority": 6,
+      "passes": true,
+      "notes": "Format should be like: 'YC W09 • Consumer' on one line"
+    },
+    {
+      "id": "US-007",
+      "title": "Create outcome badge component",
+      "description": "Create a new OutcomeBadge component in src/components/voting/outcome-badge.tsx that displays the outcome with appropriate icon and color: unicorn (purple with icon), acquired (gold with icon), dead (gray with skull), active (green checkmark). Badge should be visually prominent.",
+      "acceptanceCriteria": [
+        "OutcomeBadge component exists at src/components/voting/outcome-badge.tsx",
+        "Accepts outcome prop: 'unicorn' | 'acquired' | 'dead' | 'active'",
+        "Unicorn: purple background, sparkle/star icon, 'UNICORN' text",
+        "Acquired: gold/amber background, money icon, 'ACQUIRED' text",
+        "Dead: gray background, skull icon, 'DEAD' text",
+        "Active: green background, checkmark icon, 'ACTIVE' text",
+        "Badge is pill-shaped with bold text",
+        "Typecheck passes"
+      ],
+      "priority": 7,
+      "passes": true,
+      "notes": "Use inline SVG icons or existing icon library. Colors should be vibrant and eye-catching."
+    },
+    {
+      "id": "US-008",
+      "title": "Update reveal overlay with company reveal",
+      "description": "Update reveal-overlay.tsx to show the full company reveal for YC companies: company name (yc_name), logo (yc_logo_url), outcome badge, and crowd vote percentage. Include dynamic insight copy based on user vote vs outcome.",
+      "acceptanceCriteria": [
+        "Reveal shows yc_name prominently as headline",
+        "Displays yc_logo_url as company logo (with fallback for missing logos)",
+        "Shows OutcomeBadge component with source_outcome",
+        "Displays ship/skip percentage and total vote count",
+        "Shows dynamic insight copy (see US-009)",
+        "User submissions continue to work (show just vote stats)",
+        "Animation timing preserved",
+        "Typecheck passes"
+      ],
+      "priority": 8,
+      "passes": true,
+      "notes": "This is the 'aha moment' - make the company reveal dramatic and satisfying"
+    },
+    {
+      "id": "US-009",
+      "title": "Create insight copy generator",
+      "description": "Create src/lib/insights.ts with a getInsightCopy function that returns contextual messages based on user vote and company outcome. E.g., 'You would have passed on a $80B+ company' for skipping a unicorn.",
+      "acceptanceCriteria": [
+        "Function getInsightCopy(userVote, outcome, companyName) exists in src/lib/insights.ts",
+        "Returns appropriate message for each vote/outcome combination",
+        "Ship + unicorn: positive reinforcement ('Nice call!')",
+        "Skip + unicorn: dramatic miss ('You would have passed on...')",
+        "Ship + dead: got fooled message",
+        "Skip + dead: good instincts message",
+        "Acquired: neutral message either way",
+        "Active: 'time will tell' message",
+        "Messages include relevant emoji",
+        "Typecheck passes"
+      ],
+      "priority": 9,
+      "passes": true,
+      "notes": "Reference the pivot PRD for exact copy examples"
+    },
+    {
+      "id": "US-010",
+      "title": "Add is_correct tracking to votes",
+      "description": "Add is_correct column to votes table to track if prediction was correct. Update vote API to compute and store is_correct: ship + (unicorn|acquired) = correct, skip + dead = correct. Also store idea_outcome snapshot at vote time.",
+      "acceptanceCriteria": [
+        "Migration 013_add_vote_correctness.sql adds is_correct BOOLEAN and idea_outcome TEXT columns",
+        "POST /api/ideas/vote computes is_correct based on vote and source_outcome",
+        "Ship on unicorn/acquired -> is_correct = true",
+        "Skip on dead -> is_correct = true",
+        "All other combinations -> is_correct = false",
+        "Active companies -> is_correct = null (no outcome yet)",
+        "idea_outcome stores snapshot of source_outcome at vote time",
+        "Vote TypeScript type updated",
+        "Typecheck passes"
+      ],
+      "priority": 10,
+      "passes": true,
+      "notes": "This enables Oracle Score calculation based on prediction accuracy"
+    },
+    {
+      "id": "US-011",
+      "title": "Create Oracle Score calculation",
+      "description": "Create src/lib/scoring.ts with calculateOracleScore function. Oracle Score = (correct predictions / resolved votes) * 100. Only count votes on resolved companies (unicorn, dead, acquired). Require minimum 10 resolved votes.",
+      "acceptanceCriteria": [
+        "Function calculateOracleScore(votes) exists in src/lib/scoring.ts",
+        "Returns null if fewer than 10 resolved votes",
+        "Only counts votes where idea_outcome in ['unicorn', 'dead', 'acquired']",
+        "Returns percentage 0-100 of correct predictions",
+        "Exported as named export",
+        "Unit tests or inline examples in comments",
+        "Typecheck passes"
+      ],
+      "priority": 11,
+      "passes": true,
+      "notes": "Resolved votes = votes on companies with known outcomes (not active)"
+    },
+    {
+      "id": "US-012",
+      "title": "Add Oracle Score to session stats",
+      "description": "Add oracle_score and resolved_votes columns to sessions table. Update /api/stats to calculate and return Oracle Score. Create API to recalculate oracle_score based on session's votes.",
+      "acceptanceCriteria": [
+        "Migration 014_add_oracle_score.sql adds oracle_score FLOAT and resolved_votes INTEGER to sessions",
+        "GET /api/stats returns oracle_score and resolved_votes count",
+        "Oracle score calculated using scoring.ts function",
+        "Stats page displays Oracle Score with appropriate messaging",
+        "Shows 'Need X more votes' if under 10 resolved votes",
+        "Typecheck passes"
+      ],
+      "priority": 12,
+      "passes": true,
+      "notes": "Consider adding correct_predictions count to sessions as well"
+    },
+    {
+      "id": "US-013",
+      "title": "Create company deep dive page",
+      "description": "Create /company/[slug]/page.tsx for detailed company view. Show: company header (logo, name, outcome badge, one-liner), batch/industry/location info, team size, crowd vote stats, long description, and voting CTA if not voted.",
+      "acceptanceCriteria": [
+        "Page exists at ship-or-skip/src/app/company/[slug]/page.tsx",
+        "Fetches company by yc_slug from ideas table",
+        "Shows company logo (yc_logo_url) with fallback",
+        "Displays yc_name as headline with OutcomeBadge",
+        "Shows batch, industry, subindustry, location",
+        "Displays team size if available",
+        "Shows crowd vote stats (ship %, total votes)",
+        "Displays long_description (yc_long_description)",
+        "Link to yc_website and YC profile",
+        "Returns 404 for non-existent slugs",
+        "Typecheck passes"
+      ],
+      "priority": 13,
+      "passes": true,
+      "notes": "This is a dynamic route, no static generation. Use force-dynamic if needed."
+    },
+    {
+      "id": "US-014",
+      "title": "Create company API endpoint",
+      "description": "Create GET /api/company/[slug]/route.ts to fetch full company data by slug. Return all YC fields, vote stats, and outcome. Used by company page and other components.",
+      "acceptanceCriteria": [
+        "GET /api/company/[slug] returns full idea/company data",
+        "Fetches by yc_slug first, falls back to regular slug",
+        "Returns 404 if not found",
+        "Includes all yc_* fields and vote stats",
+        "Includes source_outcome",
+        "Typecheck passes"
+      ],
+      "priority": 14,
+      "passes": true,
+      "notes": "Remember Next.js 15 pattern: params is Promise<{ slug: string }>"
+    },
+    {
+      "id": "US-015",
+      "title": "Add Read More link to reveal overlay",
+      "description": "Add a 'Read More' button on the reveal overlay that links to /company/[slug] for YC companies. Button should be secondary action alongside 'Next' button.",
+      "acceptanceCriteria": [
+        "Reveal overlay shows 'Read More' link for YC companies",
+        "Link goes to /company/{yc_slug}",
+        "Only shown for source='yc' ideas",
+        "Positioned as secondary action (less prominent than Next)",
+        "Typecheck passes"
+      ],
+      "priority": 15,
+      "passes": true,
+      "notes": "Consider using Next Link component for client-side navigation"
+    },
+    {
+      "id": "US-016",
+      "title": "Create Biggest Misses leaderboard tab",
+      "description": "Add 'Biggest Misses' tab to leaderboard showing unicorns that got skipped the most. Query: source_outcome='unicorn', total_votes >= 50, ORDER BY ship_percentage ASC. Show rank, company name, pitch, outcome badge, and ship %.",
+      "acceptanceCriteria": [
+        "New tab 'Biggest Misses' on leaderboard page",
+        "Shows unicorns with highest skip percentage",
+        "Requires minimum 50 votes to appear",
+        "Displays: rank, company name, one-liner pitch, OutcomeBadge, ship %",
+        "Links each item to /company/[slug]",
+        "API endpoint supports type=biggest_misses query param",
+        "Typecheck passes"
+      ],
+      "priority": 16,
+      "passes": true,
+      "notes": "This surfaces the most surprising misses like Airbnb"
+    },
+    {
+      "id": "US-017",
+      "title": "Create Biggest Fools leaderboard tab",
+      "description": "Add 'Biggest Fools' tab showing dead companies that got shipped the most. Query: source_outcome='dead', total_votes >= 50, ORDER BY ship_percentage DESC. Reveals which dead startups fooled the crowd.",
+      "acceptanceCriteria": [
+        "New tab 'Biggest Fools' on leaderboard page",
+        "Shows dead companies with highest ship percentage",
+        "Requires minimum 50 votes to appear",
+        "Displays: rank, company name, pitch, OutcomeBadge, ship %",
+        "Links each item to /company/[slug]",
+        "API endpoint supports type=biggest_fools query param",
+        "Typecheck passes"
+      ],
+      "priority": 17,
+      "passes": true,
+      "notes": "Shows dead companies that tricked people with good-sounding pitches"
+    },
+    {
+      "id": "US-018",
+      "title": "Create Most Controversial leaderboard tab",
+      "description": "Add 'Most Controversial' tab showing companies closest to 50/50 split. Query: total_votes >= 50, ORDER BY ABS(ship_percentage - 50) ASC. These are the hardest to predict.",
+      "acceptanceCriteria": [
+        "New tab 'Most Controversial' on leaderboard page",
+        "Shows companies closest to 50% ship rate",
+        "Requires minimum 50 votes to appear",
+        "Displays: rank, company name, pitch, OutcomeBadge, ship %",
+        "Links each item to /company/[slug]",
+        "API endpoint supports type=controversial query param",
+        "Typecheck passes"
+      ],
+      "priority": 18,
+      "passes": true,
+      "notes": "Use ABS(ship_percentage - 50) for sorting"
+    },
+    {
+      "id": "US-019",
+      "title": "Create Crowd Favorites leaderboard tab",
+      "description": "Add 'Crowd Favorites' tab showing highest ship percentage overall. Query: total_votes >= 50, ORDER BY ship_percentage DESC. Shows what the crowd thinks will succeed.",
+      "acceptanceCriteria": [
+        "New tab 'Crowd Favorites' on leaderboard page",
+        "Shows companies with highest ship percentage",
+        "Requires minimum 50 votes to appear",
+        "Displays: rank, company name, pitch, OutcomeBadge, ship %",
+        "Links each item to /company/[slug]",
+        "API endpoint supports type=favorites query param",
+        "Typecheck passes"
+      ],
+      "priority": 19,
+      "passes": true,
+      "notes": "This is effectively the existing 'top' leaderboard renamed"
+    },
+    {
+      "id": "US-020",
+      "title": "Refactor leaderboard API for multiple types",
+      "description": "Refactor /api/leaderboard to support type query param with values: top (existing), voters (existing), biggest_misses, biggest_fools, controversial, favorites, user_submissions. Return appropriate data for each type.",
+      "acceptanceCriteria": [
+        "GET /api/leaderboard?type=X supports all leaderboard types",
+        "Each type returns correctly filtered and sorted data",
+        "All YC leaderboards require 50+ votes minimum",
+        "User submissions leaderboard (type=user_submissions) shows source='user' ideas",
+        "Returns limit param (default 20)",
+        "Includes outcome badge data in response",
+        "Typecheck passes"
+      ],
+      "priority": 20,
+      "passes": true,
+      "notes": "Consider using a switch statement or lookup object for type handling"
+    },
+    {
+      "id": "US-021",
+      "title": "Update leaderboard page with tabs",
+      "description": "Update leaderboard/page.tsx to display multiple tabs: Biggest Misses, Biggest Fools, Controversial, Crowd Favorites, User Submissions, Top Voters. Use URL query param to track active tab.",
+      "acceptanceCriteria": [
+        "Leaderboard page shows 6 tabs",
+        "Tab order: Biggest Misses, Biggest Fools, Controversial, Crowd Favorites, User Submissions, Top Voters",
+        "Active tab stored in URL query param (?tab=X)",
+        "Each tab fetches appropriate data from API",
+        "Tab switching is smooth without full page reload",
+        "Mobile responsive (scrollable tabs or dropdown)",
+        "Typecheck passes"
+      ],
+      "priority": 21,
+      "passes": true,
+      "notes": "Biggest Misses should be default tab as it's most engaging"
+    },
+    {
+      "id": "US-022",
+      "title": "Update battle matchmaking for outcomes",
+      "description": "Update /api/battle/next to create meaningful battles: pair a winner (unicorn/acquired) against a loser (dead). Randomize left/right position. Return correct_answer indicating which side won.",
+      "acceptanceCriteria": [
+        "Battle matchups pair winner (unicorn/acquired) vs loser (dead)",
+        "Winners selected from source_outcome IN ('unicorn', 'acquired')",
+        "Losers selected from source_outcome = 'dead'",
+        "Left/right position randomized (50/50)",
+        "Response includes correct_answer: 'left' | 'right'",
+        "Still excludes seen battle pairs for session",
+        "Typecheck passes"
+      ],
+      "priority": 22,
+      "passes": true,
+      "notes": "Battle prompt becomes 'Which was more successful?' instead of 'Which would you ship?'"
+    },
+    {
+      "id": "US-023",
+      "title": "Update battle UI for YC companies",
+      "description": "Update battle components to show YC batch and industry on cards (not company name). After voting, reveal both company names, logos, and outcomes. Update copy to 'Which was MORE successful?'",
+      "acceptanceCriteria": [
+        "Battle cards show yc_batch and yc_industry (not company name)",
+        "Question text: 'Which startup was more successful?'",
+        "Battle result reveals both company names and logos",
+        "Shows OutcomeBadge for each company",
+        "Links to /company/[slug] for each company in result",
+        "Crowd accuracy stat shown ('X% got this right')",
+        "Typecheck passes"
+      ],
+      "priority": 23,
+      "passes": true,
+      "notes": "The reveal should show clear winner/loser with visual distinction"
+    },
+    {
+      "id": "US-024",
+      "title": "Update landing page with hook stats",
+      "description": "Update landing page copy to feature YC data hook: '67% would have skipped Airbnb. Can you spot a unicorn?' Show company count (5,500+), Oracle Score teaser, and clear CTA to start voting.",
+      "acceptanceCriteria": [
+        "Landing page headline references real YC companies",
+        "Shows hook stat (e.g., '67% would have skipped Airbnb')",
+        "Displays total company count from database",
+        "Mentions Oracle Score as gamification element",
+        "Clear 'Start Predicting' or similar CTA",
+        "Secondary CTA for returning users to see their stats",
+        "Typecheck passes"
+      ],
+      "priority": 24,
+      "passes": true,
+      "notes": "The hook stat can be hardcoded initially, made dynamic later"
+    },
+    {
+      "id": "US-025",
+      "title": "Add Oracle Score display in navbar",
+      "description": "Show user's Oracle Score in the navbar if they have 10+ resolved votes. Display as '(score)%' with Oracle/crystal ball icon. Tooltip shows 'Your prediction accuracy'.",
+      "acceptanceCriteria": [
+        "Navbar shows Oracle Score for users with 10+ resolved votes",
+        "Format: crystal ball emoji + percentage (e.g., '73%')",
+        "Links to /stats page",
+        "Hidden if user has <10 resolved votes",
+        "Tooltip or title attribute explains 'Oracle Score'",
+        "Updates after each vote without full refresh",
+        "Typecheck passes"
+      ],
+      "priority": 25,
+      "passes": true,
+      "notes": "Can show 'Vote X more to unlock' message if close to threshold"
+    },
+    {
+      "id": "US-026",
+      "title": "Create Oracle Score share card",
+      "description": "Create a shareable Oracle Score card component for social sharing. Shows score percentage, correct/total resolved predictions, and comparison to average. Matches existing shareable card styling.",
+      "acceptanceCriteria": [
+        "OracleScoreCard component in src/components/stats/",
+        "Shows Oracle Score as large percentage",
+        "Displays 'X out of Y predictions correct'",
+        "Shows percentile rank ('Better than X% of players')",
+        "Breakdown: correct ships, correct skips, wrong predictions",
+        "Share button generates shareable image or link",
+        "Matches existing shareable-dna-card styling",
+        "Typecheck passes"
+      ],
+      "priority": 26,
+      "passes": true,
+      "notes": "Reference the pivot PRD for exact layout"
+    },
+    {
+      "id": "US-027",
+      "title": "Add new YC-themed achievements",
+      "description": "Add new achievement definitions for YC outcomes: Unicorn Hunter (vote on a unicorn), Visionary (ship a unicorn), Missed Opportunity (skip a unicorn), Gravedigger (vote on dead startup), Fooled (ship a dead startup), Oracle (80%+ accuracy with 50+ resolved). Update achievement_definitions seeding.",
+      "acceptanceCriteria": [
+        "Achievement definitions include YC-themed achievements",
+        "Unicorn Hunter: vote on any unicorn (uncommon)",
+        "Visionary: correctly ship a unicorn (uncommon)",
+        "Missed Opportunity: skip a unicorn (uncommon)",
+        "Gravedigger: vote on a dead company (common)",
+        "Fooled: ship a dead company (uncommon)",
+        "Oracle: 80%+ accuracy with 50+ resolved votes (epic)",
+        "Seed script or migration updates achievement_definitions",
+        "Typecheck passes"
+      ],
+      "priority": 27,
+      "passes": true,
+      "notes": "These supplement existing achievements, don't replace them"
+    },
+    {
+      "id": "US-028",
+      "title": "Update achievement progress tracking for outcomes",
+      "description": "Update achievement_progress table and checking logic to track outcome-based achievements. Add columns: unicorns_voted, unicorns_shipped, unicorns_skipped, dead_voted, dead_shipped, dead_skipped. Update achievement checking on vote.",
+      "acceptanceCriteria": [
+        "Migration adds outcome tracking columns to achievement_progress",
+        "Vote API updates progress counters based on idea outcome",
+        "Achievement check triggers for outcome-based achievements",
+        "Unicorn Hunter unlocks on first unicorn vote",
+        "Visionary unlocks on first correct unicorn ship",
+        "Oracle achievement checks score after each resolved vote",
+        "Typecheck passes"
+      ],
+      "priority": 28,
+      "passes": true,
+      "notes": "Check existing achievement_progress columns - some may already exist"
+    },
+    {
+      "id": "US-029",
+      "title": "Add user submissions to leaderboard",
+      "description": "Ensure user-submitted ideas (source='user') still appear in a dedicated leaderboard tab. Query: source='user', total_votes >= 20, ORDER BY total_votes DESC. Users can still submit their own pitches.",
+      "acceptanceCriteria": [
+        "User Submissions tab shows only source='user' ideas",
+        "Minimum 20 votes to appear (lower threshold than YC)",
+        "Sorted by total_votes descending",
+        "Shows submitter twitter handle if available",
+        "Links to /pitch/[slug] instead of /company/[slug]",
+        "No outcome badge (users don't have outcomes)",
+        "Typecheck passes"
+      ],
+      "priority": 29,
+      "passes": true,
+      "notes": "Keeps the user submission feature working alongside YC data"
+    },
+    {
+      "id": "US-030",
+      "title": "Update submit page for clarity",
+      "description": "Update the submit page to clarify it's for user-submitted startup ideas (not YC companies). Add messaging that user submissions go into a separate pool and won't affect Oracle Score (no known outcome).",
+      "acceptanceCriteria": [
+        "Submit page explains user submissions are separate from YC companies",
+        "Notes that user submissions have no known outcome",
+        "Clarifies user submission votes don't affect Oracle Score",
+        "Form still works as before (hero, subtitle, twitter handle)",
+        "Success message links to /pitch/[slug]",
+        "Typecheck passes"
+      ],
+      "priority": 30,
+      "passes": true,
+      "notes": "Don't discourage submissions, just set correct expectations"
+    },
+    {
+      "id": "US-031",
+      "title": "Add pool expansion utility",
+      "description": "Create an admin utility function to expand the active pool. Function expandActivePool(count, outcome) adds more companies of specified outcome to is_in_active_pool=true. Include in import script or separate admin script.",
+      "acceptanceCriteria": [
+        "Function expandActivePool(count, outcomeFilter) exists",
+        "Adds specified count of companies to active pool",
+        "Filters by source_outcome if provided",
+        "Prioritizes by team_size descending (bigger companies first)",
+        "Skips companies already in pool",
+        "Sets pool_added_at timestamp",
+        "Returns count of companies added",
+        "Typecheck passes"
+      ],
+      "priority": 31,
+      "passes": true,
+      "notes": "This is for manual pool expansion as vote counts grow"
+    },
+    {
+      "id": "US-032",
+      "title": "Create stats comparison API",
+      "description": "Create or update /api/stats/compare to return percentile rankings for Oracle Score and other metrics. Compare user's score against all users with 10+ resolved votes.",
+      "acceptanceCriteria": [
+        "GET /api/stats/compare returns percentile data",
+        "Oracle Score percentile (better than X% of players)",
+        "Comparison against users with 10+ resolved votes",
+        "Also returns average Oracle Score for comparison",
+        "Returns total player count in comparison pool",
+        "Used by Oracle Score card and stats page",
+        "Typecheck passes"
+      ],
+      "priority": 32,
+      "passes": true,
+      "notes": "Percentile calculation: (users with lower score / total users) * 100"
+    },
+    {
+      "id": "US-033",
+      "title": "Add dynamic hook stat to landing page",
+      "description": "Make the landing page hook stat dynamic. Query for a famous unicorn (Airbnb or similar) and show its actual skip percentage. E.g., 'X% would have skipped Airbnb'.",
+      "acceptanceCriteria": [
+        "Landing page fetches actual vote data for featured company",
+        "Shows real skip percentage (100 - ship_percentage)",
+        "Falls back to hardcoded stat if no votes yet",
+        "Company can be configured (env var or hardcoded)",
+        "Updates as votes come in",
+        "Typecheck passes"
+      ],
+      "priority": 33,
+      "passes": true,
+      "notes": "Start with Airbnb, can rotate featured company later"
+    },
+    {
+      "id": "US-034",
+      "title": "Update stats page with Oracle Score section",
+      "description": "Add dedicated Oracle Score section to /stats page. Show score, accuracy breakdown (correct ships, correct skips, wrong), percentile ranking, and shareable card. Position prominently above other stats.",
+      "acceptanceCriteria": [
+        "Stats page has prominent Oracle Score section",
+        "Shows score percentage in large text",
+        "Breakdown: correct ships, correct skips, total wrong",
+        "Shows resolved votes count and remaining to unlock (if <10)",
+        "Percentile ranking displayed",
+        "Share button for Oracle Score card",
+        "Locked/teaser state if <10 resolved votes",
+        "Typecheck passes"
+      ],
+      "priority": 34,
+      "passes": true,
+      "notes": "Oracle Score should be the hero metric on stats page"
+    },
+    {
+      "id": "US-035",
+      "title": "Create company insight card on deep dive",
+      "description": "Add an insight card to company deep dive page showing crowd prediction analysis. E.g., 'X% of voters would have SKIPPED this unicorn' with commentary on what this means.",
+      "acceptanceCriteria": [
+        "Company page includes insight card section",
+        "Shows crowd prediction summary",
+        "Dynamic copy based on outcome and crowd vote",
+        "Unicorn skipped: 'X% would have missed this success'",
+        "Dead company shipped: 'X% got fooled by this pitch'",
+        "Shows relative ranking ('Top X% of YC companies')",
+        "Styled as callout/highlight card",
+        "Typecheck passes"
+      ],
+      "priority": 35,
+      "passes": true,
+      "notes": "Reference pivot PRD 'THE INSIGHT' section for examples"
+    },
+    {
+      "id": "US-036",
+      "title": "Add vote CTA to company deep dive",
+      "description": "Add voting CTA at bottom of company deep dive page for users who haven't voted. Show 'Would you have shipped {company}?' with Ship/Skip buttons. Update vote count after voting.",
+      "acceptanceCriteria": [
+        "Company page shows vote CTA if user hasn't voted",
+        "Question: 'Would you have shipped {company_name}?'",
+        "Ship and Skip buttons in standard styling",
+        "Voting uses existing /api/ideas/vote endpoint",
+        "After voting, CTA updates to show user's vote and stats",
+        "Hidden or shows 'Already voted' if session voted",
+        "Typecheck passes"
+      ],
+      "priority": 36,
+      "passes": true,
+      "notes": "Allows voting from deep dive page without going through main flow"
+    },
+    {
+      "id": "US-037",
+      "title": "Add share button to reveal overlay",
+      "description": "Add share functionality to reveal overlay. Generate shareable message about the prediction result: 'I [shipped/skipped] {company} on Ship or Skip. {outcome}! Test your predictions →'",
+      "acceptanceCriteria": [
+        "Reveal overlay has Share button alongside Read More and Next",
+        "Share uses Web Share API if available, fallback to copy",
+        "Message includes: vote action, company name, outcome",
+        "Example: 'I shipped Airbnb on Ship or Skip - it became a UNICORN!'",
+        "Includes link to shiporskip.io",
+        "Works on mobile and desktop",
+        "Typecheck passes"
+      ],
+      "priority": 37,
+      "passes": true,
+      "notes": "Share API provides native share sheet on mobile"
+    },
+    {
+      "id": "US-038",
+      "title": "Handle empty active pool gracefully",
+      "description": "When active pool is exhausted for a session, show friendly message instead of error. Suggest: browse leaderboards, check stats, submit own idea, or come back later when pool expands.",
+      "acceptanceCriteria": [
+        "Vote page handles 404 from /api/ideas/next gracefully",
+        "Shows friendly 'You've seen them all!' message",
+        "Suggests alternative actions: leaderboards, stats, submit",
+        "Counts how many companies user has voted on",
+        "Message indicates pool may expand",
+        "No error toast or broken UI state",
+        "Typecheck passes"
+      ],
+      "priority": 38,
+      "passes": false,
+      "notes": "This should be a positive completion state, not an error"
+    },
+    {
+      "id": "US-039",
+      "title": "Run import script and verify data",
+      "description": "Run the YC import script against the development database. Verify: correct company count imported, outcomes computed correctly, initial pool set. Fix any import issues discovered.",
+      "acceptanceCriteria": [
+        "Import script runs successfully",
+        "~5000+ companies imported (after filtering short one_liners)",
+        "Outcomes distributed roughly: ~100 unicorns, ~1000+ dead, rest active",
+        "Initial pool of 200 companies set",
+        "Spot check 5 random companies for data accuracy",
+        "No duplicate slugs or yc_ids",
+        "Console output shows success counts"
+      ],
+      "priority": 39,
+      "passes": false,
+      "notes": "Run on development DB first, production later"
+    },
+    {
+      "id": "US-040",
+      "title": "End-to-end voting flow test",
+      "description": "Test complete voting flow with YC data: see pitch with batch/industry, vote, see reveal with company name/logo/outcome/insight copy. Verify achievements unlock. Test on multiple browsers.",
+      "acceptanceCriteria": [
+        "Voting flow works end-to-end",
+        "Pitch shows YC batch and industry",
+        "Reveal shows company name, logo, outcome badge",
+        "Insight copy appears correctly for all vote/outcome combos",
+        "Achievements unlock (test Unicorn Hunter, Gravedigger)",
+        "Streaks still work",
+        "Test Chrome and Firefox minimum",
+        "Verify in browser"
+      ],
+      "priority": 40,
+      "passes": false,
+      "notes": "Manual testing focused on happy path"
+    },
+    {
+      "id": "US-041",
+      "title": "End-to-end battle mode test",
+      "description": "Test battle mode with new matchmaking: winner vs loser pairing, reveal shows both outcomes, correct answer tracked. Verify battle leaderboard updates.",
+      "acceptanceCriteria": [
+        "Battle matchups show winner vs loser (not two random)",
+        "Cards show batch/industry, not company names",
+        "Reveal shows both company names, logos, outcomes",
+        "Correct/wrong feedback works",
+        "Battle streak increments on correct",
+        "Battle leaderboard shows ELO changes",
+        "Verify in browser"
+      ],
+      "priority": 41,
+      "passes": false,
+      "notes": "Manual testing of battle mode"
+    },
+    {
+      "id": "US-042",
+      "title": "Test all leaderboard tabs",
+      "description": "Test all leaderboard tabs with real data: Biggest Misses, Biggest Fools, Controversial, Favorites, User Submissions, Top Voters. Verify filtering, sorting, and links work correctly.",
+      "acceptanceCriteria": [
+        "Biggest Misses shows unicorns with low ship %",
+        "Biggest Fools shows dead companies with high ship %",
+        "Controversial shows companies near 50%",
+        "Favorites shows highest ship %",
+        "User Submissions shows source='user' ideas",
+        "Top Voters unchanged",
+        "All links to company/pitch pages work",
+        "Verify in browser"
+      ],
+      "priority": 42,
+      "passes": false,
+      "notes": "May need to generate some votes first for meaningful data"
+    },
+    {
+      "id": "US-043",
+      "title": "Test company deep dive pages",
+      "description": "Test /company/[slug] pages: verify data displays correctly, vote CTA works, insight card shows, links work. Test both voted and unvoted states.",
+      "acceptanceCriteria": [
+        "Company page loads with all data",
+        "Logo displays (with fallback for missing)",
+        "Outcome badge shows correct outcome",
+        "Crowd stats display correctly",
+        "Vote CTA works for unvoted companies",
+        "Shows 'Already voted' or user's vote for voted",
+        "External links (website, YC profile) work",
+        "Verify in browser"
+      ],
+      "priority": 43,
+      "passes": false,
+      "notes": "Test Airbnb page specifically as it's the poster child"
+    },
+    {
+      "id": "US-044",
+      "title": "Test Oracle Score calculation and display",
+      "description": "Test Oracle Score: make 10+ votes on resolved companies, verify score calculates correctly, displays in navbar and stats page, share card works.",
+      "acceptanceCriteria": [
+        "Oracle Score appears after 10 resolved votes",
+        "Score matches manual calculation (correct/total)",
+        "Shows in navbar with crystal ball icon",
+        "Stats page shows full breakdown",
+        "Percentile ranking displays",
+        "Share card generates correctly",
+        "Verify in browser"
+      ],
+      "priority": 44,
+      "passes": false,
+      "notes": "May need to vote on specific companies to test edge cases"
+    },
+    {
+      "id": "US-045",
+      "title": "Final polish and bug fixes",
+      "description": "Address any bugs discovered in testing. Polish UI details: loading states, error handling, mobile responsiveness. Ensure all typechecks pass and no console errors.",
+      "acceptanceCriteria": [
+        "All known bugs fixed",
+        "No console errors in browser",
+        "Loading states show appropriately",
+        "Error states handled gracefully",
+        "Mobile responsive on all new pages",
+        "Typecheck passes: npx tsc --noEmit",
+        "Ready for production deployment"
+      ],
+      "priority": 45,
+      "passes": false,
+      "notes": "Catch-all for final fixes before launch"
+    }
+  ]
+}
