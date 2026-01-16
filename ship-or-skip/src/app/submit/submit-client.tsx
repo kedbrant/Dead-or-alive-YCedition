@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { SubmitForm, SubmitFormData } from "@/components/submit/submit-form";
@@ -19,6 +19,21 @@ export function SubmitClient() {
   const [submitResult, setSubmitResult] = useState<SubmitResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [submittedHero, setSubmittedHero] = useState<string>("");
+  const [sessionReady, setSessionReady] = useState(false);
+
+  // Initialize session on mount to ensure cookie is set before submission
+  useEffect(() => {
+    async function initSession() {
+      try {
+        await fetch("/api/session");
+        setSessionReady(true);
+      } catch {
+        // Session will be created on submit if needed
+        setSessionReady(true);
+      }
+    }
+    initSession();
+  }, []);
 
   const handleSubmit = async (data: SubmitFormData) => {
     setIsSubmitting(true);
