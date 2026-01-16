@@ -51,7 +51,7 @@ export async function GET(request: NextRequest) {
               opacity: 0.7,
             }}
           >
-            Ship or Skip
+            YC Archive
           </span>
         </div>
 
@@ -198,7 +198,7 @@ export async function GET(request: NextRequest) {
             opacity: 0.6,
           }}
         >
-          {hasVotingData ? "What would you vote?" : "Swipe through real startup pitches"}
+          {hasVotingData ? "What would you vote?" : "yc-archive.com"}
         </div>
       </div>
     ),

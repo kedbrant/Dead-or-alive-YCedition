@@ -9,14 +9,14 @@ const inter = Inter({
   subsets: ["latin"],
 });
 
-const siteUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://shiporskip.app";
-const defaultTitle = "Ship or Skip - Would You Fund This Startup?";
-const defaultDescription = "Tinder for startup ideas. Swipe through real pitches, see what the crowd thinks, submit your own.";
+const siteUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://yc-archive.com";
+const defaultTitle = "YC Archive - Explore 5,400+ Y Combinator Startups";
+const defaultDescription = "Browse the complete Y Combinator startup archive. See which companies shipped or skipped, vote on pitches, and test your investor instincts.";
 
 export const metadata: Metadata = {
   title: {
     default: defaultTitle,
-    template: "%s | Ship or Skip",
+    template: "%s | YC Archive",
   },
   description: defaultDescription,
   metadataBase: new URL(siteUrl),
@@ -35,15 +35,15 @@ export const metadata: Metadata = {
     type: "website",
     locale: "en_US",
     url: siteUrl,
-    siteName: "Ship or Skip",
+    siteName: "YC Archive",
     title: defaultTitle,
     description: defaultDescription,
     images: [
       {
-        url: "/api/og?hero=Would%20You%20Fund%20This%20Startup%3F",
-        width: 1200,
-        height: 630,
-        alt: "Ship or Skip - Would You Fund This Startup?",
+        url: "/logo.png",
+        width: 1024,
+        height: 1024,
+        alt: "YC Archive",
       },
     ],
   },
@@ -51,7 +51,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: defaultTitle,
     description: defaultDescription,
-    images: ["/api/og?hero=Would%20You%20Fund%20This%20Startup%3F"],
+    images: ["/logo.png"],
   },
 };
 
