@@ -1,0 +1,719 @@
+{
+  "project": "Ship or Skip - Engagement Features",
+  "branchName": "ralph/engagement-features",
+  "description": "Add engagement features to increase session length, daily return rate, and shareability: Achievements, Streaks, Personal Stats/DNA, and Head-to-Head Battles.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Create achievement database tables",
+      "description": "Set up the database schema for storing achievement definitions, player achievements, and achievement progress.",
+      "acceptanceCriteria": [
+        "Create SQL migration for achievement_definitions table with fields: id (TEXT PRIMARY KEY), name, description, icon, category, rarity, is_secret, sort_order, created_at",
+        "Create SQL migration for player_achievements table with fields: id (UUID), player_id (optional), session_id (optional), achievement_id, unlocked_at, shared",
+        "Create SQL migration for achievement_progress table tracking: total_votes, ships_in_a_row, skips_in_a_row, crowd_agrees/disagrees_in_a_row, unicorns_voted/shipped/skipped, votes_this_session",
+        "Add indexes for player_id and session_id lookups",
+        "Create TypeScript types in lib/supabase/types.ts for all achievement tables",
+        "Typecheck passes"
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": "Foundation for all achievement features"
+    },
+    {
+      "id": "US-002",
+      "title": "Seed achievement definitions",
+      "description": "Create and run a seed script to populate all achievement definitions from the PRD.",
+      "acceptanceCriteria": [
+        "Create scripts/seed-achievements.ts",
+        "Include all 47 achievements from PRD across categories: Voting Milestones (9), Ship/Skip Behavior (7), Crowd Alignment (6), Discovery (7), Submission (7), Streak (6), Secret (5)",
+        "Each achievement has: id, name, description, icon (emoji), category, rarity (common/uncommon/rare/epic/legendary), is_secret flag",
+        "Script inserts via upsert to handle re-runs",
+        "Can be run via: npx tsx scripts/seed-achievements.ts",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": "Achievement list from PRD section 0.2"
+    },
+    {
+      "id": "US-003",
+      "title": "Create achievement checker logic",
+      "description": "Implement the core logic that checks for newly unlocked achievements after each vote.",
+      "acceptanceCriteria": [
+        "Create lib/achievements/checker.ts with checkAchievements(userId, voteData) function",
+        "Update achievement_progress table with each vote",
+        "Check voting milestones (1, 5, 10, 25, 50, 100, 250, 500, 1000 votes)",
+        "Check streak achievements (5/10 ships/skips in a row)",
+        "Check crowd alignment achievements (agree/disagree streaks)",
+        "Check discovery achievements (unicorn/dead startup detection)",
+        "Check secret achievements (night owl 2-4 AM, marathon 100 votes)",
+        "Return array of newly unlocked achievement objects",
+        "Typecheck passes"
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": "This runs after every vote - must be fast"
+    },
+    {
+      "id": "US-004",
+      "title": "Create achievement API endpoints",
+      "description": "Build the API routes for fetching achievements and progress.",
+      "acceptanceCriteria": [
+        "Create GET app/api/achievements/route.ts - returns all unlocked achievements for session/player",
+        "Create GET app/api/achievements/progress/route.ts - returns progress toward next achievements",
+        "Create GET app/api/achievements/definitions/route.ts - returns all achievement definitions (for gallery)",
+        "Create POST app/api/achievements/share/[id]/route.ts - marks achievement as shared",
+        "All endpoints accept session_id query param",
+        "Typecheck passes"
+      ],
+      "priority": 4,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-005",
+      "title": "Integrate achievement checking into vote API",
+      "description": "Update the vote endpoint to check for achievements and return newly unlocked ones.",
+      "acceptanceCriteria": [
+        "Modify app/api/ideas/vote/route.ts to call checkAchievements after recording vote",
+        "Pass vote data including: vote type, idea outcome (unicorn/dead/normal), crowd match status",
+        "Include newAchievements array in API response",
+        "Update/create achievement_progress record for session",
+        "Typecheck passes"
+      ],
+      "priority": 5,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-006",
+      "title": "Build confetti utility",
+      "description": "Set up canvas-confetti library with rarity-based configurations.",
+      "acceptanceCriteria": [
+        "Install canvas-confetti package",
+        "Create lib/achievements/confetti.ts with fireConfetti(rarity) function",
+        "Configure colors per rarity: common (bronze), uncommon (silver), rare (gold), epic (purple), legendary (rainbow)",
+        "Legendary fires from multiple angles with more particles",
+        "Typecheck passes"
+      ],
+      "priority": 6,
+      "passes": false,
+      "notes": "Using canvas-confetti as specified in PRD section 0.12"
+    },
+    {
+      "id": "US-007",
+      "title": "Build sound effects utility",
+      "description": "Create sound management for achievement unlocks with different sounds per rarity.",
+      "acceptanceCriteria": [
+        "Create lib/achievements/sounds.ts with playAchievementSound(rarity) function",
+        "Add placeholder sound files in public/sounds/ for: achievement-common.mp3, achievement-uncommon.mp3, achievement-rare.mp3, achievement-epic.mp3, achievement-legendary.mp3, achievement-secret.mp3",
+        "Preload sounds on page load for instant playback",
+        "Respect user sound preferences (add global mute option)",
+        "Typecheck passes"
+      ],
+      "priority": 7,
+      "passes": false,
+      "notes": "Sound files can be placeholder/free sounds initially"
+    },
+    {
+      "id": "US-008",
+      "title": "Build AchievementUnlockModal component",
+      "description": "Create THE BIG MOMENT - the full-screen achievement unlock celebration modal.",
+      "acceptanceCriteria": [
+        "Create components/achievements/achievement-unlock-modal.tsx",
+        "Full screen takeover with dark overlay",
+        "Achievement badge bursts onto screen (scale 0→1.2→1 animation)",
+        "Icon pulses with glow effect matching rarity color",
+        "'ACHIEVEMENT UNLOCKED' header with achievement name and description",
+        "Rarity-colored border with glow animation",
+        "Share and Continue buttons",
+        "Auto-dismiss after 3 seconds if no interaction",
+        "Triggers confetti and sound on mount",
+        "Typecheck passes"
+      ],
+      "priority": 8,
+      "passes": false,
+      "notes": "MOST IMPORTANT UI COMPONENT - must feel incredible per PRD section 0.3"
+    },
+    {
+      "id": "US-009",
+      "title": "Build achievement queue system",
+      "description": "Handle multiple achievements unlocking at once by showing them sequentially.",
+      "acceptanceCriteria": [
+        "Create components/achievements/achievement-queue-provider.tsx context",
+        "Queue stores pending achievements to display",
+        "Shows one achievement modal at a time",
+        "On dismiss, automatically shows next queued achievement",
+        "Export useAchievementQueue hook for adding achievements",
+        "Integrate provider into app layout",
+        "Typecheck passes"
+      ],
+      "priority": 9,
+      "passes": false,
+      "notes": "See PRD section 0.9 for queue handling"
+    },
+    {
+      "id": "US-010",
+      "title": "Integrate achievement unlocks into voting flow",
+      "description": "Show achievement unlock modals when achievements are earned during voting.",
+      "acceptanceCriteria": [
+        "Update voting page to handle newAchievements from vote API response",
+        "Push new achievements to achievement queue",
+        "Achievements show AFTER the reveal overlay is dismissed",
+        "Multiple achievements queue and show sequentially",
+        "Typecheck passes",
+        "Verify in browser: cast first vote triggers 'First Blood' achievement"
+      ],
+      "priority": 10,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-011",
+      "title": "Build AchievementProgressBar component",
+      "description": "Create a progress indicator showing how close the user is to the next achievement.",
+      "acceptanceCriteria": [
+        "Create components/achievements/achievement-progress-bar.tsx",
+        "Shows next achievement icon, name, and progress (e.g., '82/100 votes')",
+        "Progress bar with fill animation",
+        "When close (90%+) shows 'ALMOST UNLOCKED' teaser",
+        "Typecheck passes"
+      ],
+      "priority": 11,
+      "passes": false,
+      "notes": "Shown after each vote - see PRD section 0.5"
+    },
+    {
+      "id": "US-012",
+      "title": "Build AchievementBadge component",
+      "description": "Create a small badge component for displaying achievements in lists and profiles.",
+      "acceptanceCriteria": [
+        "Create components/achievements/achievement-badge.tsx",
+        "Props: achievement object, size (sm/md/lg), locked state",
+        "Shows icon with rarity-colored border",
+        "Locked state shows lock icon with grayscale",
+        "Hover shows tooltip with name and description",
+        "Typecheck passes"
+      ],
+      "priority": 12,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-013",
+      "title": "Build AchievementGallery page",
+      "description": "Create a dedicated page showing all achievements grouped by category.",
+      "acceptanceCriteria": [
+        "Create app/achievements/page.tsx",
+        "Header shows 'YOUR ACHIEVEMENTS' with X/47 unlocked count",
+        "Group achievements by category with section headers",
+        "Show unlocked achievements with checkmark, locked with lock icon",
+        "Secret achievements show '?' icon until unlocked",
+        "Click on achievement shows detail modal",
+        "Loading state while fetching",
+        "Typecheck passes"
+      ],
+      "priority": 13,
+      "passes": false,
+      "notes": "See PRD section 0.5 for gallery design"
+    },
+    {
+      "id": "US-014",
+      "title": "Build AchievementShareCard component",
+      "description": "Create a shareable card image for achievement unlocks.",
+      "acceptanceCriteria": [
+        "Create components/achievements/achievement-share-card.tsx",
+        "Shows achievement icon large, name, description, rarity",
+        "Includes shiporskip.io branding",
+        "Generates share URL with pre-filled tweet text",
+        "Share button opens Twitter share intent",
+        "Typecheck passes"
+      ],
+      "priority": 14,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-015",
+      "title": "Add achievements link to navbar",
+      "description": "Add navigation to the achievements gallery and show achievement progress indicator.",
+      "acceptanceCriteria": [
+        "Add 'Achievements' link to navbar",
+        "Show small progress indicator or badge count next to link",
+        "When new achievement unlocked, show 'NEW' badge briefly",
+        "Typecheck passes"
+      ],
+      "priority": 15,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-016",
+      "title": "Add streak fields to database",
+      "description": "Extend the players and sessions tables with streak tracking fields.",
+      "acceptanceCriteria": [
+        "Create SQL migration adding to players: current_streak, longest_streak, last_vote_date, streak_updated_at",
+        "Create SQL migration adding to sessions: current_streak, longest_streak, last_vote_date, votes_today",
+        "Add indexes on current_streak and longest_streak for leaderboard queries",
+        "Update TypeScript types",
+        "Typecheck passes"
+      ],
+      "priority": 16,
+      "passes": false,
+      "notes": "See PRD Feature 1, section 1.5"
+    },
+    {
+      "id": "US-017",
+      "title": "Implement streak logic",
+      "description": "Create the streak calculation logic that runs on each vote.",
+      "acceptanceCriteria": [
+        "Create lib/streak/calculator.ts with updateStreak(user, voteDate) function",
+        "Streak maintained by voting on 5+ ideas per day",
+        "Streak increments when 5th daily vote cast",
+        "Streak resets if a day is missed",
+        "Track votes_today count",
+        "Update longest_streak when new record set",
+        "Typecheck passes"
+      ],
+      "priority": 17,
+      "passes": false,
+      "notes": "See PRD section 1.6 for logic"
+    },
+    {
+      "id": "US-018",
+      "title": "Integrate streak into vote API",
+      "description": "Update the vote endpoint to track and return streak information.",
+      "acceptanceCriteria": [
+        "Modify app/api/ideas/vote/route.ts to call updateStreak after recording vote",
+        "Return streak data in response: current_streak, votes_today, streak_maintained (if hit 5 today)",
+        "Create GET app/api/streak/route.ts returning full streak info",
+        "Typecheck passes"
+      ],
+      "priority": 18,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-019",
+      "title": "Build StreakBadge component",
+      "description": "Create a small badge showing the user's current streak.",
+      "acceptanceCriteria": [
+        "Create components/streak/streak-badge.tsx",
+        "Shows fire emoji and streak count (e.g., '🔥 12')",
+        "Animated fire effect for streaks 7+",
+        "Click opens streak detail popover",
+        "Typecheck passes"
+      ],
+      "priority": 19,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-020",
+      "title": "Build StreakProgress component",
+      "description": "Create a progress bar showing daily progress toward maintaining streak.",
+      "acceptanceCriteria": [
+        "Create components/streak/streak-progress.tsx",
+        "Shows 'Keep your streak alive!' message",
+        "Progress bar showing X/5 votes today",
+        "When complete: 'Streak maintained! Day X tomorrow'",
+        "When at risk (late in day): show warning with time remaining",
+        "Typecheck passes"
+      ],
+      "priority": 20,
+      "passes": false,
+      "notes": "See PRD section 1.7"
+    },
+    {
+      "id": "US-021",
+      "title": "Build StreakCelebration modal",
+      "description": "Create a celebration modal for streak milestones.",
+      "acceptanceCriteria": [
+        "Create components/streak/streak-celebration.tsx",
+        "Triggers at milestones: 3, 7, 14, 30, 50, 100 days",
+        "Shows appropriate badge and message per milestone",
+        "Share button with auto-generated tweet",
+        "Keep Voting button",
+        "Typecheck passes"
+      ],
+      "priority": 21,
+      "passes": false,
+      "notes": "See PRD section 1.4 for milestone messages"
+    },
+    {
+      "id": "US-022",
+      "title": "Add streak display to navbar and voting page",
+      "description": "Show streak badge in navigation and progress on voting page.",
+      "acceptanceCriteria": [
+        "Add StreakBadge to navbar (visible when user has active streak)",
+        "Show StreakProgress on voting page below the card",
+        "Show streak lost message if returning after missed day",
+        "Typecheck passes"
+      ],
+      "priority": 22,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-023",
+      "title": "Create player stats database tables",
+      "description": "Set up database schema for tracking detailed voting statistics.",
+      "acceptanceCriteria": [
+        "Create SQL migration for player_stats table with: player_id, total_votes, ship_votes, skip_votes, crowd_agreements, category_votes (JSONB), batch_year_votes (JSONB), personality_type, personality_emoji",
+        "Create SQL migration for session_stats table with same fields keyed by session_id",
+        "Update TypeScript types",
+        "Typecheck passes"
+      ],
+      "priority": 23,
+      "passes": false,
+      "notes": "See PRD Feature 2, section 2.6"
+    },
+    {
+      "id": "US-024",
+      "title": "Track category and batch data on votes",
+      "description": "Update vote tracking to record category and batch year for each vote.",
+      "acceptanceCriteria": [
+        "Modify vote API to extract category from idea (or use default 'general')",
+        "Extract batch year from source_batch field",
+        "Update category_votes JSONB: {category: {ship: N, skip: M}}",
+        "Update batch_year_votes JSONB: {year: {ship: N, skip: M}}",
+        "Typecheck passes"
+      ],
+      "priority": 24,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-025",
+      "title": "Build personality calculation logic",
+      "description": "Implement the algorithm to determine user's voting personality type.",
+      "acceptanceCriteria": [
+        "Create lib/stats/personality.ts with calculatePersonality(stats) function",
+        "Determine type based on ship rate and crowd agreement per PRD table",
+        "Types: The Cheerleader, Contrarian Optimist, Careful Critic, Lone Wolf, Balanced Judge, Eternal Optimist, Grim Reaper",
+        "Create getTopCategories(categoryVotes) for bias detection",
+        "Minimum 20 votes required for personality type",
+        "Typecheck passes"
+      ],
+      "priority": 25,
+      "passes": false,
+      "notes": "See PRD section 2.4 and 2.7"
+    },
+    {
+      "id": "US-026",
+      "title": "Create stats API endpoints",
+      "description": "Build API routes for fetching user statistics.",
+      "acceptanceCriteria": [
+        "Create GET app/api/stats/route.ts - returns full stats object for session",
+        "Create GET app/api/stats/summary/route.ts - returns quick summary (votes, ship rate, personality)",
+        "Create GET app/api/stats/compare/route.ts - returns comparison to global averages",
+        "Calculate percentile rankings (requires 50+ votes)",
+        "Typecheck passes"
+      ],
+      "priority": 26,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-027",
+      "title": "Build PersonalityCard component",
+      "description": "Create the main personality display card with type and emoji.",
+      "acceptanceCriteria": [
+        "Create components/stats/personality-card.tsx",
+        "Shows personality emoji large, type name, description",
+        "Shows ship rate comparison to average",
+        "Locked state if under 20 votes with progress bar",
+        "Typecheck passes"
+      ],
+      "priority": 27,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-028",
+      "title": "Build CategoryBreakdown component",
+      "description": "Create a visualization showing ship rate by category.",
+      "acceptanceCriteria": [
+        "Create components/stats/category-breakdown.tsx",
+        "Horizontal bar chart showing ship rate per category",
+        "Only show categories with 5+ votes",
+        "Highlight highest and lowest categories",
+        "Label as 'AI Believer', 'Marketplace Skeptic', etc.",
+        "Typecheck passes"
+      ],
+      "priority": 28,
+      "passes": false,
+      "notes": "See PRD section 2.5"
+    },
+    {
+      "id": "US-029",
+      "title": "Build enhanced StatsPage",
+      "description": "Create the full stats/DNA page with all components.",
+      "acceptanceCriteria": [
+        "Update app/stats/page.tsx with new components",
+        "Header: 'YOUR VOTING DNA'",
+        "PersonalityCard at top",
+        "Overview section: total votes, ship rate, crowd agreement",
+        "CategoryBreakdown section",
+        "Insights section with auto-generated insights",
+        "Share Your DNA button",
+        "Loading state while fetching",
+        "Typecheck passes"
+      ],
+      "priority": 29,
+      "passes": false,
+      "notes": "See PRD section 2.8"
+    },
+    {
+      "id": "US-030",
+      "title": "Build ShareableDNACard component",
+      "description": "Create a shareable card for the user's voting DNA.",
+      "acceptanceCriteria": [
+        "Create components/stats/shareable-dna-card.tsx",
+        "Shows: personality type + emoji, ship rate, crowd agreement, top category bias",
+        "Includes 'What's your voting personality?' CTA",
+        "shiporskip.io branding",
+        "Share button opens Twitter intent with pre-filled text",
+        "Typecheck passes"
+      ],
+      "priority": 30,
+      "passes": false,
+      "notes": "See PRD section 2.8"
+    },
+    {
+      "id": "US-031",
+      "title": "Add battle fields to ideas table",
+      "description": "Extend the ideas table with battle-related tracking fields.",
+      "acceptanceCriteria": [
+        "Create SQL migration adding to ideas: battle_wins, battle_losses, battle_total, battle_win_rate, elo_rating (default 1000)",
+        "Add indexes on elo_rating and battle_win_rate for leaderboard",
+        "Update TypeScript types",
+        "Typecheck passes"
+      ],
+      "priority": 31,
+      "passes": false,
+      "notes": "See PRD Feature 4, section 4.6"
+    },
+    {
+      "id": "US-032",
+      "title": "Create battles database table",
+      "description": "Create the table for recording head-to-head battle votes.",
+      "acceptanceCriteria": [
+        "Create SQL migration for battles table: id (UUID), session_id, player_id (optional), idea_1_id, idea_2_id, winner_id, created_at",
+        "Add indexes on session_id and idea pairs",
+        "Add battle_votes and battle_crowd_agreements to players and sessions tables",
+        "Update TypeScript types",
+        "Typecheck passes"
+      ],
+      "priority": 32,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-033",
+      "title": "Implement matchmaking logic",
+      "description": "Create the algorithm for selecting fair head-to-head matchups.",
+      "acceptanceCriteria": [
+        "Create lib/battle/matchmaking.ts with getMatchup(sessionId) function",
+        "Filter out ideas the user has already seen in battles",
+        "Group ideas by win rate tiers",
+        "Prefer matching ideas in similar tiers for competitive matches",
+        "Return two idea objects for the battle",
+        "Typecheck passes"
+      ],
+      "priority": 33,
+      "passes": false,
+      "notes": "See PRD section 4.4"
+    },
+    {
+      "id": "US-034",
+      "title": "Implement ELO rating calculation",
+      "description": "Create the ELO rating system for ranking ideas by battle performance.",
+      "acceptanceCriteria": [
+        "Create lib/battle/elo.ts with calculateNewElo(winnerElo, loserElo) function",
+        "Use K-factor of 32",
+        "Return new ELO ratings for both winner and loser",
+        "Typecheck passes"
+      ],
+      "priority": 34,
+      "passes": false,
+      "notes": "See PRD section 4.5"
+    },
+    {
+      "id": "US-035",
+      "title": "Create battle API endpoints",
+      "description": "Build the API routes for the battle game mode.",
+      "acceptanceCriteria": [
+        "Create GET app/api/battle/next/route.ts - returns next matchup for session",
+        "Create POST app/api/battle/vote/route.ts - records battle vote, updates ELO, returns results",
+        "Create GET app/api/battle/leaderboard/route.ts - returns ideas ranked by ELO or win rate",
+        "Create GET app/api/battle/stats/route.ts - returns user's battle stats",
+        "Battle vote response includes: crowd_winner_id, crowd_percentage, new ranks, user_agreed",
+        "Typecheck passes"
+      ],
+      "priority": 35,
+      "passes": false,
+      "notes": "See PRD section 4.9"
+    },
+    {
+      "id": "US-036",
+      "title": "Build BattleCard component",
+      "description": "Create the card component for displaying an idea in battle mode.",
+      "acceptanceCriteria": [
+        "Create components/battle/battle-card.tsx",
+        "Shows hero and subtitle text",
+        "SHIP THIS button at bottom",
+        "Selected state with highlight border",
+        "Responsive sizing for side-by-side display",
+        "Typecheck passes"
+      ],
+      "priority": 36,
+      "passes": false,
+      "notes": "See PRD section 4.8"
+    },
+    {
+      "id": "US-037",
+      "title": "Build BattleVersus component",
+      "description": "Create the VS display between two battle cards.",
+      "acceptanceCriteria": [
+        "Create components/battle/battle-versus.tsx",
+        "Two BattleCards side by side (stacked on mobile)",
+        "VS badge in center",
+        "Header: 'WHICH WOULD YOU SHIP?'",
+        "Clicking either card's button submits vote",
+        "Typecheck passes"
+      ],
+      "priority": 37,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-038",
+      "title": "Build BattleResult component",
+      "description": "Create the result overlay shown after a battle vote.",
+      "acceptanceCriteria": [
+        "Create components/battle/battle-result.tsx",
+        "Shows 'X% agreed with you' message",
+        "Winner card highlighted with trophy icon",
+        "Shows new rank and rank change for both ideas",
+        "Next Battle and Share buttons",
+        "Typecheck passes"
+      ],
+      "priority": 38,
+      "passes": false,
+      "notes": "See PRD section 4.3"
+    },
+    {
+      "id": "US-039",
+      "title": "Build battle page",
+      "description": "Create the main battle mode page.",
+      "acceptanceCriteria": [
+        "Create app/battle/page.tsx",
+        "Fetches next matchup on load",
+        "Shows BattleVersus component",
+        "On vote: calls API, shows BattleResult overlay",
+        "Next Battle fetches new matchup",
+        "Shows message when no more matchups available",
+        "Typecheck passes"
+      ],
+      "priority": 39,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-040",
+      "title": "Build battle leaderboard page",
+      "description": "Create the leaderboard page showing battle rankings.",
+      "acceptanceCriteria": [
+        "Create app/leaderboard/battles/page.tsx",
+        "Header: 'BATTLE RANKINGS'",
+        "Table columns: Rank, Idea, Win Rate, Battles",
+        "Click on row links to pitch page",
+        "Show user's idea rank if they have submissions",
+        "Loading state while fetching",
+        "Typecheck passes"
+      ],
+      "priority": 40,
+      "passes": false,
+      "notes": "See PRD section 4.7"
+    },
+    {
+      "id": "US-041",
+      "title": "Build ModeToggle component",
+      "description": "Create a toggle for switching between regular voting and battle mode.",
+      "acceptanceCriteria": [
+        "Create components/battle/mode-toggle.tsx",
+        "Two options: 'Ship/Skip' and 'Battles' with sword emoji",
+        "Toggle style or segmented button",
+        "Navigates to /vote or /battle on selection",
+        "Add to voting and battle pages",
+        "Typecheck passes"
+      ],
+      "priority": 41,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-042",
+      "title": "Add battle mode to navbar",
+      "description": "Add navigation to battle mode and update leaderboard with battle rankings tab.",
+      "acceptanceCriteria": [
+        "Add 'Battles' link to navbar with sword emoji",
+        "Update leaderboard page to include 'Battle Rankings' tab",
+        "Show prompt to try battle mode after 10 regular votes",
+        "Typecheck passes"
+      ],
+      "priority": 42,
+      "passes": false,
+      "notes": ""
+    },
+    {
+      "id": "US-043",
+      "title": "Add battle achievements",
+      "description": "Create and integrate battle-specific achievements.",
+      "acceptanceCriteria": [
+        "Add battle achievements to seed script: Challenger (first battle), Gladiator (10 battles), Warlord (50 battles), Battle Sage (5 crowd agrees), Top Picker (pick #1 ranked)",
+        "Update achievement checker to check battle-related achievements",
+        "Integrate battle vote API with achievement checking",
+        "Typecheck passes"
+      ],
+      "priority": 43,
+      "passes": false,
+      "notes": "See PRD section 0.2 Battle Achievements"
+    },
+    {
+      "id": "US-044",
+      "title": "Add streak achievements integration",
+      "description": "Integrate streak milestones with the achievement system.",
+      "acceptanceCriteria": [
+        "Update achievement checker to detect streak milestones (3, 7, 14, 30, 50, 100 days)",
+        "Award streak achievements when milestones reached",
+        "Show achievement unlock modal for streak achievements",
+        "Typecheck passes"
+      ],
+      "priority": 44,
+      "passes": false,
+      "notes": "Connects streaks (Feature 1) with achievements (Feature 0)"
+    },
+    {
+      "id": "US-045",
+      "title": "Final polish and testing",
+      "description": "Final bug fixes, mobile testing, and performance optimization for all engagement features.",
+      "acceptanceCriteria": [
+        "All new pages responsive on mobile (375px+)",
+        "Achievement modal animations smooth (60fps)",
+        "Sound effects play without lag",
+        "Confetti renders without performance issues",
+        "All achievement unlocks tested manually",
+        "Streak calculation verified across day boundaries",
+        "Battle matchmaking returns balanced matchups",
+        "No console errors",
+        "Typecheck passes",
+        "Build succeeds (npm run build)"
+      ],
+      "priority": 45,
+      "passes": false,
+      "notes": "See PRD section 0.13 for testing checklist"
+    }
+  ]
+}

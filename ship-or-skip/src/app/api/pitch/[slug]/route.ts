@@ -4,7 +4,7 @@ import type { Idea } from "@/lib/supabase/types";
 
 type PitchResponse = Pick<
   Idea,
-  "id" | "hero" | "subtitle" | "submitter_twitter" | "ship_percentage" | "total_votes" | "created_at"
+  "id" | "hero" | "subtitle" | "submitter_twitter" | "ship_percentage" | "total_votes" | "created_at" | "source" | "yc_batch" | "yc_industry"
 >;
 
 export async function GET(
@@ -25,7 +25,7 @@ export async function GET(
   // Fetch idea by slug
   const { data: ideas, error } = await supabase
     .from("ideas")
-    .select("id, hero, subtitle, submitter_twitter, ship_percentage, total_votes, created_at")
+    .select("id, hero, subtitle, submitter_twitter, ship_percentage, total_votes, created_at, source, yc_batch, yc_industry")
     .eq("slug", slug)
     .eq("is_active", true)
     .limit(1)
@@ -55,5 +55,8 @@ export async function GET(
     ship_percentage: idea.ship_percentage,
     total_votes: idea.total_votes,
     created_at: idea.created_at,
+    source: idea.source,
+    yc_batch: idea.yc_batch,
+    yc_industry: idea.yc_industry,
   });
 }

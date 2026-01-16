@@ -1,8 +1,5 @@
-import { getSessionId } from "@/lib/session/manager";
-import { VotingClient } from "./voting-client";
+import { redirect } from "next/navigation";
 
-export default async function VotePage() {
-  const sessionId = await getSessionId();
-
-  return <VotingClient sessionId={sessionId} />;
+export default function VotePage() {
+  redirect("/play");
 }

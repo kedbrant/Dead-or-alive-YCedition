@@ -1,154 +1,156 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import Link from "next/link";
 
 export default function Home() {
   const router = useRouter();
-  const [showHandleInput, setShowHandleInput] = useState(false);
-  const [handle, setHandle] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [companyCount, setCompanyCount] = useState<number | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
-  const handleStartClick = () => {
-    setShowHandleInput(true);
-  };
+  // Fetch landing stats on mount
+  useEffect(() => {
+    async function fetchStats() {
+      try {
+        const response = await fetch("/api/landing-stats");
+        if (response.ok) {
+          const data = await response.json();
+          setCompanyCount(data.company_count);
+        }
+      } catch {
+        // Silently fail - will show fallback
+      }
+    }
+    fetchStats();
+  }, []);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  // Format company count (e.g., "5,400+")
+  const displayCount = companyCount
+    ? `${Math.floor(companyCount / 100) * 100}+`
+    : "5,400+";
+
+  const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (!handle.trim()) {
-      setError("Please enter your Twitter/X handle");
-      return;
-    }
-
-    setIsSubmitting(true);
-    setError(null);
-
-    try {
-      // Get or create session ID from cookie
-      const sessionId = document.cookie
-        .split("; ")
-        .find((row) => row.startsWith("ship-or-skip-session="))
-        ?.split("=")[1];
-
-      // If no session exists yet, we'll let the middleware create it
-      // and register after redirect. For now, create a temporary one.
-      const finalSessionId = sessionId || crypto.randomUUID();
-
-      if (!sessionId) {
-        // Set the cookie client-side if it doesn't exist
-        document.cookie = `ship-or-skip-session=${finalSessionId}; path=/; max-age=${60 * 60 * 24 * 365}`;
-      }
-
-      const response = await fetch("/api/session/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          session_id: finalSessionId,
-          twitter_handle: handle,
-        }),
-      });
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || "Failed to register");
-      }
-
-      router.push("/vote");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
-      setIsSubmitting(false);
+    if (searchQuery.trim()) {
+      router.push(`/explore?search=${encodeURIComponent(searchQuery.trim())}`);
+    } else {
+      router.push("/explore");
     }
   };
+
+  // Focus input on / key
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "/" && document.activeElement !== inputRef.current) {
+        e.preventDefault();
+        inputRef.current?.focus();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
 
   return (
-    <div className="flex min-h-screen items-center justify-center px-4">
-      <main className="flex flex-col items-center gap-8 max-w-lg text-center">
+    <div className="flex min-h-screen items-center justify-center px-4 py-8">
+      <main className="flex flex-col items-center gap-8 max-w-2xl text-center w-full">
         {/* Logo */}
         <Image
           src="/logo.png"
-          alt="Ship or Skip"
-          width={160}
-          height={160}
-          className="rounded-2xl shadow-2xl"
+          alt="YC Startup Database"
+          width={80}
+          height={80}
+          className="rounded-xl shadow-lg"
           priority
         />
 
-        {/* Headline */}
-        <h1 className="text-4xl sm:text-5xl font-bold leading-tight">
-          Would you ship or skip this startup?
-        </h1>
-
-        {/* Hook stat */}
-        <div className="bg-surface rounded-2xl px-6 py-4">
-          <p className="text-lg sm:text-xl">
-            <span className="text-skip font-bold">73%</span> would have skipped
-            Airbnb&apos;s pitch
+        {/* Headline - emphasis on data */}
+        <div>
+          <h1 className="text-4xl sm:text-5xl font-bold mb-3">
+            <span className="text-ship">{displayCount}</span> YC Startups
+          </h1>
+          <p className="text-foreground/60 text-lg sm:text-xl max-w-md mx-auto">
+            Search outcomes, discover unicorns, and see what failed.
+            Real data from Y Combinator companies.
           </p>
         </div>
 
-        {/* CTA Button or Handle Input */}
-        {!showHandleInput ? (
-          <button
-            onClick={handleStartClick}
-            className="bg-ship text-background font-bold text-lg px-8 py-4 rounded-xl hover:shadow-[0_0_20px_rgba(34,197,94,0.5)] hover:scale-[1.02] active:scale-[0.98] transition-all duration-150"
-          >
-            Start Voting
-          </button>
-        ) : (
-          <form onSubmit={handleSubmit} className="w-full space-y-4">
-            <div className="space-y-2">
-              <label htmlFor="handle" className="text-sm text-foreground/70">
-                Enter your X/Twitter handle to get started
-              </label>
-              <div className="relative">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-foreground/50">
-                  @
-                </span>
-                <input
-                  id="handle"
-                  type="text"
-                  value={handle}
-                  onChange={(e) => setHandle(e.target.value)}
-                  placeholder="yourhandle"
-                  autoFocus
-                  autoComplete="off"
-                  className="w-full pl-9 pr-4 py-4 bg-surface border border-foreground/20 rounded-xl text-lg
-                    placeholder:text-foreground/30
-                    focus:outline-none focus:border-ship focus:ring-1 focus:ring-ship
-                    transition-colors"
-                />
-              </div>
-              {error && (
-                <p className="text-skip text-sm">{error}</p>
-              )}
-            </div>
+        {/* Search Bar - wider */}
+        <form onSubmit={handleSearch} className="w-full">
+          <div className="relative">
+            <svg
+              className="absolute left-5 top-1/2 -translate-y-1/2 w-6 h-6 text-foreground/40"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+              />
+            </svg>
+            <input
+              ref={inputRef}
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search companies, pitches, industries..."
+              className="w-full pl-14 pr-28 py-5 bg-surface border border-foreground/20 rounded-2xl
+                text-lg placeholder:text-foreground/40
+                focus:outline-none focus:border-ship focus:ring-2 focus:ring-ship/20
+                transition-all shadow-lg"
+            />
             <button
               type="submit"
-              disabled={isSubmitting}
-              className="w-full bg-ship text-background font-bold text-lg px-8 py-4 rounded-xl
-                hover:shadow-[0_0_20px_rgba(34,197,94,0.5)] hover:scale-[1.02] active:scale-[0.98]
-                transition-all duration-150
-                disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+              className="absolute right-3 top-1/2 -translate-y-1/2 px-6 py-2.5 bg-ship text-white font-semibold rounded-xl
+                hover:bg-ship/90 transition-colors"
             >
-              {isSubmitting ? "Loading..." : "Let's Go"}
+              Search
             </button>
-          </form>
-        )}
-
-        {/* How it works */}
-        <div className="text-foreground/70 space-y-2 mt-4">
-          <p className="text-sm font-medium uppercase tracking-wide text-foreground/50">
-            How it works
-          </p>
-          <div className="space-y-1 text-sm sm:text-base">
-            <p>Swipe through real startup pitches</p>
-            <p>Vote Ship or Skip on each idea</p>
-            <p>See what the crowd thinks</p>
-            <p>Submit your own pitch</p>
           </div>
+        </form>
+
+        {/* Quick filters */}
+        <div className="flex flex-wrap justify-center gap-2">
+          <Link
+            href="/explore?outcome=unicorn"
+            className="px-4 py-2 bg-surface border border-foreground/10 rounded-full text-sm
+              hover:border-purple-500/50 hover:text-purple-400 transition-colors"
+          >
+            🦄 Unicorns
+          </Link>
+          <Link
+            href="/explore?outcome=dead"
+            className="px-4 py-2 bg-surface border border-foreground/10 rounded-full text-sm
+              hover:border-skip/50 hover:text-skip transition-colors"
+          >
+            💀 Dead
+          </Link>
+          <Link
+            href="/explore?outcome=acquired"
+            className="px-4 py-2 bg-surface border border-foreground/10 rounded-full text-sm
+              hover:border-blue-500/50 hover:text-blue-400 transition-colors"
+          >
+            🤝 Acquired
+          </Link>
+        </div>
+
+        {/* Divider */}
+        <div className="w-full h-px bg-foreground/10 my-2" />
+
+        {/* Other features */}
+        <div className="flex flex-wrap justify-center gap-x-6 gap-y-3 text-sm text-foreground/60">
+          <Link href="/play" className="hover:text-ship transition-colors underline underline-offset-2">
+            Play the prediction game
+          </Link>
+          <span className="text-foreground/30">•</span>
+          <Link href="/validate" className="hover:text-ship transition-colors underline underline-offset-2">
+            Validate your startup idea
+          </Link>
         </div>
       </main>
     </div>

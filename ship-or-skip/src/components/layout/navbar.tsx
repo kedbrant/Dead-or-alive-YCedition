@@ -6,10 +6,10 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 
 const navLinks = [
-  { href: "/vote", label: "Vote" },
+  { href: "/explore", label: "Explore" },
+  { href: "/validate", label: "Validate" },
+  { href: "/play", label: "Play" },
   { href: "/submit", label: "Submit" },
-  { href: "/leaderboard", label: "Leaderboard" },
-  { href: "/stats", label: "Stats" },
 ];
 
 export function Navbar() {

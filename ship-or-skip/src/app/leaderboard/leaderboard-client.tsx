@@ -1,31 +1,40 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 
-type LeaderboardType = "top" | "voted" | "controversial";
+type LeaderboardType = "voters" | "most_ships";
 
-interface LeaderboardItem {
+interface VoterItem {
   id: string;
-  slug: string;
-  hero: string;
-  subtitle: string;
-  ship_percentage: number;
+  twitter_handle: string | null;
   total_votes: number;
-  submitter_twitter: string | null;
-  source: string;
-  source_company: string | null;
+  ship_votes: number;
+  skip_votes: number;
+  crowd_agreements: number;
+  oracle_score: number | null;
+  resolved_votes: number | null;
 }
 
 const TABS: { type: LeaderboardType; label: string }[] = [
-  { type: "top", label: "Top Ideas" },
-  { type: "voted", label: "Most Voted" },
-  { type: "controversial", label: "Controversial" },
+  { type: "voters", label: "Top Voters" },
+  { type: "most_ships", label: "Most Ships" },
 ];
 
+const DEFAULT_TAB: LeaderboardType = "voters";
+
+function isValidTab(tab: string | null): tab is LeaderboardType {
+  return tab !== null && TABS.some((t) => t.type === tab);
+}
+
 export function LeaderboardClient() {
-  const [activeTab, setActiveTab] = useState<LeaderboardType>("top");
-  const [items, setItems] = useState<LeaderboardItem[]>([]);
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const tabParam = searchParams.get("tab");
+  const activeTab = isValidTab(tabParam) ? tabParam : DEFAULT_TAB;
+
+  const [voters, setVoters] = useState<VoterItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -39,7 +48,7 @@ export function LeaderboardClient() {
         throw new Error("Failed to fetch leaderboard");
       }
       const data = await response.json();
-      setItems(data);
+      setVoters(data);
     } catch {
       setError("Failed to load leaderboard. Please try again.");
     } finally {
@@ -52,23 +61,7 @@ export function LeaderboardClient() {
   }, [activeTab, fetchLeaderboard]);
 
   const handleTabChange = (type: LeaderboardType) => {
-    setActiveTab(type);
-  };
-
-  const getDisplayName = (item: LeaderboardItem) => {
-    if (item.submitter_twitter) {
-      return `@${item.submitter_twitter}`;
-    }
-    if (item.source_company) {
-      return item.source_company;
-    }
-    if (item.source === "famous") {
-      return "Famous";
-    }
-    if (item.source === "yc") {
-      return "YC";
-    }
-    return "User";
+    router.push(`/leaderboard?tab=${type}`, { scroll: false });
   };
 
   return (
@@ -78,21 +71,23 @@ export function LeaderboardClient() {
           Leaderboard
         </h1>
 
-        {/* Tab Navigation */}
-        <div className="flex border-b border-foreground/20 mb-6">
-          {TABS.map((tab) => (
-            <button
-              key={tab.type}
-              onClick={() => handleTabChange(tab.type)}
-              className={`flex-1 py-3 px-4 text-sm sm:text-base font-medium transition-colors ${
-                activeTab === tab.type
-                  ? "text-ship border-b-2 border-ship"
-                  : "text-foreground/60 hover:text-foreground"
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
+        {/* Tab Navigation - scrollable on mobile */}
+        <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
+          <div className="flex border-b border-foreground/20 mb-6 min-w-max sm:min-w-0">
+            {TABS.map((tab) => (
+              <button
+                key={tab.type}
+                onClick={() => handleTabChange(tab.type)}
+                className={`py-3 px-3 sm:px-4 text-sm sm:text-base font-medium transition-colors whitespace-nowrap ${
+                  activeTab === tab.type
+                    ? "text-ship border-b-2 border-ship"
+                    : "text-foreground/60 hover:text-foreground"
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Loading State */}
@@ -133,13 +128,13 @@ export function LeaderboardClient() {
         )}
 
         {/* Empty State */}
-        {!loading && !error && items.length === 0 && (
+        {!loading && !error && voters.length === 0 && (
           <div className="text-center py-12">
             <p className="text-foreground/60 text-lg">
-              No ideas to show yet.
+              No voters yet. Be the first!
             </p>
             <Link
-              href="/vote"
+              href="/play"
               className="inline-block mt-4 px-6 py-3 bg-ship text-background font-semibold rounded-lg hover:scale-[1.02] active:scale-[0.98] transition-transform"
             >
               Start Voting
@@ -147,14 +142,13 @@ export function LeaderboardClient() {
           </div>
         )}
 
-        {/* Leaderboard Rows */}
-        {!loading && !error && items.length > 0 && (
+        {/* Voters Leaderboard Rows */}
+        {!loading && !error && voters.length > 0 && (
           <div className="space-y-2">
-            {items.map((item, index) => (
-              <Link
-                key={item.id}
-                href={`/pitch/${item.slug}`}
-                className="block bg-surface rounded-lg p-4 hover:bg-surface/80 transition-colors group"
+            {voters.map((voter, index) => (
+              <div
+                key={voter.id}
+                className="bg-surface rounded-lg p-4"
               >
                 <div className="flex items-center gap-4">
                   {/* Rank */}
@@ -162,48 +156,46 @@ export function LeaderboardClient() {
                     {index + 1}
                   </div>
 
-                  {/* Idea Info */}
+                  {/* Voter Info */}
                   <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-foreground truncate group-hover:text-ship transition-colors">
-                      {item.hero}
+                    <h3 className="font-semibold text-foreground truncate">
+                      {voter.twitter_handle ? `@${voter.twitter_handle}` : "Anonymous Voter"}
                     </h3>
                     <p className="text-sm text-foreground/60">
-                      {getDisplayName(item)}
+                      {voter.ship_votes} ships • {voter.skip_votes} skips
                     </p>
                   </div>
 
-                  {/* Stats */}
+                  {/* Stats - show ships for most_ships tab, votes for voters tab */}
                   <div className="text-right flex-shrink-0">
-                    <p
-                      className={`font-bold ${
-                        item.ship_percentage >= 50 ? "text-ship" : "text-skip"
-                      }`}
-                    >
-                      {item.ship_percentage}% 🚀
-                    </p>
-                    <p className="text-sm text-foreground/60">
-                      {item.total_votes.toLocaleString()} votes
-                    </p>
+                    {activeTab === "most_ships" ? (
+                      <p className="font-bold text-ship">
+                        {voter.ship_votes.toLocaleString()} 🚀
+                      </p>
+                    ) : (
+                      <p className="font-bold text-ship">
+                        {voter.total_votes.toLocaleString()} votes
+                      </p>
+                    )}
+                    {voter.oracle_score !== null && voter.resolved_votes && voter.resolved_votes >= 10 && (
+                      <p className="text-sm text-foreground/60">
+                        🔮 {voter.oracle_score}%
+                      </p>
+                    )}
                   </div>
                 </div>
-              </Link>
+              </div>
             ))}
           </div>
         )}
 
-        {/* Footer CTAs */}
-        <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-center">
+        {/* Footer CTA */}
+        <div className="mt-8 flex justify-center">
           <Link
-            href="/vote"
+            href="/play"
             className="px-6 py-3 bg-ship text-background font-semibold rounded-lg text-center hover:scale-[1.02] active:scale-[0.98] transition-transform"
           >
-            Vote on Ideas
-          </Link>
-          <Link
-            href="/submit"
-            className="px-6 py-3 border border-foreground/20 text-foreground font-semibold rounded-lg text-center hover:border-foreground/40 hover:scale-[1.02] active:scale-[0.98] transition-transform"
-          >
-            Submit Your Idea
+            Start Playing
           </Link>
         </div>
       </div>

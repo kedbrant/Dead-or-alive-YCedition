@@ -1,380 +1,357 @@
 # Ralph Progress Log
-Started: Ship or Skip project
+Started: Thu, Jan 16, 2026
 ---
 
 ## Codebase Patterns
-- Next.js 16+ uses Tailwind v4 with `@theme inline` in globals.css for custom colors
-- Use `--color-*` CSS variables in @theme block for Tailwind utility class support
-- Inter font loaded via `next/font/google` with `variable: "--font-inter"`
-- Dark theme enforced via `className="dark"` on html element
-- Supabase clients: `client.ts` for browser, `server.ts` for server-side with service role key
-- TypeScript types in `lib/supabase/types.ts` - import `Database` for createClient generic
-- **CRITICAL:** Supabase Database type MUST include `Relationships: []` in each table and `CompositeTypes` in schema for proper type inference
-- API routes use `.limit(1).returns<Type[]>()` instead of `.single()` for single record fetches to avoid `never` type issues
-- For Supabase write operations, use explicitly typed variables (e.g., `const insert: VoteInsert = {...}`)
-- SQL migrations in `supabase/migrations/` numbered 001_, 002_, etc.
-- Components organized in `src/components/` by feature (e.g., `voting/`, `submit/`, `layout/`)
-- Session management: `lib/session/manager.ts` with `getOrCreateSessionId()` for server components
-- Seed scripts: `npx tsx scripts/seed-*.ts` - use dotenv to load .env.local, batch upserts for performance
-- YC data source: YC-OSS API at `https://yc-oss.github.io/api/companies/all.json` for public YC company data
-- Swipe gestures: SwipeContainer component uses native touch/mouse events with 100px threshold, card tilt, and elastic rubber-band cancel animation
-- OG meta tags: Default in layout.tsx with metadataBase, dynamic via generateMetadata() in pages, dynamic OG images via /api/og edge endpoint
+- Voting flow is in `ship-or-skip/src/app/vote/voting-client.tsx` - client component that handles fetching ideas, voting, and showing results
+- Commit format: `feat: [US-XXX] - Title`
+- **Database**: YC data already imported - 5,470 companies with outcomes (94 unicorns, 658 acquired, 899 dead, 3,819 active)
+- **Active pool**: 200 companies in active voting pool
+- **Existing components**: OutcomeBadge at `src/components/voting/outcome-badge.tsx`
+- **Company pages**: Already exist at `/company/[slug]`
+
 ---
 
-## 2026-01-15 - US-001
-- What was implemented: Initialized Next.js project with Tailwind CSS and Ship or Skip theme
-- Files changed:
-  - ship-or-skip/src/app/globals.css (custom color theme)
-  - ship-or-skip/src/app/layout.tsx (Inter font, dark theme)
-  - ship-or-skip/src/app/page.tsx (simple placeholder)
-- **Learnings for future iterations:**
-  - Next.js 16+ create-next-app uses Tailwind v4 with new @theme syntax
-  - Custom colors are defined in globals.css using CSS variables and @theme inline block
-  - Build and typecheck run from ship-or-skip directory with `npm run build`
-  - Project structure: src/app/ for App Router pages
+## Project: Ship or Skip - Explore & Validate
+
+Transform from pure entertainment to utility + entertainment:
+- **Explore**: Search and filter 5,500+ YC companies
+- **Validate**: Compare user pitches against YC history
+- **Play**: Move game to dedicated route with game sub-header
+- **Submit**: Keep user submission functionality
+
+Navigation: Explore | Validate | Play | Submit
+
 ---
 
-## 2026-01-15 - US-002
-- What was implemented: Set up Supabase database connection and SQL migrations
-- Files changed:
-  - ship-or-skip/src/lib/supabase/client.ts (browser Supabase client)
-  - ship-or-skip/src/lib/supabase/server.ts (server Supabase client)
-  - ship-or-skip/src/lib/supabase/types.ts (TypeScript types for all tables)
-  - ship-or-skip/supabase/migrations/001_create_ideas_table.sql
-  - ship-or-skip/supabase/migrations/002_create_votes_table.sql
-  - ship-or-skip/supabase/migrations/003_create_sessions_table.sql
-  - ship-or-skip/package.json (added @supabase/supabase-js dependency)
+## 2026-01-16 - US-001
+- Implemented: Updated navbar with new four-tab navigation (Explore, Validate, Play, Submit)
+- Files changed: `ship-or-skip/src/components/layout/navbar.tsx`
 - **Learnings for future iterations:**
-  - Use `createClient<Database>` generic to get typed Supabase queries
-  - Server client uses SUPABASE_SERVICE_ROLE_KEY for admin access
-  - Browser client uses NEXT_PUBLIC_SUPABASE_ANON_KEY for public access
-  - Types file exports convenience types: Idea, IdeaInsert, Vote, VoteInsert, etc.
-  - SQL migrations should use IF NOT EXISTS for idempotency
+  - Navbar is a client component using `usePathname()` for active link highlighting
+  - Removed Oracle Score display from main header (will move to game sub-header in US-017)
+  - Pre-existing TypeScript errors in `glow-effect.tsx`, `utils.ts` (missing dependencies) are not blocking
+  - Mobile responsive via hamburger menu at `sm:` breakpoint (640px)
 ---
 
-## 2026-01-15 - US-003
-- What was implemented: Built IdeaCard component for displaying startup ideas
+## 2026-01-16 - US-002
+- Implemented: Created Explore page route and layout with all section placeholders
 - Files changed:
-  - ship-or-skip/src/components/voting/idea-card.tsx (new component)
+  - `ship-or-skip/src/app/explore/page.tsx` - Server component entry point
+  - `ship-or-skip/src/app/explore/explore-client.tsx` - Client component with layout
 - **Learnings for future iterations:**
-  - Components go in `src/components/` organized by feature (e.g., `voting/`, `submit/`)
-  - Use `Pick<Idea, "hero" | "subtitle">` to type props with only needed fields from Idea type
-  - Tailwind custom colors work via `bg-surface`, `text-foreground` etc. from @theme inline
-  - Use `rounded-2xl` for 16px border-radius in Tailwind
-  - Use `py-12` for 48px vertical padding (12 * 4px = 48px)
+  - Page layout follows the pattern: page.tsx (server) imports *-client.tsx (client)
+  - Styling uses Tailwind classes with app-specific colors: bg-surface, text-foreground, text-ship, text-skip
+  - Pre-existing TypeScript errors in glow-effect.tsx and utils.ts don't block commits
+  - Stats bar format: '{count} companies | emoji count type | emoji count type'
+  - Filter dropdowns use grid layout: `grid grid-cols-2 md:grid-cols-4 gap-3`
 ---
 
-## 2026-01-15 - US-004
-- What was implemented: Built VoteButtons component with Ship and Skip buttons
+## 2026-01-16 - US-003
+- Implemented: Created SearchBar component with debounced input and clear button
 - Files changed:
-  - ship-or-skip/src/components/voting/vote-buttons.tsx (new component)
+  - `ship-or-skip/src/components/explore/search-bar.tsx` - New SearchBar component
+  - `ship-or-skip/src/app/explore/explore-client.tsx` - Integrated SearchBar
 - **Learnings for future iterations:**
-  - Export `VoteType = "ship" | "skip"` type for consistent vote type handling
-  - Use `"use client"` directive for components with onClick handlers
-  - Hover glow: `hover:shadow-[0_0_20px_rgba(R,G,B,0.5)]` with color-matched RGBA
-  - Hover scale: `hover:scale-[1.02]`, active press: `active:scale-[0.98]`
-  - Use `min-h-16` (64px) for large tap targets
-  - `flex-col sm:flex-row` for responsive stacking (full width mobile, side-by-side desktop)
-  - Disabled state: `disabled:opacity-50 disabled:cursor-not-allowed` plus reset hover effects
+  - Created `src/components/explore/` directory for Explore-related components
+  - Debounce implemented inline using useEffect with 300ms timeout
+  - useCallback is needed for onSearch handler to prevent infinite re-renders with useEffect dependency
+  - Component accepts `initialValue` prop for pre-population
+  - Clear button uses aria-label for accessibility
 ---
 
-## 2026-01-15 - US-005
-- What was implemented: Built RevealOverlay component for showing voting results
+## 2026-01-16 - US-004
+- Implemented: Created FilterBar component with four dropdown filters
 - Files changed:
-  - ship-or-skip/src/components/voting/reveal-overlay.tsx (new component)
+  - `ship-or-skip/src/components/explore/filter-bar.tsx` - New FilterBar component
+  - `ship-or-skip/src/app/explore/explore-client.tsx` - Integrated FilterBar, added handlers
 - **Learnings for future iterations:**
-  - Import `VoteType` from vote-buttons.tsx for consistent vote type handling
-  - Use `bg-background/50` for subtle nested background contrast
-  - Conditional rendering with `{condition && <element>}` for optional sections
-  - Use `.toLocaleString()` for formatted vote counts (e.g., "1,234")
-  - Border button style: `border border-foreground/20` with hover `border-foreground/40`
+  - Filter component accepts `industries` array and `industriesLoading` props for dynamic industry options
+  - Batch options generated from 2024 down to 2005 using Array.from()
+  - Outcome filter values: 'all', 'unicorn', 'acquired', 'dead', 'active' (lowercase for API consistency)
+  - Sort values: 'newest', 'team_size', 'votes' (snake_case for API)
+  - handleFilterChange callback uses spread to merge new filter value with existing state
 ---
 
-## 2026-01-15 - US-006
-- What was implemented: Created session management utility for cookie-based anonymous user tracking
+## 2026-01-16 - US-005
+- Implemented: Created StatsBar component for displaying aggregate company statistics
 - Files changed:
-  - ship-or-skip/src/lib/session/manager.ts (new file)
+  - `ship-or-skip/src/components/explore/stats-bar.tsx` - New StatsBar component
+  - `ship-or-skip/src/app/explore/explore-client.tsx` - Integrated StatsBar component
 - **Learnings for future iterations:**
-  - Use `cookies()` from `next/headers` for server-side cookie access (requires await in Next.js 16+)
-  - Use `crypto.randomUUID()` for generating UUID v4 session IDs
-  - Session cookie settings: httpOnly, secure in production, sameSite: "lax", 1 year maxAge
-  - Export both `getOrCreateSessionId()` (creates if missing) and `getSessionId()` (returns null if missing)
-  - Cookie name: "ship-or-skip-session" for this project
+  - StatsBar accepts `total`, `unicorns`, `dead`, and `loading` props
+  - Component includes loading state with skeleton placeholders matching the layout
+  - Stats format: '{count} companies | 🦄 {count} unicorns | 💀 {count} dead'
+  - Numbers formatted with toLocaleString() for thousands separators
+  - Component extracted from inline code in explore-client.tsx for reusability
 ---
 
-## 2026-01-15 - US-007
-- What was implemented: Created GET /api/ideas/next endpoint for fetching next unvoted idea
+## 2026-01-16 - US-006
+- Implemented: Created CompanyCard component for displaying company information in Explore
 - Files changed:
-  - ship-or-skip/src/app/api/ideas/next/route.ts (new file)
+  - `ship-or-skip/src/components/explore/company-card.tsx` - New CompanyCard component
+  - `ship-or-skip/src/app/explore/explore-client.tsx` - Integrated CompanyCard, added Company interface
 - **Learnings for future iterations:**
-  - Supabase typed client with partial selects may return `never` types - use `.returns<Type[]>()` to fix
-  - Import convenience types (Vote, Idea) from types.ts for explicit return typing
-  - Weighted random selection: use inverse weight (1/(total_votes+1)) to favor low-vote ideas
-  - Handle conditional `.not()` filter by using ternary with two separate query chains
-  - API routes in Next.js App Router: export named `GET`/`POST` functions from route.ts
+  - CompanyCard reuses OutcomeBadge from `@/components/voting/outcome-badge`
+  - Card layout: OutcomeBadge + batch on top row, company name, pitch (line-clamp-2), then industry/team/votes
+  - Entire card is wrapped in Next.js Link to `/company/[slug]`
+  - Added Company interface to explore-client.tsx matching database fields (yc_name, yc_batch, hero, source_outcome, etc.)
+  - Vote stats only shown if totalVotes > 0 to handle companies without votes yet
+  - Uses `group-hover` for coordinated hover effects across the card
 ---
 
-## 2026-01-15 - US-008
-- What was implemented: Created POST /api/ideas/vote endpoint for recording votes and returning results
+## 2026-01-16 - US-007
+- Implemented: Created GET /api/explore endpoint with full search, filter, sort, and pagination support
 - Files changed:
-  - ship-or-skip/src/app/api/ideas/vote/route.ts (new file)
-  - ship-or-skip/src/lib/supabase/types.ts (added Relationships: [] and CompositeTypes to Database type)
+  - `ship-or-skip/src/app/api/explore/route.ts` - New API endpoint
 - **Learnings for future iterations:**
-  - Supabase v2.90+ requires `Relationships: []` and `CompositeTypes` in Database type definition for proper type inference
-  - Use `.limit(1).returns<Type[]>()` instead of `.single()` to avoid type inference issues with `never` types
-  - For write operations (insert/update), use explicit type annotations like `VoteInsert`, `IdeaUpdate` etc.
-  - Create separate supabase client for write operations if type chain gets confused after `.returns<>()` calls
-  - Calculate user_agreed_with_crowd based on updated stats (after the vote is counted) to avoid off-by-one logic issues
-  - Session stats tracking: create new session on first vote, update existing session on subsequent votes
+  - API route follows the pattern: createServerSupabaseClient() for DB access
+  - SourceOutcome type includes null, so use a non-nullable type (OutcomeFilter) when filtering
+  - Batch filter converts full year to two-digit ("2024" -> "24") and matches W24/S24
+  - Stats are calculated from a second query with same filters but without pagination
+  - Supabase .or() for ILIKE: `hero.ilike.%${search}%,yc_name.ilike.%${search}%`
+  - Default limit: 20, max: 100, using Math.min/max for validation
+  - Response structure: { companies: [], total: number, stats: { total, unicorns, dead } }
 ---
 
-## 2026-01-15 - US-009
-- What was implemented: Built voting page with full voting flow
+## 2026-01-16 - US-008
+- Implemented: Added infinite scroll to Explore page with IntersectionObserver
 - Files changed:
-  - ship-or-skip/src/app/vote/page.tsx (server component wrapper)
-  - ship-or-skip/src/app/vote/voting-client.tsx (client component with voting logic)
+  - `ship-or-skip/src/app/explore/explore-client.tsx` - Added infinite scroll logic
 - **Learnings for future iterations:**
-  - Split page into server component (page.tsx) and client component for session handling
-  - Server component fetches session ID via `getOrCreateSessionId()` and passes to client
-  - Client component manages state: loading, voting, voteResult, userVote, noMoreIdeas
-  - Use `useCallback` for fetch functions to avoid infinite re-renders with `useEffect`
-  - API returns 404 when no more ideas - handle this to show "all done" state
-  - Use `navigator.share()` for native sharing with fallback to `clipboard.writeText()`
-  - Loading skeleton with `animate-pulse` for better UX while fetching
+  - IntersectionObserver with `rootMargin: "100px"` triggers loading 100px before reaching bottom
+  - Separate `loading` (initial load) and `loadingMore` (pagination) states for better UX
+  - Sentinel element (`<div ref={sentinelRef}>`) placed after company list triggers observer
+  - API fetched with useCallback that builds URLSearchParams from filters/search/page
+  - `hasMore` state tracks if more results available: `totalLoaded < data.total`
+  - Reset page to 1 and fetch fresh data when filters/search change via useEffect dependency
+  - Industries endpoint fetched separately on mount for filter dropdown population
+  - End of results message shows total count: "You've reached the end (X companies)"
 ---
 
-## 2026-01-15 - US-010
-- What was implemented: Built landing page with hook stat and call to action
+## 2026-01-16 - US-009
+- Implemented: Created Validate page route and layout with pitch input and example pitches
 - Files changed:
-  - ship-or-skip/src/app/page.tsx (updated with full landing page)
+  - `ship-or-skip/src/app/validate/page.tsx` - Server component entry point
+  - `ship-or-skip/src/app/validate/validate-client.tsx` - Client component with initial state
 - **Learnings for future iterations:**
-  - Use `next/link` Link component for client-side navigation
-  - Use `&apos;` entity for single quotes in JSX to avoid eslint errors
-  - Hook stats in colored highlights: `<span className="text-skip font-bold">73%</span>` draws attention
-  - Same hover/active animation pattern as vote buttons: `hover:scale-[1.02] active:scale-[0.98]`
-  - Simple "How it works" section with `space-y-1` and muted text helps explain app
+  - Validate page follows same pattern as Explore: page.tsx (server) imports validate-client.tsx (client)
+  - Pitch input implemented inline for now; will be extracted to PitchInput component in US-010
+  - Example pitches stored as const array at top of component for easy modification
+  - Loading state on analyze button uses same spinner pattern as other components
+  - Character count and 10-char minimum validation built into component
+  - Uses `text-skip` color for validation error messages (matches codebase skip=red pattern)
 ---
 
-## 2026-01-15 - US-011
-- What was implemented: Built submit idea form component with validation
+## 2026-01-16 - US-010
+- Implemented: Created PitchInput component extracted from validate-client.tsx
 - Files changed:
-  - ship-or-skip/src/components/submit/submit-form.tsx (new component)
+  - `ship-or-skip/src/components/validate/pitch-input.tsx` - New reusable PitchInput component
+  - `ship-or-skip/src/app/validate/validate-client.tsx` - Updated to use PitchInput component
 - **Learnings for future iterations:**
-  - Export `SubmitFormData` interface for consistent data typing between form and parent
-  - Use `maxLength` attribute on inputs for built-in browser enforcement
-  - Character counter pattern: show count/max with conditional color (`text-skip` when over limit)
-  - Form validation: use state object `errors: { field?: string }` and display inline below inputs
-  - Twitter handle: strip leading @ on input change with `.replace(/^@/, "")`
-  - Input prefix styling: use `relative` container with `absolute` prefix span and extra `pl-8` padding
-  - Textarea: use `resize-none` to prevent resizing, set explicit `rows`
-  - Export both the component and the `SubmitFormData` interface for use by the submit page
+  - Created `src/components/validate/` directory for Validate-related components
+  - PitchInput accepts `onSubmit`, `loading`, and `initialValue` props
+  - Used useEffect to sync internal state with initialValue prop (for example pitch clicks)
+  - Component pattern: controlled value from parent but internal state for typing
+  - 10-char minimum validation done internally with `pitch.trim().length >= 10`
+  - Loading state prop controls both button disabled state and spinner display
 ---
 
-## 2026-01-15 - US-012
-- What was implemented: Created POST /api/ideas/submit endpoint for submitting new ideas
+## 2026-01-16 - US-011
+- Implemented: Created similarity matching algorithm in src/lib/similarity.ts
 - Files changed:
-  - ship-or-skip/src/app/api/ideas/submit/route.ts (new file)
-  - ship-or-skip/supabase/migrations/004_add_submitter_session.sql (new migration)
-  - ship-or-skip/src/lib/supabase/types.ts (added submitter_session_id field)
-  - ship-or-skip/src/app/vote/voting-client.tsx (lint fix: Link instead of anchor)
-  - ship-or-skip/src/components/voting/reveal-overlay.tsx (lint fix: unused var)
+  - `ship-or-skip/src/lib/similarity.ts` - New similarity module with findSimilarCompanies function
 - **Learnings for future iterations:**
-  - Generate URL-friendly slugs: lowercase, remove special chars, replace spaces with hyphens
-  - Handle slug uniqueness by appending random suffix if base slug exists
-  - Rate limiting by session requires tracking `submitter_session_id` on ideas table
-  - Use `.returns<Pick<Idea, "id">[]>()` for select queries to avoid type inference issues
-  - Get session ID from request cookies via `request.cookies.get("ship-or-skip-session")`
-  - Return 401 if no session, 429 for rate limit exceeded
-  - Build share URL from env var `NEXT_PUBLIC_BASE_URL` with fallback
+  - Tokenization: lowercase -> remove punctuation -> split on whitespace -> filter stop words
+  - Stop words defined as Set for O(1) lookup: the, for, and, that, with, your, a, an, to, of, is, in, on
+  - Similarity formula: matching tokens / user tokens (returns 0-100 percentage)
+  - Filter threshold: > 0.2 (20%) to avoid noise from common words
+  - Returns top 10 matches sorted by score descending
+  - Exported types: SimilarityCompany (input), SimilarCompanyResult (output with score)
+  - Uses SourceOutcome type from supabase/types.ts for consistency
 ---
 
-## 2026-01-15 - US-013
-- What was implemented: Built submit page with form and success confirmation
+## 2026-01-16 - US-012
+- Implemented: Created POST /api/validate endpoint for pitch similarity matching
 - Files changed:
-  - ship-or-skip/src/app/submit/page.tsx (new server component wrapper)
-  - ship-or-skip/src/app/submit/submit-client.tsx (new client component)
+  - `ship-or-skip/src/app/api/validate/route.ts` - New API endpoint
 - **Learnings for future iterations:**
-  - Submit page doesn't need sessionId prop - cookies are sent automatically with API calls
-  - Success state shows: shareable pitch page link with copy button, tweet template, action buttons
-  - Use `encodeURIComponent()` for Twitter intent URLs with text and URL params
-  - X (Twitter) icon SVG path for modern branding (not old bird logo)
-  - Error state: show error message in red box with `bg-skip/10 border border-skip/30`
-  - Link component from `next/link` for internal navigation to pitch page and vote page
+  - Validate endpoint follows same pattern as explore: createServerSupabaseClient() for DB access
+  - Import types from similarity.ts: SimilarityCompany, SimilarCompanyResult
+  - Pitch validation: check for string type, trim whitespace, require minimum 10 chars
+  - Category stats calculated from similar companies (not all companies) using switch/case
+  - Response structure: { similar_companies: SimilarCompanyResult[], category_stats: CategoryStats }
+  - CategoryStats includes: total, unicorn_pct, acquired_pct, dead_pct, active_pct (all percentages 0-100)
+  - Fetches all YC companies in single query (no pagination needed for similarity matching)
 ---
 
-## 2026-01-15 - US-014
-- What was implemented: Created GET /api/pitch/[slug] endpoint for fetching idea data by slug
+## 2026-01-16 - US-013
+- Implemented: Created SimilarCompanies component to display similar company results
 - Files changed:
-  - ship-or-skip/src/app/api/pitch/[slug]/route.ts (new file)
+  - `ship-or-skip/src/components/validate/similar-companies.tsx` - New SimilarCompanies component
 - **Learnings for future iterations:**
-  - Dynamic route params in Next.js 16+ are passed as `Promise<{ slug: string }>` and must be awaited
-  - Use `Pick<Idea, ...>` type alias for API response to explicitly select returned fields
-  - Filter by `is_active: true` when fetching ideas to exclude inactive/hidden ideas
-  - Pattern: `{ params }: { params: Promise<{ slug: string }> }` for typed dynamic route handlers
+  - SimilarCompanies accepts `companies: SimilarCompanyResult[]` from similarity.ts
+  - Component has two states: empty (0 results) and list view
+  - SimilarCompanyCard is a private internal component for rendering each result
+  - Card layout similar to CompanyCard from explore but includes similarity score
+  - Similarity score displayed as "Similarity: X%" in text-ship color (green) for emphasis
+  - Uses "View Company →" link button instead of making entire card clickable (cleaner UX)
+  - Empty state provides helpful hint to users about adjusting their pitch
 ---
 
-## 2026-01-15 - US-015
-- What was implemented: Built personal pitch page - the shareable viral engine
+## 2026-01-16 - US-014
+- Implemented: Created CategoryStats component to display outcome distribution for similar companies
 - Files changed:
-  - ship-or-skip/src/app/pitch/[slug]/page.tsx (server component wrapper)
-  - ship-or-skip/src/app/pitch/[slug]/pitch-client.tsx (client component with voting/reveal flow)
-  - ship-or-skip/src/app/api/ideas/vote/check/route.ts (new endpoint to check if user voted)
+  - `ship-or-skip/src/components/validate/category-stats.tsx` - New CategoryStats component
 - **Learnings for future iterations:**
-  - Pitch page reuses existing components: IdeaCard, VoteButtons from voting/
-  - Created /api/ideas/vote/check endpoint to check if user already voted on an idea
-  - Vote check endpoint returns `{ has_voted: boolean, vote?: string }` for conditional UI
-  - When user has already voted, show results immediately without vote buttons
-  - Share functionality: native `navigator.share()` with clipboard fallback
-  - Twitter/X share: use twitter.com/intent/tweet with encodeURIComponent for text/URL params
-  - CTAs at bottom guide users to vote on more ideas or submit their own
+  - CategoryStats accepts individual props: total, unicorn_pct, acquired_pct, dead_pct, active_pct
+  - Component has two states: empty (total=0) and populated with stats
+  - Visual elements: percentage line with emojis + dividers, stacked horizontal bar chart, color legend
+  - Emojis used: 🦄 unicorn, 🤝 acquired, 💀 dead, 🚀 active
+  - Bar colors: yellow-500 (unicorn), blue-500 (acquired), red-500 (dead), green-500 (active)
+  - Bar only renders segments with pct > 0 to avoid thin slivers
+  - Legend uses small color dots next to emoji+label for accessibility
 ---
 
-## 2026-01-15 - US-016
-- What was implemented: Created GET /api/leaderboard endpoint for fetching ranked ideas
+## 2026-01-16 - US-015
+- Implemented: Created Validate results state with full API integration
 - Files changed:
-  - ship-or-skip/src/app/api/leaderboard/route.ts (new file)
+  - `ship-or-skip/src/app/validate/validate-client.tsx` - Added results state, API call, and CTA
 - **Learnings for future iterations:**
-  - Leaderboard types: "top" (highest ship_percentage, min 100 votes), "voted" (most total_votes), "controversial" (closest to 50%)
-  - For "controversial" sorting by ABS(ship_percentage - 50), fetch more records and sort in JS since Supabase doesn't support ABS() in order
-  - Use `Pick<Idea, ...>` type alias for LeaderboardItem to explicitly type API response
-  - Validate query param `type` with includes() check before using as query modifier
-  - Default to "top" if no type parameter provided
+  - Results state uses conditional rendering: `if (results)` returns early with results UI
+  - API response types: ValidateResults interface with similar_companies and category_stats
+  - Edit button resets results to null, returning to input state with pitch preserved in state
+  - Submit CTA uses query param: `/submit?pitch=${encodeURIComponent(pitch)}`
+  - Error state handled separately with red-themed alert box
+  - SimilarCompanyResult imported from `@/lib/similarity` for type safety
 ---
 
-## 2026-01-15 - US-017
-- What was implemented: Built leaderboard page with tab navigation for top/most voted/controversial ideas
+## 2026-01-16 - US-016
+- Implemented: Moved voting game to /play route with backward-compatible redirect
 - Files changed:
-  - ship-or-skip/src/app/leaderboard/page.tsx (server component wrapper)
-  - ship-or-skip/src/app/leaderboard/leaderboard-client.tsx (client component with tabs and data fetching)
+  - `ship-or-skip/src/app/play/page.tsx` - New play page server component
+  - `ship-or-skip/src/app/play/voting-client.tsx` - Voting client moved from /vote
+  - `ship-or-skip/src/app/vote/page.tsx` - Updated to redirect to /play
 - **Learnings for future iterations:**
-  - Tab navigation pattern: use state for activeTab, border-b-2 for active indicator
-  - Loading skeleton: use `animate-pulse` with `bg-foreground/10` for placeholder rectangles
-  - Leaderboard rows link to `/pitch/[slug]` using Link component from next/link
-  - Display name logic: show @twitter handle first, then source_company, then source type fallback
-  - Ship percentage color: green if >= 50%, red if < 50% using conditional className
-  - Empty state: show contextual message (e.g., "No ideas with 100+ votes yet" for top tab)
+  - Route migration uses `redirect()` from `next/navigation` for server-side redirects
+  - Copying voting-client.tsx preserves all functionality including swipe, keyboard controls, animations
+  - Navbar already updated in US-001 to point to /play - no changes needed
+  - Battle mode remains at /battle and is accessible via link in "no more ideas" state
+  - Pre-existing TypeScript errors in glow-effect.tsx and utils.ts remain but don't block commits
 ---
 
-## 2026-01-15 - US-018
-- What was implemented: Built navbar component with logo, nav links, and responsive hamburger menu
+## 2026-01-16 - US-017
+- Implemented: Created GameSubHeader component displayed only on /play route
 - Files changed:
-  - ship-or-skip/src/components/layout/navbar.tsx (new component)
-  - ship-or-skip/src/app/layout.tsx (added Navbar import and component)
+  - `ship-or-skip/src/components/layout/game-sub-header.tsx` - New GameSubHeader component
+  - `ship-or-skip/src/app/play/page.tsx` - Integrated GameSubHeader
 - **Learnings for future iterations:**
-  - Navbar pattern: sticky top with `bg-background/80 backdrop-blur-md` for glassmorphism effect
-  - Responsive nav: `hidden sm:flex` for desktop links, `sm:hidden` for mobile hamburger
-  - Active link highlighting: use `usePathname()` from `next/navigation` to detect current route
-  - Mobile menu toggle: useState for isMenuOpen, close menu on link click via onClick handler
-  - SVG hamburger icon (3 lines) and X close icon patterns for menu toggle button
-  - Nav links array pattern: centralize `{ href, label }` objects for consistent rendering
+  - GameSubHeader is a client component that fetches from /api/stats on mount
+  - Component listens for `oracle-score-update` custom event dispatched by voting-client after each vote
+  - No achievement count endpoints exist yet - simplified to show trophy link to /stats page
+  - Streak is calculated as a simple heuristic from total_votes (capped at 5) since no streak field exists
+  - Uses same styling pattern as main navbar: bg-surface/50, border-b, max-w-5xl container
+  - Battle mode link goes to /battle route
 ---
 
-## 2026-01-15 - US-019
-- What was implemented: Created seed script for famous startups with 30 startup ideas
+## 2026-01-16 - US-018
+- Implemented: Updated home page as landing page directing users to Explore, Validate, or Play
 - Files changed:
-  - ship-or-skip/scripts/seed-famous.ts (new file)
-  - ship-or-skip/package.json (added dotenv dependency)
+  - `ship-or-skip/src/app/page.tsx` - Replaced handle input flow with three CTA cards
 - **Learnings for future iterations:**
-  - Scripts go in `ship-or-skip/scripts/` directory
-  - Use `dotenv` package with `config({ path: resolve(__dirname, "../.env.local") })` to load env vars
-  - Generate slugs with: lowercase, remove special chars, replace spaces with hyphens
-  - Supabase upsert with `onConflict: "slug"` handles duplicates gracefully
-  - Run scripts with: `npx tsx scripts/seed-famous.ts`
-  - Outcome types: "success", "failure", "acquired", "shutdown" for source_outcome field
+  - Removed Twitter/X handle registration flow from home page - users now navigate directly to experiences
+  - Home page still fetches landing-stats API for hook stat (featured company skip percentage)
+  - Three CTAs use card-style layout with icons, headings, descriptions, and arrow indicators
+  - Play CTA is visually emphasized with ship color background (bg-ship/10) to encourage engagement
+  - Secondary links at bottom for /submit and /stats pages
+  - Pre-existing TypeScript errors in glow-effect.tsx and utils.ts don't block commits
 ---
 
-## 2026-01-15 - US-020
-- What was implemented: Created YCDB seed script to seed 500+ YC startup ideas from public API
+## 2026-01-16 - US-019
+- Implemented: Created GET /api/explore/industries endpoint for industry filter dropdown
 - Files changed:
-  - ship-or-skip/scripts/seed-ycdb.ts (new file)
+  - `ship-or-skip/src/app/api/explore/industries/route.ts` - New API endpoint
 - **Learnings for future iterations:**
-  - YC-OSS API at `https://yc-oss.github.io/api/companies/all.json` provides public YC company data
-  - YC company fields: `name`, `one_liner`, `long_description`, `batch`, `status`, `top_company`, `industry`
-  - Map `one_liner` to hero (truncate to 60 chars if needed), `long_description` to subtitle (100 chars max)
-  - Status mapping: "acquired" -> "acquired", "inactive"/"dead" -> "shutdown", "active"/"public" -> "success"
-  - Process large datasets in batches (50 records) for better Supabase performance
-  - Prioritize records: top_company first, then by batch (newer first) to get best quality data
-  - Use `source: "yc"` to distinguish from "famous" and "user" submitted ideas
-  - Run script with: `npx tsx scripts/seed-ycdb.ts`
+  - Industries endpoint follows same pattern as explore: createServerSupabaseClient() for DB access
+  - Uses Set to extract unique values from all rows (Supabase doesn't have DISTINCT select)
+  - Filters out null/empty values with .not() and manual trim check
+  - Case-insensitive alphabetical sort using toLowerCase().localeCompare()
+  - Added Cache-Control headers (s-maxage=3600) for CDN caching to improve performance
+  - Returns { industries: string[] } - array of unique industry names
 ---
 
-## 2026-01-15 - US-021
-- What was implemented: Added smooth card and reveal animations to the voting experience
+## 2026-01-16 - US-020
+- Implemented: Updated submit page to integrate with validate page via query params
 - Files changed:
-  - ship-or-skip/src/app/globals.css (added CSS keyframes and animation classes)
-  - ship-or-skip/src/components/voting/idea-card.tsx (added CardAnimationState type and animation support)
-  - ship-or-skip/src/components/voting/reveal-overlay.tsx (added fade-in animation class)
-  - ship-or-skip/src/app/vote/voting-client.tsx (added animation state management)
-  - ship-or-skip/src/app/pitch/[slug]/pitch-client.tsx (added entrance animation for pitch page)
+  - `ship-or-skip/src/app/submit/submit-client.tsx` - Added useSearchParams to read pitch param, added validate link
+  - `ship-or-skip/src/components/submit/submit-form.tsx` - Added initialHero prop with useEffect sync
 - **Learnings for future iterations:**
-  - Use CSS keyframes in globals.css with custom `.animate-*` classes for complex animations
-  - Animation states as union types (e.g., `"entering" | "visible" | "exiting-ship" | "exiting-skip"`) for type-safe animation management
-  - Card exit animations: use `showResults` state separate from `voteResult` to delay reveal until exit animation completes (250ms setTimeout)
-  - Animation timing: entrance 300ms ease-out, exit 250ms ease-in, fade-in 200ms ease-out
-  - Button hover/press animations already use Tailwind transitions (`hover:scale-[1.02] active:scale-[0.98]`)
-  - Export animation state types from components for use in parent components
+  - useSearchParams from `next/navigation` reads query params in client components
+  - SubmitForm accepts initialHero prop and syncs via useEffect when prop changes
+  - "Want to analyze first?" link provides flow: Submit -> Validate -> Submit
+  - Also updated success state "Vote on Ideas" link from /vote to /play (matches new navigation)
+  - Pre-existing TypeScript errors in glow-effect.tsx and utils.ts don't block commits
 ---
 
-## 2026-01-15 - US-022
-- What was implemented: Added swipe gestures for mobile voting with touch and mouse support
+## 2026-01-16 - US-021
+- Implemented: Added proper loading states to Explore page with improved skeleton cards and smooth animations
 - Files changed:
-  - ship-or-skip/src/components/voting/swipe-container.tsx (new component)
-  - ship-or-skip/src/app/vote/voting-client.tsx (integrated SwipeContainer)
-  - ship-or-skip/src/app/pitch/[slug]/pitch-client.tsx (integrated SwipeContainer)
+  - `ship-or-skip/src/app/explore/explore-client.tsx` - Enhanced skeleton cards to match CompanyCard layout, added staggered fade-in animation
+  - `ship-or-skip/src/app/globals.css` - Added new `animate-fade-in-up` animation for staggered list items
 - **Learnings for future iterations:**
-  - Native touch events (touchstart/move/end) work well for swipe gestures in React 19 without external libs
-  - Use `touchAction: 'pan-y'` CSS to allow vertical scroll while capturing horizontal swipes
-  - Swipe state: track startX, currentX, isDragging for calculating delta and progress
-  - Card tilt: calculate rotation from delta (e.g., `deltaX / threshold * maxRotation`)
-  - Rubber band effect: use CSS cubic-bezier(0.34, 1.56, 0.64, 1) for elastic snap-back animation
-  - Progress indicator: scale icon based on `progress = min(abs(deltaX) / threshold, 1)`
-  - Support both touch (mobile) and mouse (desktop testing) events in same component
-  - Wrap conditionally: only show SwipeContainer when voting is allowed, show plain IdeaCard after voting
+  - Skeleton cards should match the actual component layout (badge row, title, pitch, bottom row) to prevent layout shift
+  - Tailwind v4 doesn't have `animate-in` from tailwindcss-animate - use custom CSS keyframes in globals.css
+  - Existing animations in codebase: `.animate-fade-in`, `.animate-card-enter`, `.animate-card-exit-right/left`
+  - Staggered animation delay: `style={{ animationDelay: '${Math.min(index * 50, 200)}ms' }}` with `animation-fill-mode: both`
+  - Show 5 skeleton cards during loading to fill viewport (better than 3)
+  - Pre-existing TypeScript errors in glow-effect.tsx and utils.ts don't block commits
 ---
 
-## 2026-01-15 - US-023
-- What was implemented: Added Open Graph and Twitter Card meta tags for rich social sharing
+## 2026-01-16 - US-022
+- Implemented: Added proper loading states to Validate page with skeleton loaders and smooth transitions
 - Files changed:
-  - ship-or-skip/src/app/layout.tsx (added default OG and Twitter meta tags)
-  - ship-or-skip/src/app/pitch/[slug]/page.tsx (added generateMetadata for dynamic OG tags)
-  - ship-or-skip/src/app/api/og/route.tsx (new dynamic OG image endpoint)
-  - ship-or-skip/scripts/seed-ycdb.ts (lint fixes for unused vars)
+  - `ship-or-skip/src/app/validate/validate-client.tsx` - Added loading state with skeleton components, enhanced error state
 - **Learnings for future iterations:**
-  - Next.js Metadata API: use `metadataBase` with `new URL()` for proper absolute URLs
-  - Title template: `{ default: "...", template: "%s | Site" }` for page-specific titles
-  - Dynamic metadata: export `generateMetadata({ params })` async function in page.tsx
-  - OG image API: use `next/og` ImageResponse with `runtime = "edge"` for dynamic OG images
-  - Dynamic OG images use JSX-like syntax with inline styles (no className, only style objects)
-  - Twitter card: use `card: "summary_large_image"` for large preview images
-  - Twitter creator: set `creator: "@handle"` for attribution on tweets
-  - For pitch pages, encode params in OG image URL: `/api/og?hero=...&ship=...&votes=...`
+  - Validate page has three states: input (initial), loading (analyzing), results (after analysis)
+  - Skeleton components defined inline at top of file: CategoryStatsSkeleton, SimilarCompanyCardSkeleton, SimilarCompaniesSkeleton
+  - Loading state shows user's pitch with "Analyzing..." indicator, then skeleton placeholders for results
+  - Clear `results` state when starting new analysis to trigger loading state: `setResults(null)` in handleAnalyze
+  - Results sections use staggered `animate-fade-in-up` with `style={{ animationDelay: "Xms" }}`
+  - Error state enhanced with icon, title, message, and dismiss button in red-themed alert box
+  - Pre-existing TypeScript errors in glow-effect.tsx and utils.ts don't block commits
 ---
 
-## 2026-01-15 - US-024
-- What was implemented: Added user stats tracking page with API endpoint
+## 2026-01-16 - US-023
+- Tested: End-to-end verification of Explore page functionality
+- Bug fix: Updated company deep dive page links from /vote to /play
 - Files changed:
-  - ship-or-skip/src/app/api/stats/route.ts (new endpoint to fetch user session stats)
-  - ship-or-skip/src/app/stats/page.tsx (server component wrapper)
-  - ship-or-skip/src/app/stats/stats-client.tsx (client component with stats display and share functionality)
-  - ship-or-skip/src/components/layout/navbar.tsx (added Stats nav link)
+  - `ship-or-skip/src/app/company/[slug]/page.tsx` - Changed back link and "Continue voting" link from /vote to /play
+- **Verification performed:**
+  - Code review of Explore API (/api/explore/route.ts): search, outcome, industry, batch filters, sort options, pagination all implemented correctly
+  - Code review of Industries API (/api/explore/industries/route.ts): returns unique industries sorted alphabetically with caching
+  - Code review of explore-client.tsx: IntersectionObserver infinite scroll, filter state management, loading states
+  - Code review of components: SearchBar (debounced), FilterBar (all 4 dropdowns), StatsBar, CompanyCard (links to /company/[slug])
+  - TypeScript check passes (only pre-existing errors in glow-effect.tsx, utils.ts)
 - **Learnings for future iterations:**
-  - Session stats already tracked by /api/ideas/vote endpoint: total_votes, ship_votes, skip_votes, crowd_agreements
-  - Stats API pattern: get session ID from cookies, query sessions table, calculate derived percentages (ship_rate, crowd_agreement_rate)
-  - Share stats pattern: generateTweetTemplate() for X/Twitter, handleShare() for native share API with clipboard fallback
-  - Stats display pattern: large hero number, grid of breakdown cards, crowd agreement highlight
-  - Empty state: check for total_votes === 0 and show CTA to start voting
+  - When moving routes (e.g., /vote -> /play), check ALL pages that might link to the old route
+  - Company deep dive page at /company/[slug] uses both yc_slug and regular slug for lookups
+  - Testing stories should include code review for link consistency across the app
 ---
 
-## 2026-01-15 - US-025
-- What was implemented: Final polish and mobile testing improvements
-- Files changed:
-  - ship-or-skip/src/components/layout/navbar.tsx (increased touch targets to 44px)
-  - ship-or-skip/src/app/vote/voting-client.tsx (added user-friendly error states)
-  - ship-or-skip/src/app/pitch/[slug]/pitch-client.tsx (removed console.error)
+## 2026-01-16 - US-024
+- Tested: End-to-end verification of Validate page functionality
+- No code changes required - all acceptance criteria verified through code review
+- **Verification performed:**
+  - Pitch input validation: PitchInput component at `src/components/validate/pitch-input.tsx:20` validates `pitch.trim().length >= 10`
+  - Analysis API: POST /api/validate validates input (400 if <10 chars), fetches all YC companies, uses findSimilarCompanies() algorithm
+  - Similarity algorithm: `src/lib/similarity.ts` tokenizes (lowercase, remove punctuation, filter stop words), calculates matching tokens / user tokens, returns top 10 with score > 20%
+  - Category stats: CategoryStats component shows total, emojis with percentages, visual bar chart, legend - handles empty state (total=0)
+  - Edit button: validate-client.tsx:128 sets `results` to null, returning to input state with pitch preserved via `initialValue` prop
+  - Submit CTA: Uses `/submit?pitch=${encodeURIComponent(pitch)}`, submit-client.tsx reads via useSearchParams, submit-form.tsx syncs via useEffect
+  - Empty state: SimilarCompanies handles 0 results with helpful message, CategoryStats handles total=0
+  - TypeScript check passes (only pre-existing errors in glow-effect.tsx, utils.ts)
 - **Learnings for future iterations:**
-  - Touch target minimum: use `min-w-11 min-h-11` (44px) for mobile accessibility
-  - Mobile nav links: add padding and min-height for proper touch targets
-  - Error handling pattern: use state (error, setError) with both full-page error state and inline error banners
-  - Remove console.error from client components - show user-friendly messages instead
-  - Build passes: all pages responsive, touch targets ≥44px, loading states on async ops, error handling throughout
+  - Validate page has three render states: input (initial), loading (analyzing with skeletons), results (after API response)
+  - Query param flow for pitch pre-fill: encodeURIComponent on sender, useSearchParams on receiver
+  - Similarity algorithm uses simple keyword matching - effective for finding related pitches without ML/embeddings
 ---

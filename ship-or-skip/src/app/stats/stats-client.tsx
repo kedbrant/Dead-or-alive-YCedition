@@ -12,10 +12,25 @@ interface UserStats {
   ship_rate: number;
   crowd_agreement_rate: number;
   twitter_handle: string | null;
+  // Oracle Score fields
+  oracle_score: number | null;
+  resolved_votes: number;
+  correct_predictions: number;
+  correct_ships: number;
+  correct_skips: number;
+  wrong_predictions: number;
+  votes_until_oracle: number;
+}
+
+interface CompareStats {
+  percentile_rank: number | null;
+  average_oracle_score: number | null;
+  total_qualified_players: number;
 }
 
 export function StatsClient() {
   const [stats, setStats] = useState<UserStats | null>(null);
+  const [compareStats, setCompareStats] = useState<CompareStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
@@ -25,9 +40,14 @@ export function StatsClient() {
     setError(null);
 
     try {
-      const response = await fetch("/api/stats");
-      if (!response.ok) {
-        if (response.status === 401) {
+      // Fetch user stats and comparison data in parallel
+      const [statsResponse, compareResponse] = await Promise.all([
+        fetch("/api/stats"),
+        fetch("/api/stats/compare"),
+      ]);
+
+      if (!statsResponse.ok) {
+        if (statsResponse.status === 401) {
           // No session yet - show empty state
           setStats({
             total_votes: 0,
@@ -36,13 +56,27 @@ export function StatsClient() {
             crowd_agreements: 0,
             ship_rate: 0,
             crowd_agreement_rate: 0,
+            twitter_handle: null,
+            oracle_score: null,
+            resolved_votes: 0,
+            correct_predictions: 0,
+            correct_ships: 0,
+            correct_skips: 0,
+            wrong_predictions: 0,
+            votes_until_oracle: 10,
           });
           return;
         }
         throw new Error("Failed to fetch stats");
       }
-      const data = await response.json();
+      const data = await statsResponse.json();
       setStats(data);
+
+      // Fetch comparison data if available
+      if (compareResponse.ok) {
+        const compareData = await compareResponse.json();
+        setCompareStats(compareData);
+      }
     } catch {
       setError("Failed to load your stats. Please try again.");
     } finally {
@@ -57,7 +91,12 @@ export function StatsClient() {
   const generateTweetTemplate = () => {
     if (!stats || stats.total_votes === 0) return "";
 
-    const tweetText = `My Ship or Skip stats: ${stats.total_votes} ideas voted, ${stats.ship_rate}% shipped, ${stats.crowd_agreement_rate}% crowd agreement. Think you can beat my instincts?`;
+    let tweetText = "";
+    if (stats.oracle_score !== null) {
+      tweetText = `My Oracle Score: ${stats.oracle_score}% on Ship or Skip! I correctly predicted ${stats.correct_predictions} out of ${stats.resolved_votes} YC startup outcomes. Can you spot the unicorns?`;
+    } else {
+      tweetText = `My Ship or Skip stats: ${stats.total_votes} ideas voted, ${stats.ship_rate}% shipped, ${stats.crowd_agreement_rate}% crowd agreement. Think you can beat my instincts?`;
+    }
     const encodedText = encodeURIComponent(tweetText);
     const baseUrl = typeof window !== "undefined" ? window.location.origin : "";
     const encodedUrl = encodeURIComponent(`${baseUrl}/vote`);
@@ -67,7 +106,12 @@ export function StatsClient() {
   const handleShare = async () => {
     if (!stats || stats.total_votes === 0) return;
 
-    const shareText = `My Ship or Skip stats: ${stats.total_votes} ideas voted, ${stats.ship_rate}% shipped, ${stats.crowd_agreement_rate}% crowd agreement.`;
+    let shareText = "";
+    if (stats.oracle_score !== null) {
+      shareText = `My Oracle Score: ${stats.oracle_score}% on Ship or Skip! I correctly predicted ${stats.correct_predictions} out of ${stats.resolved_votes} YC startup outcomes.`;
+    } else {
+      shareText = `My Ship or Skip stats: ${stats.total_votes} ideas voted, ${stats.ship_rate}% shipped, ${stats.crowd_agreement_rate}% crowd agreement.`;
+    }
     const baseUrl = typeof window !== "undefined" ? window.location.origin : "";
     const shareUrl = `${baseUrl}/vote`;
 
@@ -149,7 +193,7 @@ export function StatsClient() {
             Start voting on startup ideas to track your stats!
           </p>
           <Link
-            href="/vote"
+            href="/play"
             className="inline-block w-full px-6 py-4 bg-ship text-white font-bold rounded-xl
               transition-all duration-150
               hover:shadow-[0_0_20px_rgba(34,197,94,0.5)] hover:scale-[1.02]
@@ -197,6 +241,81 @@ export function StatsClient() {
               >
                 @{stats.twitter_handle}
               </a>
+            </div>
+          )}
+
+          {/* Oracle Score - Hero metric */}
+          {stats.oracle_score !== null ? (
+            <div className="text-center mb-8 p-6 bg-gradient-to-br from-purple-500/20 to-purple-600/10 rounded-2xl border border-purple-500/30">
+              <div className="flex items-center justify-center gap-2 mb-2">
+                <span className="text-2xl">🔮</span>
+                <p className="text-foreground/80 font-semibold">Oracle Score</p>
+              </div>
+              <p className="text-6xl font-bold text-purple-400 mb-2">
+                {stats.oracle_score}%
+              </p>
+              <p className="text-foreground/60 text-sm mb-1">
+                Your accuracy at predicting startup outcomes
+              </p>
+              <p className="text-foreground/50 text-xs">
+                {stats.correct_predictions} of {stats.resolved_votes} predictions correct
+              </p>
+              {/* Percentile Rank */}
+              {compareStats?.percentile_rank !== null && compareStats?.percentile_rank !== undefined && (
+                <div className="mt-3 py-2 px-4 bg-white/10 rounded-lg inline-block">
+                  <p className="text-sm font-semibold text-purple-200">
+                    Better than {compareStats.percentile_rank}% of players
+                  </p>
+                </div>
+              )}
+              {/* Breakdown with clearer labels */}
+              <div className="grid grid-cols-3 gap-2 mt-4 text-xs">
+                <div className="bg-background/30 rounded-lg p-2" title="Unicorns/Acquired you shipped">
+                  <p className="text-ship font-bold">{stats.correct_ships}</p>
+                  <p className="text-foreground/50">Winners Shipped</p>
+                </div>
+                <div className="bg-background/30 rounded-lg p-2" title="Dead companies you skipped">
+                  <p className="text-ship font-bold">{stats.correct_skips}</p>
+                  <p className="text-foreground/50">Duds Skipped</p>
+                </div>
+                <div className="bg-background/30 rounded-lg p-2" title="Wrong predictions">
+                  <p className="text-skip font-bold">{stats.wrong_predictions}</p>
+                  <p className="text-foreground/50">Wrong Calls</p>
+                </div>
+              </div>
+              {/* How it works */}
+              <div className="mt-4 pt-4 border-t border-white/10">
+                <p className="text-xs text-foreground/40">
+                  Ship a unicorn = correct. Skip a dead company = correct.
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div className="text-center mb-8 p-6 bg-background/30 rounded-2xl border border-foreground/10">
+              <div className="flex items-center justify-center gap-2 mb-2">
+                <span className="text-2xl opacity-50">🔮</span>
+                <p className="text-foreground/60 font-semibold">Oracle Score</p>
+              </div>
+              <p className="text-4xl font-bold text-foreground/30 mb-2">Locked</p>
+              <p className="text-foreground/60 text-sm mb-2">
+                Vote on {stats.votes_until_oracle} more YC companies to unlock
+              </p>
+              <p className="text-foreground/40 text-xs">
+                Measures how well you predict which startups succeed or fail
+              </p>
+              {stats.resolved_votes > 0 && (
+                <div className="mt-3 bg-foreground/5 rounded-lg p-2">
+                  <p className="text-xs text-foreground/50">
+                    Progress: {stats.resolved_votes}/10 resolved votes
+                  </p>
+                  <div className="w-full bg-foreground/10 rounded-full h-1.5 mt-1">
+                    <div
+                      className="bg-purple-500 h-1.5 rounded-full transition-all"
+                      style={{ width: `${(stats.resolved_votes / 10) * 100}%` }}
+                    />
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -271,7 +390,7 @@ export function StatsClient() {
         {/* Footer CTAs */}
         <div className="mt-6 flex flex-col sm:flex-row gap-3">
           <Link
-            href="/vote"
+            href="/play"
             className="flex-1 px-6 py-4 bg-ship text-white font-bold rounded-xl text-center
               transition-all duration-150
               hover:shadow-[0_0_20px_rgba(34,197,94,0.5)] hover:scale-[1.02]

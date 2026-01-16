@@ -1,423 +1,459 @@
 {
-  "project": "Ship or Skip",
-  "branchName": "ralph/ship-or-skip",
-  "description": "Tinder for startup ideas. Swipe through real pitches, see what the crowd thinks, submit your own.",
+  "project": "Ship or Skip - Explore & Validate",
+  "branchName": "ralph/explore-validate",
+  "description": "Transform Ship or Skip from pure entertainment to utility + entertainment. Add Explore tab to search/filter 5,500+ YC companies, and Validate tab to compare user pitches against YC history. Move the game to /play with a dedicated game sub-header. Navigation becomes: Explore | Validate | Play | Submit.",
   "userStories": [
     {
       "id": "US-001",
-      "title": "Initialize Next.js project with Tailwind",
-      "description": "Set up the Next.js 14 project with App Router and configure Tailwind CSS with the Ship or Skip theme.",
+      "title": "Create new main navigation header",
+      "description": "Update the main navbar to show four tabs: Explore, Validate, Play, Submit. Remove game stats from the main header - they will move to a game-specific sub-header. The header should highlight the active tab based on current route.",
       "acceptanceCriteria": [
-        "Initialize Next.js 14 with App Router (npx create-next-app@latest)",
-        "Configure Tailwind with custom color palette: background #0A0A0A, surface #18181B, ship green #22C55E, skip red #EF4444",
-        "Add Inter font from Google Fonts",
-        "Create basic app/layout.tsx with dark theme",
-        "Typecheck passes",
-        "Dev server runs without errors"
+        "Navbar shows four tabs: Explore, Validate, Play, Submit",
+        "Tabs link to /explore, /validate, /play, /submit respectively",
+        "Active tab is visually highlighted based on current route",
+        "Game stats (streak, oracle score, achievements) removed from main header",
+        "Logo links to home page",
+        "Mobile responsive with hamburger menu or scrollable tabs",
+        "Typecheck passes: npx tsc --noEmit"
       ],
       "priority": 1,
       "passes": true,
-      "notes": ""
+      "notes": "This is the foundation for the new navigation structure"
     },
     {
       "id": "US-002",
-      "title": "Set up Supabase and create database tables",
-      "description": "Configure Supabase connection and create the ideas, votes, players, and sessions tables.",
+      "title": "Create Explore page route and layout",
+      "description": "Create /explore page with the main layout structure: heading 'EXPLORE 5,500+ YC STARTUPS', search bar area, filter bar area, stats bar area, and company list area. Use server component with client components for interactive parts.",
       "acceptanceCriteria": [
-        "Install @supabase/supabase-js",
-        "Create lib/supabase/client.ts and lib/supabase/server.ts",
-        "Create SQL migration for ideas table with fields: id, slug, hero, subtitle, source, source_company, source_batch, source_outcome, submitter_twitter, ship_count, skip_count, total_votes, ship_percentage, is_active, created_at",
-        "Create SQL migration for votes table with unique constraint on (idea_id, session_id)",
-        "Create SQL migration for sessions table",
-        "Create lib/supabase/types.ts with TypeScript types for all tables",
+        "Page exists at ship-or-skip/src/app/explore/page.tsx",
+        "Shows heading 'EXPLORE 5,500+ YC STARTUPS'",
+        "Layout has sections for: search, filters, stats, company list",
+        "Uses consistent styling with rest of app",
+        "Responsive layout for mobile and desktop",
         "Typecheck passes"
       ],
       "priority": 2,
       "passes": true,
-      "notes": "Supabase credentials should be in .env.local"
+      "notes": "Create explore-client.tsx for the interactive client component"
     },
     {
       "id": "US-003",
-      "title": "Build IdeaCard component",
-      "description": "Create the main card component that displays a startup idea with hero and subtitle.",
+      "title": "Create search bar component for Explore",
+      "description": "Create a search bar component that allows users to search companies by name or pitch. Debounce input to avoid excessive API calls. Search should filter the company list in real-time.",
       "acceptanceCriteria": [
-        "Create components/voting/idea-card.tsx",
-        "Card displays hero text (32px bold) and subtitle (18px regular)",
-        "Full width on mobile, max 480px on desktop",
-        "Dark surface background (#18181B) with 16px rounded corners",
-        "Centered text with generous padding (48px vertical)",
+        "SearchBar component exists at src/components/explore/search-bar.tsx",
+        "Input placeholder: 'Search companies, pitches...'",
+        "Search icon displayed in input",
+        "Input is debounced (300ms delay before triggering search)",
+        "Calls onSearch callback with search query",
+        "Clear button appears when input has value",
         "Typecheck passes"
       ],
       "priority": 3,
       "passes": true,
-      "notes": ""
+      "notes": "Use useDebounce hook or implement inline"
     },
     {
       "id": "US-004",
-      "title": "Build VoteButtons component",
-      "description": "Create the Ship and Skip voting buttons with proper styling.",
+      "title": "Create filter bar component for Explore",
+      "description": "Create a filter bar with four dropdown filters: Outcome (All/Unicorns/Acquired/Dead/Active), Industry (populated from data), Batch (year ranges), and Sort (Newest/Team size/Most votes). Filters should update the company list.",
       "acceptanceCriteria": [
-        "Create components/voting/vote-buttons.tsx",
-        "Two buttons: Skip 💀 (red #EF4444) and Ship 🚀 (green #22C55E)",
-        "Large tap targets (min 64px height)",
-        "Full width on mobile, side-by-side on desktop",
-        "Hover glow effect and press scale animation",
-        "onClick handlers call onVote callback with 'ship' or 'skip'",
+        "FilterBar component exists at src/components/explore/filter-bar.tsx",
+        "Four dropdown selects: Outcome, Industry, Batch, Sort",
+        "Outcome options: All, Unicorns, Acquired, Dead, Active",
+        "Industry options populated dynamically from API",
+        "Batch options: All, 2024, 2023, 2022... down to 2005",
+        "Sort options: Newest, Team size, Most votes",
+        "Filters call onChange callback with filter state",
         "Typecheck passes"
       ],
       "priority": 4,
       "passes": true,
-      "notes": ""
+      "notes": "Consider using a simple select or custom dropdown component"
     },
     {
       "id": "US-005",
-      "title": "Build RevealOverlay component",
-      "description": "Create the results overlay shown after voting, displaying percentage and vote count.",
+      "title": "Create stats bar component for Explore",
+      "description": "Create a stats bar that shows aggregate counts for the current filter: total companies, unicorn count/percentage, dead count/percentage. Stats should update when filters change.",
       "acceptanceCriteria": [
-        "Create components/voting/reveal-overlay.tsx",
-        "Shows ship percentage in large text (48px bold) with emoji",
-        "Shows total vote count",
-        "Shows 'You agreed with the crowd' or 'You went against the crowd'",
-        "Optional: Shows source_company and source_outcome for known ideas",
-        "Next button to proceed",
-        "Share button",
+        "StatsBar component exists at src/components/explore/stats-bar.tsx",
+        "Shows total company count",
+        "Shows unicorn count with emoji",
+        "Shows dead company count with emoji",
+        "Format: '5,571 companies | 127 unicorns | 1,247 dead'",
+        "Updates dynamically when filters change",
         "Typecheck passes"
       ],
       "priority": 5,
       "passes": true,
-      "notes": ""
+      "notes": "Stats come from the explore API response"
     },
     {
       "id": "US-006",
-      "title": "Create session management utility",
-      "description": "Implement cookie-based session tracking for anonymous users.",
+      "title": "Create company card component for Explore",
+      "description": "Create a company card component that displays: outcome badge, company name, batch, one-liner pitch, industry, team size (if available), and crowd vote stats (ship %, total votes). Card should link to company deep dive page.",
       "acceptanceCriteria": [
-        "Create lib/session/manager.ts",
-        "Generate UUID session ID and store in cookie",
-        "getOrCreateSessionId() function for server components",
-        "Session persists across page refreshes",
+        "CompanyCard component exists at src/components/explore/company-card.tsx",
+        "Shows OutcomeBadge (unicorn/acquired/dead/active)",
+        "Displays company name (yc_name) prominently",
+        "Shows batch formatted as 'W09' or 'S21'",
+        "Displays one-liner pitch (hero field)",
+        "Shows industry and team size if available",
+        "Shows crowd vote stats: 'X% Ship • Y votes'",
+        "Entire card is clickable, links to /company/[slug]",
         "Typecheck passes"
       ],
       "priority": 6,
       "passes": true,
-      "notes": ""
+      "notes": "Reuse OutcomeBadge component from voting"
     },
     {
       "id": "US-007",
-      "title": "Create GET /api/ideas/next endpoint",
-      "description": "API route that returns a random idea the user hasn't voted on yet.",
+      "title": "Create Explore API endpoint",
+      "description": "Create GET /api/explore endpoint that supports search, filtering, sorting, and pagination. Returns companies matching criteria along with aggregate stats for the current filter.",
       "acceptanceCriteria": [
-        "Create app/api/ideas/next/route.ts",
-        "Accepts session_id as query parameter",
-        "Returns random idea not yet voted on by this session",
-        "Weighted toward ideas with fewer votes for balance",
-        "Returns { id, hero, subtitle } or 404 if all ideas voted",
+        "Endpoint exists at ship-or-skip/src/app/api/explore/route.ts",
+        "Supports query params: search, outcome, industry, batch, sort, page, limit",
+        "Search uses ILIKE on hero and yc_name fields",
+        "Outcome filter matches source_outcome column",
+        "Industry filter matches yc_industry column",
+        "Batch filter matches yc_batch year (e.g., '2024' matches 'W24', 'S24')",
+        "Sort options: 'newest' (created_at desc), 'team_size' (yc_team_size desc), 'votes' (total_votes desc)",
+        "Returns: { companies: [], total: number, stats: { total, unicorns, dead } }",
+        "Default limit: 20, supports pagination with offset",
         "Typecheck passes"
       ],
       "priority": 7,
       "passes": true,
-      "notes": ""
+      "notes": "Only return YC companies (source='yc')"
     },
     {
       "id": "US-008",
-      "title": "Create POST /api/ideas/vote endpoint",
-      "description": "API route to record a vote and return results.",
+      "title": "Implement infinite scroll for Explore",
+      "description": "Add infinite scroll to the Explore page company list. Load more companies as user scrolls near the bottom. Show loading indicator while fetching.",
       "acceptanceCriteria": [
-        "Create app/api/ideas/vote/route.ts",
-        "Accepts { idea_id, vote, session_id } in body",
-        "Records vote in votes table",
-        "Updates idea ship_count/skip_count/total_votes/ship_percentage",
-        "Updates session stats",
-        "Returns { ship_percentage, total_votes, user_agreed_with_crowd, source_company?, source_outcome? }",
-        "Prevents duplicate votes (returns existing result if already voted)",
+        "Company list loads initial 20 companies",
+        "Detects when user scrolls near bottom (100px threshold)",
+        "Fetches next page of results automatically",
+        "Shows loading spinner while fetching",
+        "Appends new companies to existing list",
+        "Stops fetching when no more results",
+        "Works on mobile and desktop",
         "Typecheck passes"
       ],
       "priority": 8,
       "passes": true,
-      "notes": ""
+      "notes": "Use IntersectionObserver for scroll detection"
     },
     {
       "id": "US-009",
-      "title": "Build voting page",
-      "description": "Create the main voting screen that shows ideas and handles voting flow.",
+      "title": "Create Validate page route and layout",
+      "description": "Create /validate page with initial state showing: heading 'VALIDATE YOUR STARTUP PITCH', subtitle, pitch input textarea, analyze button, and example pitches. Page transitions to results state after analysis.",
       "acceptanceCriteria": [
-        "Create app/vote/page.tsx",
-        "Fetches next idea on load and after each vote",
-        "Shows IdeaCard with current idea",
-        "Shows VoteButtons below card",
-        "On vote: calls API, shows RevealOverlay with results",
-        "Next button fetches new idea and hides reveal",
-        "Shows 'No more ideas' message when all voted",
+        "Page exists at ship-or-skip/src/app/validate/page.tsx",
+        "Shows heading 'VALIDATE YOUR STARTUP PITCH'",
+        "Subtitle: 'See how your idea compares to 5,500 YC companies'",
+        "Large textarea for pitch input",
+        "Placeholder: 'Enter your one-liner pitch...'",
+        "Analyze button below textarea",
+        "Shows example pitches for inspiration",
+        "Responsive layout",
         "Typecheck passes"
       ],
       "priority": 9,
       "passes": true,
-      "notes": ""
+      "notes": "Create validate-client.tsx for the interactive client component"
     },
     {
       "id": "US-010",
-      "title": "Build landing page",
-      "description": "Create the home page with hook stat and call to action.",
+      "title": "Create pitch input component for Validate",
+      "description": "Create a pitch input component with textarea, character count, and submit button. Validates minimum length (10 chars) before allowing submission.",
       "acceptanceCriteria": [
-        "Create/update app/page.tsx as landing page",
-        "Headline: 'Would you ship this startup?'",
-        "Hook stat: '73% would have skipped Airbnb's pitch'",
-        "Prominent 'Start Voting' button linking to /vote",
-        "Brief explanation of how it works",
-        "Dark theme styling consistent with design spec",
+        "PitchInput component exists at src/components/validate/pitch-input.tsx",
+        "Textarea with generous size for pitch entry",
+        "Shows character count",
+        "Minimum 10 characters required to submit",
+        "Submit button disabled until minimum length",
+        "Calls onSubmit callback with pitch text",
+        "Shows loading state during submission",
         "Typecheck passes"
       ],
       "priority": 10,
       "passes": true,
-      "notes": ""
+      "notes": "Keep it simple - just a textarea and button"
     },
     {
       "id": "US-011",
-      "title": "Build submit idea form",
-      "description": "Create the form for users to submit their own startup ideas.",
+      "title": "Create similarity matching algorithm",
+      "description": "Create src/lib/similarity.ts with findSimilarCompanies function. Uses keyword tokenization to find YC companies with similar pitches. Returns top matches with similarity scores.",
       "acceptanceCriteria": [
-        "Create components/submit/submit-form.tsx",
-        "Hero input (60 char max) with character counter",
-        "Subtitle input (100 char max) with character counter",
-        "Twitter handle input (optional)",
-        "Submit button",
-        "Form validation before submit",
+        "Function findSimilarCompanies(userPitch, companies) exists in src/lib/similarity.ts",
+        "Tokenizes text: lowercase, remove punctuation, split on spaces, filter stop words",
+        "Stop words include: the, for, and, that, with, your, a, an, to, of, is, in, on",
+        "Calculates similarity as: matching tokens / user tokens",
+        "Filters results with score > 0.2 (20% match)",
+        "Returns top 10 matches sorted by score descending",
+        "Each result includes: company, score (as percentage)",
         "Typecheck passes"
       ],
       "priority": 11,
       "passes": true,
-      "notes": ""
+      "notes": "Simple keyword matching - no need for embeddings or ML"
     },
     {
       "id": "US-012",
-      "title": "Create POST /api/ideas/submit endpoint",
-      "description": "API route to submit a new idea.",
+      "title": "Create Validate API endpoint",
+      "description": "Create POST /api/validate endpoint that accepts a pitch and returns similar YC companies with similarity scores plus category stats for the matched companies.",
       "acceptanceCriteria": [
-        "Create app/api/ideas/submit/route.ts",
-        "Accepts { hero, subtitle, twitter_handle? } in body",
-        "Generates URL-friendly slug from hero text",
-        "Creates new idea with source='user'",
-        "Returns { idea_id, slug, share_url }",
-        "Rate limiting: max 10 submissions per session per day",
+        "Endpoint exists at ship-or-skip/src/app/api/validate/route.ts",
+        "Accepts POST with body: { pitch: string }",
+        "Returns 400 if pitch is missing or too short (<10 chars)",
+        "Fetches all YC companies from database",
+        "Uses similarity algorithm to find matches",
+        "Returns: { similar_companies: [], category_stats: {} }",
+        "similar_companies includes: company data, similarity percentage",
+        "category_stats includes: total, unicorn_pct, acquired_pct, dead_pct, active_pct",
         "Typecheck passes"
       ],
       "priority": 12,
       "passes": true,
-      "notes": ""
+      "notes": "Category stats calculated from similar companies, not all companies"
     },
     {
       "id": "US-013",
-      "title": "Build submit page",
-      "description": "Create the page for submitting ideas with success confirmation.",
+      "title": "Create similar companies list component",
+      "description": "Create a component to display similar company results. Shows each company with: outcome badge, name, batch, pitch, similarity score, and link to company page.",
       "acceptanceCriteria": [
-        "Create app/submit/page.tsx",
-        "Shows SubmitForm component",
-        "On success: shows confirmation with shareable pitch page link",
-        "Shows auto-generated tweet template for sharing",
-        "Link back to voting",
+        "SimilarCompanies component exists at src/components/validate/similar-companies.tsx",
+        "Shows section heading: 'SIMILAR YC COMPANIES (X found)'",
+        "Lists each similar company as a card",
+        "Card shows: OutcomeBadge, company name, batch, pitch",
+        "Shows similarity score as percentage (e.g., 'Similarity: 84%')",
+        "View button/link goes to /company/[slug]",
+        "Empty state if no similar companies found",
         "Typecheck passes"
       ],
       "priority": 13,
       "passes": true,
-      "notes": ""
+      "notes": "Similar to company card but with similarity score"
     },
     {
       "id": "US-014",
-      "title": "Create GET /api/pitch/[slug] endpoint",
-      "description": "API route to fetch idea data for pitch pages.",
+      "title": "Create category stats component for Validate",
+      "description": "Create a component to display category stats for similar companies. Shows outcome distribution as percentages with visual indicators.",
       "acceptanceCriteria": [
-        "Create app/api/pitch/[slug]/route.ts",
-        "Fetches idea by slug",
-        "Returns { id, hero, subtitle, submitter_twitter, ship_percentage, total_votes, created_at }",
-        "Returns 404 if slug not found",
+        "CategoryStats component exists at src/components/validate/category-stats.tsx",
+        "Shows section heading: 'CATEGORY STATS'",
+        "Displays total similar companies count",
+        "Shows outcome distribution with emojis: unicorn %, acquired %, dead %, active %",
+        "Format: '13% | 17% | 35% | 35%' with corresponding emojis",
+        "Visual bar or indicators for each percentage",
         "Typecheck passes"
       ],
       "priority": 14,
       "passes": true,
-      "notes": ""
+      "notes": "Make the stats visually scannable"
     },
     {
       "id": "US-015",
-      "title": "Build personal pitch page",
-      "description": "Create the shareable pitch page for each submitted idea - THE VIRAL ENGINE.",
+      "title": "Create Validate results state",
+      "description": "Update Validate page to show results after analysis: user's pitch with edit button, similar companies section, category stats section, and CTA to submit for crowd voting.",
       "acceptanceCriteria": [
-        "Create app/pitch/[slug]/page.tsx",
-        "Shows submitter attribution (@handle) if provided",
-        "Shows idea card (hero + subtitle)",
-        "Shows vote buttons if user hasn't voted",
-        "After voting: shows results (percentage + total votes)",
-        "Share button with auto-generated tweet template",
-        "CTAs: 'Vote on more ideas' and 'Submit your own pitch'",
+        "Results state shows user's pitch at top with 'Edit' button",
+        "Edit button returns to input state with pitch preserved",
+        "Shows SimilarCompanies component with results",
+        "Shows CategoryStats component with stats",
+        "Shows 'Submit for Crowd Voting' CTA button",
+        "CTA links to /submit with pitch pre-filled (query param)",
+        "Clean visual separation between sections",
         "Typecheck passes"
       ],
       "priority": 15,
       "passes": true,
-      "notes": "This is the core viral mechanic"
+      "notes": "The results page is the key value proposition"
     },
     {
       "id": "US-016",
-      "title": "Create leaderboard API endpoint",
-      "description": "API route to fetch ranked ideas for the leaderboard.",
+      "title": "Move voting game to /play route",
+      "description": "Move the existing voting functionality from / or /vote to /play. The play page should be the home for the prediction game with the game sub-header.",
       "acceptanceCriteria": [
-        "Create app/api/leaderboard/route.ts",
-        "Accepts query param type: 'top' | 'voted' | 'controversial'",
-        "top: highest ship_percentage (min 100 votes)",
-        "voted: most total_votes",
-        "controversial: closest to 50% ship_percentage",
-        "Returns array of ideas with stats",
-        "Limit to 50 results",
+        "Voting game accessible at /play route",
+        "Existing voting-client.tsx functionality preserved",
+        "All voting API integrations continue to work",
+        "Battle mode toggle accessible from /play",
+        "URL /vote redirects to /play (if previously existed)",
         "Typecheck passes"
       ],
       "priority": 16,
       "passes": true,
-      "notes": ""
+      "notes": "This is mostly moving existing code to new route"
     },
     {
       "id": "US-017",
-      "title": "Build leaderboard page",
-      "description": "Create the leaderboard page showing top ideas.",
+      "title": "Create game sub-header component",
+      "description": "Create a sub-header that only appears on /play showing game stats: streak, Oracle Score, achievements progress, and Battle mode toggle. This keeps game elements out of Explore/Validate.",
       "acceptanceCriteria": [
-        "Create app/leaderboard/page.tsx",
-        "Tab navigation: Top Ideas | Most Voted | Controversial",
-        "Each row shows: rank, hero, ship %, votes, submitter",
-        "Click on row links to pitch page",
-        "Loading state while fetching",
+        "GameSubHeader component exists at src/components/layout/game-sub-header.tsx",
+        "Shows current streak with fire emoji",
+        "Shows Oracle Score with crystal ball emoji (or 'Vote X more' if not unlocked)",
+        "Shows achievements progress: 'X/Y' with trophy emoji",
+        "Battle mode toggle button with sword emoji",
+        "Only rendered on /play route",
+        "Styled as secondary header below main nav",
         "Typecheck passes"
       ],
       "priority": 17,
       "passes": true,
-      "notes": ""
+      "notes": "Stats fetched from existing /api/stats endpoint"
     },
     {
       "id": "US-018",
-      "title": "Build navbar component",
-      "description": "Create the navigation bar for the app.",
+      "title": "Update home page for new navigation",
+      "description": "Update the landing page to work with new navigation structure. Home page should be a landing/marketing page that directs users to Explore, Validate, or Play based on their intent.",
       "acceptanceCriteria": [
-        "Create components/layout/navbar.tsx",
-        "Logo/title: 'Ship or Skip'",
-        "Nav links: Vote, Submit, Leaderboard",
-        "Responsive: hamburger menu on mobile",
-        "Add to app/layout.tsx",
+        "Home page (/) serves as landing page",
+        "Hero section with hook stat (e.g., '67% would have skipped Airbnb')",
+        "Three CTAs: 'Explore Companies', 'Validate Your Pitch', 'Start Playing'",
+        "Brief explanation of each section's value",
+        "Maintains existing branding and style",
         "Typecheck passes"
       ],
       "priority": 18,
       "passes": true,
-      "notes": ""
+      "notes": "Landing page drives users to the right experience"
     },
     {
       "id": "US-019",
-      "title": "Create seed data script for famous startups",
-      "description": "Script to seed the database with famous startup ideas.",
+      "title": "Get unique industries from database",
+      "description": "Create utility endpoint or function to get unique industry values from the database for populating the industry filter dropdown.",
       "acceptanceCriteria": [
-        "Create scripts/seed-famous.ts",
-        "Include 20+ famous startups from PRD (Airbnb, Uber, Stripe, WeWork, Theranos, etc.)",
-        "Each has hero, subtitle, source='famous', source_company, source_outcome",
-        "Script connects to Supabase and inserts ideas",
-        "Handles duplicates gracefully (upsert by slug)",
-        "Can be run via: npx tsx scripts/seed-famous.ts",
+        "GET /api/explore/industries endpoint exists",
+        "Returns unique yc_industry values from ideas table",
+        "Filters out null/empty values",
+        "Sorted alphabetically",
+        "Cached or memoized for performance",
         "Typecheck passes"
       ],
       "priority": 19,
       "passes": true,
-      "notes": ""
+      "notes": "Could also be included in explore endpoint response"
     },
     {
       "id": "US-020",
-      "title": "Create YCDB seed script",
-      "description": "Script to seed YC startup data from existing Dead or Alive data.",
+      "title": "Update submit page with validate integration",
+      "description": "Update submit page to accept pre-filled pitch from validate page (via query param). Show link back to validate if user wants to analyze before submitting.",
       "acceptanceCriteria": [
-        "Create scripts/seed-ycdb.ts",
-        "Read YC company data from existing project files or API",
-        "Map to ideas table format: hero=name, subtitle=description, source='yc'",
-        "Include source_batch and source_outcome where available",
-        "Insert 500+ YC ideas",
+        "Submit page reads pitch from ?pitch= query param",
+        "Pre-fills pitch textarea if query param present",
+        "Shows 'Want to analyze first?' link to /validate",
+        "Existing submit functionality preserved",
         "Typecheck passes"
       ],
       "priority": 20,
       "passes": true,
-      "notes": "Reuse data from Dead or Alive project if available"
+      "notes": "Creates flow from Validate -> Submit"
     },
     {
       "id": "US-021",
-      "title": "Add card animations",
-      "description": "Add smooth animations to the voting experience.",
+      "title": "Add loading states to Explore page",
+      "description": "Add proper loading states to Explore page: skeleton loaders for company cards, loading indicator for filters, and smooth transitions when data loads.",
       "acceptanceCriteria": [
-        "Card entrance: slide up + fade (300ms)",
-        "Card exit on ship: slide right + fade (250ms)",
-        "Card exit on skip: slide left + fade (250ms)",
-        "Button hover: glow + scale 1.02 (150ms)",
-        "Button press: scale 0.98 (100ms)",
-        "Reveal overlay: fade in (200ms)",
-        "Use Tailwind transitions or Framer Motion",
+        "Shows skeleton cards while initial data loads",
+        "Filter dropdowns show loading state while industries fetch",
+        "Stats bar shows loading placeholder",
+        "Smooth fade-in when data arrives",
+        "No layout shift during loading",
         "Typecheck passes"
       ],
       "priority": 21,
       "passes": true,
-      "notes": ""
+      "notes": "Good loading states improve perceived performance"
     },
     {
       "id": "US-022",
-      "title": "Add swipe gestures for mobile",
-      "description": "Enable swipe left/right to vote on mobile devices.",
+      "title": "Add loading states to Validate page",
+      "description": "Add proper loading states to Validate page: loading indicator during analysis, skeleton for results, and smooth transitions.",
       "acceptanceCriteria": [
-        "Create components/voting/swipe-container.tsx",
-        "Swipe right = Ship, swipe left = Skip",
-        "Swipe threshold: 100px",
-        "Card tilts and shows icon during swipe",
-        "Rubber band effect if swipe cancelled",
-        "Works alongside button voting",
+        "Analyze button shows spinner during API call",
+        "Results section shows skeleton while loading",
+        "Smooth transition from input to results state",
+        "Error state if analysis fails",
         "Typecheck passes"
       ],
       "priority": 22,
       "passes": true,
-      "notes": "Use react-use-gesture or similar library"
+      "notes": "Analysis may take a moment with 5500+ companies"
     },
     {
       "id": "US-023",
-      "title": "Add OG meta tags for social sharing",
-      "description": "Add Open Graph meta tags for rich social media previews.",
+      "title": "Test Explore page end-to-end",
+      "description": "Test the complete Explore page functionality: search, all filters, sorting, pagination, and company card links.",
       "acceptanceCriteria": [
-        "Add default OG tags in app/layout.tsx (title, description, image)",
-        "Pitch pages have dynamic OG tags showing idea + current results",
-        "Create static OG image for default sharing",
-        "Twitter card meta tags included",
-        "Typecheck passes"
+        "Search finds companies by name and pitch",
+        "Outcome filter correctly filters by unicorn/dead/etc",
+        "Industry filter works with populated options",
+        "Batch filter correctly filters by year",
+        "Sort options order results correctly",
+        "Infinite scroll loads more results",
+        "Company cards link to correct deep dive pages",
+        "Stats bar updates with filter changes",
+        "Verify in browser"
       ],
       "priority": 23,
       "passes": true,
-      "notes": ""
+      "notes": "Manual testing in browser"
     },
     {
       "id": "US-024",
-      "title": "Add user stats tracking",
-      "description": "Track and display user voting statistics.",
+      "title": "Test Validate page end-to-end",
+      "description": "Test the complete Validate page functionality: pitch input, similarity matching, results display, and submit CTA.",
       "acceptanceCriteria": [
-        "Track in session: total_votes, ship_votes, crowd_agreements",
-        "Create app/stats/page.tsx showing user stats",
-        "Show: ideas voted, ship rate %, crowd agreement %",
-        "Share stats button with tweet template",
-        "Typecheck passes"
+        "Pitch input accepts and validates text",
+        "Analysis returns similar companies",
+        "Similarity scores seem reasonable",
+        "Category stats display correctly",
+        "Edit button returns to input with pitch preserved",
+        "Submit CTA passes pitch to submit page",
+        "Empty state works when no similar companies",
+        "Verify in browser"
       ],
       "priority": 24,
       "passes": true,
-      "notes": ""
+      "notes": "Test with various pitch types"
     },
     {
       "id": "US-025",
-      "title": "Final polish and mobile testing",
-      "description": "Final bug fixes, mobile responsiveness, and polish.",
+      "title": "Test navigation and routing",
+      "description": "Test all navigation flows: tab switching, active states, game sub-header visibility, and deep links.",
       "acceptanceCriteria": [
-        "All pages responsive on mobile (375px+)",
-        "Touch targets at least 44px",
-        "Loading states on all async operations",
-        "Error handling with user-friendly messages",
-        "No console errors",
-        "Typecheck passes",
-        "Build succeeds (npm run build)"
+        "All four tabs navigate to correct pages",
+        "Active tab highlighted correctly on each page",
+        "Game sub-header only appears on /play",
+        "Direct URL access works for all routes",
+        "Back/forward browser navigation works",
+        "Mobile navigation works",
+        "Verify in browser"
       ],
       "priority": 25,
-      "passes": true,
-      "notes": ""
+      "passes": false,
+      "notes": "Test browser navigation thoroughly"
+    },
+    {
+      "id": "US-026",
+      "title": "Final polish and bug fixes",
+      "description": "Address any bugs discovered in testing. Polish UI details: spacing, alignment, hover states, mobile responsiveness. Ensure all typechecks pass.",
+      "acceptanceCriteria": [
+        "All known bugs fixed",
+        "Consistent spacing and alignment",
+        "Hover states on interactive elements",
+        "Mobile responsive on all new pages",
+        "No console errors",
+        "Typecheck passes: npx tsc --noEmit",
+        "Ready for deployment"
+      ],
+      "priority": 26,
+      "passes": false,
+      "notes": "Final quality pass before deployment"
     }
   ]
 }

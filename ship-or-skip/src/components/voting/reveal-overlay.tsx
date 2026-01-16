@@ -1,7 +1,11 @@
 "use client";
 
+import { useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { VoteType } from "./vote-buttons";
+import { OutcomeBadge } from "./outcome-badge";
+import { SourceOutcome } from "@/lib/supabase/types";
 
 interface RevealOverlayProps {
   shipPercentage: number;
@@ -15,6 +19,11 @@ interface RevealOverlayProps {
   isExiting?: boolean;
   onNext: () => void;
   onShare: () => void;
+  // YC company fields
+  ycName?: string | null;
+  ycLogoUrl?: string | null;
+  ycSlug?: string | null;
+  source?: string | null;
 }
 
 function getFaviconUrl(url: string): string {
@@ -67,37 +76,79 @@ export function RevealOverlay({
   isExiting = false,
   onNext,
   onShare,
+  ycName,
+  ycLogoUrl,
+  ycSlug,
+  source,
 }: RevealOverlayProps) {
   void _userVote;
+  const [imgError, setImgError] = useState(false);
   const emoji = shipPercentage >= 50 ? "🚀" : "💀";
   const crowdVerdict = shipPercentage >= 50 ? "shipped" : "skipped";
   const outcomeInfo = sourceOutcome ? getOutcomeLabel(sourceOutcome) : null;
+  const isYcCompany = source === "yc";
+
+  // Display name: YC name for YC companies, sourceCompany for others
+  const displayName = isYcCompany && ycName ? ycName : sourceCompany;
+  // Logo URL: YC logo for YC companies, favicon from link for others
+  const logoUrl = isYcCompany && ycLogoUrl ? ycLogoUrl : (link ? getFaviconUrl(link) : null);
+  const initial = (displayName || "?")[0].toUpperCase();
 
   return (
     <div className={`w-full max-w-[480px] mx-auto bg-surface rounded-2xl px-6 py-8 text-center transition-all duration-200 ${isExiting ? "opacity-0 scale-95" : "animate-fade-in"}`}>
       {/* Company info - displayed prominently */}
-      {sourceCompany && (
+      {displayName && (
         <div className="mb-6">
-          {/* Large clickable favicon above company name */}
-          {link && (
-            <a
-              href={link}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-block mb-3 hover:scale-110 transition-transform"
-            >
-              <Image
-                src={getFaviconUrl(link)}
-                alt={sourceCompany}
-                width={64}
-                height={64}
-                className="rounded-xl shadow-lg"
-                unoptimized
-              />
-            </a>
+          {/* Company logo */}
+          <div className="mb-4">
+            {logoUrl && !imgError ? (
+              link ? (
+                <a
+                  href={link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-block hover:scale-110 transition-transform"
+                >
+                  <Image
+                    src={logoUrl}
+                    alt={displayName || "Company"}
+                    width={80}
+                    height={80}
+                    className="rounded-xl shadow-lg mx-auto"
+                    unoptimized
+                    onError={() => setImgError(true)}
+                  />
+                </a>
+              ) : (
+                <Image
+                  src={logoUrl}
+                  alt={displayName || "Company"}
+                  width={80}
+                  height={80}
+                  className="rounded-xl shadow-lg mx-auto"
+                  unoptimized
+                  onError={() => setImgError(true)}
+                />
+              )
+            ) : (
+              <div className="w-20 h-20 rounded-xl bg-foreground/10 flex items-center justify-center mx-auto">
+                <span className="text-3xl font-bold text-foreground/40">{initial}</span>
+              </div>
+            )}
+          </div>
+
+          {/* Company name */}
+          <h2 className="text-[28px] font-bold mb-3">{displayName}</h2>
+
+          {/* Outcome badge for YC companies */}
+          {isYcCompany && sourceOutcome && (
+            <div className="mb-3">
+              <OutcomeBadge outcome={sourceOutcome as SourceOutcome} size="lg" />
+            </div>
           )}
-          <h2 className="text-[28px] font-bold mb-2">{sourceCompany}</h2>
-          {submitterTwitter && (
+
+          {/* Twitter handle for user submissions */}
+          {!isYcCompany && submitterTwitter && (
             <a
               href={`https://twitter.com/${submitterTwitter}`}
               target="_blank"
@@ -115,7 +166,9 @@ export function RevealOverlay({
               <span>@{submitterTwitter}</span>
             </a>
           )}
-          {outcomeInfo && (
+
+          {/* Legacy outcome text for non-YC companies */}
+          {!isYcCompany && outcomeInfo && (
             <p className={`mt-2 font-semibold ${outcomeInfo.color}`}>
               {outcomeInfo.text}
             </p>
@@ -148,7 +201,19 @@ export function RevealOverlay({
 
       {/* Action buttons */}
       <div className="flex flex-col sm:flex-row gap-3">
-        {link && (
+        {/* Read More link for YC companies */}
+        {isYcCompany && ycSlug && (
+          <Link
+            href={`/company/${ycSlug}`}
+            className="flex-1 min-h-12 px-6 py-3 bg-transparent border border-foreground/20 text-foreground font-semibold rounded-xl
+              transition-all duration-150 flex items-center justify-center gap-2
+              hover:bg-foreground/10 hover:border-foreground/40"
+          >
+            Read More
+          </Link>
+        )}
+        {/* Visit link for non-YC companies with link */}
+        {!isYcCompany && link && (
           <a
             href={link}
             target="_blank"

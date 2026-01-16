@@ -15,10 +15,11 @@ export interface SubmitFormData {
 interface SubmitFormProps {
   onSubmit: (data: SubmitFormData) => Promise<void>;
   isSubmitting?: boolean;
+  initialHero?: string;
 }
 
-export function SubmitForm({ onSubmit, isSubmitting = false }: SubmitFormProps) {
-  const [hero, setHero] = useState("");
+export function SubmitForm({ onSubmit, isSubmitting = false, initialHero = "" }: SubmitFormProps) {
+  const [hero, setHero] = useState(initialHero);
   const [subtitle, setSubtitle] = useState("");
   const [twitterHandle, setTwitterHandle] = useState("");
   const [link, setLink] = useState("");

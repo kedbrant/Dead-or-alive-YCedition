@@ -1,6 +1,95 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
-import type { Vote, Idea } from "@/lib/supabase/types";
+import type { Vote, Idea, SourceOutcome } from "@/lib/supabase/types";
+
+// Weighted distribution for outcome categories
+// More engaging outcomes (unicorns, dead) shown more frequently
+const OUTCOME_WEIGHTS: Record<NonNullable<SourceOutcome>, number> = {
+  unicorn: 0.4,   // 40% - most engaging (success stories)
+  dead: 0.3,      // 30% - second most engaging (failures to spot)
+  acquired: 0.15, // 15% - interesting but less dramatic
+  active: 0.15,   // 15% - no known outcome yet
+};
+
+/**
+ * Select an idea using weighted random selection by source_outcome
+ * Falls back to any available idea if the selected category is exhausted
+ */
+function selectWeightedIdea(ideas: Idea[]): Idea | null {
+  if (ideas.length === 0) return null;
+
+  // Group ideas by outcome
+  const byOutcome: Record<string, Idea[]> = {
+    unicorn: [],
+    dead: [],
+    acquired: [],
+    active: [],
+  };
+
+  for (const idea of ideas) {
+    const outcome = idea.source_outcome ?? "active";
+    if (outcome in byOutcome) {
+      byOutcome[outcome].push(idea);
+    }
+  }
+
+  // Determine available outcomes (categories with at least one idea)
+  const availableOutcomes = Object.keys(OUTCOME_WEIGHTS).filter(
+    (outcome) => byOutcome[outcome].length > 0
+  );
+
+  if (availableOutcomes.length === 0) return null;
+
+  // Adjust weights for available outcomes only
+  const adjustedWeights: Record<string, number> = {};
+  let totalWeight = 0;
+
+  for (const outcome of availableOutcomes) {
+    adjustedWeights[outcome] = OUTCOME_WEIGHTS[outcome as NonNullable<SourceOutcome>];
+    totalWeight += adjustedWeights[outcome];
+  }
+
+  // Normalize weights
+  for (const outcome of availableOutcomes) {
+    adjustedWeights[outcome] /= totalWeight;
+  }
+
+  // Select outcome category using weighted random
+  let randomValue = Math.random();
+  let selectedOutcome = availableOutcomes[0];
+
+  for (const outcome of availableOutcomes) {
+    randomValue -= adjustedWeights[outcome];
+    if (randomValue <= 0) {
+      selectedOutcome = outcome;
+      break;
+    }
+  }
+
+  // Within the selected outcome, use weighted random by inverse vote count
+  // (ideas with fewer votes get higher priority)
+  const categoryIdeas = byOutcome[selectedOutcome];
+
+  if (categoryIdeas.length === 1) {
+    return categoryIdeas[0];
+  }
+
+  const weights = categoryIdeas.map((idea) => 1 / (idea.total_votes + 1));
+  const categoryTotalWeight = weights.reduce((sum, w) => sum + w, 0);
+
+  let categoryRandom = Math.random() * categoryTotalWeight;
+  let selectedIdea = categoryIdeas[0];
+
+  for (let i = 0; i < categoryIdeas.length; i++) {
+    categoryRandom -= weights[i];
+    if (categoryRandom <= 0) {
+      selectedIdea = categoryIdeas[i];
+      break;
+    }
+  }
+
+  return selectedIdea;
+}
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -31,21 +120,21 @@ export async function GET(request: NextRequest) {
 
   const votedIdeaIds = (votedIdeas ?? []).map((v) => v.idea_id);
 
-  // Get all active ideas the user hasn't voted on yet
-  // Order by total_votes ascending to prioritize ideas with fewer votes (balancing)
+  // Get all ideas from active pool that the user hasn't voted on yet
+  // Only return ideas where is_in_active_pool=true
   const { data: ideas, error: ideasError } = votedIdeaIds.length > 0
     ? await supabase
         .from("ideas")
         .select("*")
         .eq("is_active", true)
+        .eq("is_in_active_pool", true)
         .not("id", "in", `(${votedIdeaIds.join(",")})`)
-        .order("total_votes", { ascending: true })
         .returns<Idea[]>()
     : await supabase
         .from("ideas")
         .select("*")
         .eq("is_active", true)
-        .order("total_votes", { ascending: true })
+        .eq("is_in_active_pool", true)
         .returns<Idea[]>();
 
   if (ideasError) {
@@ -62,25 +151,22 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  // Weighted random selection: ideas with fewer votes have higher chance
-  // Use inverse weight (1 / (total_votes + 1)) to avoid division by zero
-  const weights = ideas.map((idea) => 1 / (idea.total_votes + 1));
-  const totalWeight = weights.reduce((sum, w) => sum + w, 0);
+  // Select idea using weighted distribution by source_outcome
+  const selectedIdea = selectWeightedIdea(ideas);
 
-  let randomValue = Math.random() * totalWeight;
-  let selectedIdea = ideas[0];
-
-  for (let i = 0; i < ideas.length; i++) {
-    randomValue -= weights[i];
-    if (randomValue <= 0) {
-      selectedIdea = ideas[i];
-      break;
-    }
+  if (!selectedIdea) {
+    return NextResponse.json(
+      { error: "No more ideas to vote on" },
+      { status: 404 }
+    );
   }
 
   return NextResponse.json({
     id: selectedIdea.id,
     hero: selectedIdea.hero,
     subtitle: selectedIdea.subtitle,
+    source: selectedIdea.source,
+    yc_batch: selectedIdea.yc_batch,
+    yc_industry: selectedIdea.yc_industry,
   });
 }
