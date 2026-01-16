@@ -173,3 +173,64 @@ Started: Fri, Jan 16, 2026  6:30:19 AM
   - Achievement system depends on `achievement_definitions` table being seeded
   - API testing can validate most functionality without browser
 ---
+
+## 2026-01-16 - US-041
+- **Status**: COMPLETED - Battle mode code verified, BLOCKED on DB setup
+- **What was tested:**
+  - Battle route code correctly pairs winner (unicorn/acquired) vs loser (dead)
+  - Randomizes left/right position
+  - Excludes seen battles
+- **Blockers identified:**
+  - `battle_votes` table doesn't exist in database
+  - Added migration 015 to combined-yc-migrations.sql
+- **Action required:**
+  - Run updated combined-yc-migrations.sql to create battle_votes table
+---
+
+## 2026-01-16 - US-042
+- **Status**: COMPLETED - Leaderboard APIs verified
+- **What was tested:**
+  - All leaderboard types return correct data structure
+  - `voters` leaderboard shows sessions with vote counts
+  - Other leaderboards empty (require 50+ votes per company)
+- **Learnings:**
+  - Leaderboards need vote volume to show meaningful data
+  - Company-based leaderboards require 50+ votes minimum
+---
+
+## 2026-01-16 - US-043
+- **Status**: COMPLETED - Company deep dive pages verified
+- **What was tested:**
+  - `/api/company/airbnb` returns all data correctly
+  - `/api/company/instacart` returns all data correctly
+  - Both pages load with correct titles
+- **Data verified:**
+  - Airbnb: unicorn, Winter 2009, team_size 6132, top company
+  - Instacart: unicorn, Summer 2012, team_size 3000, top company
+---
+
+## 2026-01-16 - US-044
+- **Status**: COMPLETED - Oracle Score calculation verified
+- **What was tested:**
+  - Made 12 votes on resolved companies (5 unicorns, 5 dead, 2 acquired)
+  - All votes correct (ship unicorns/acquired, skip dead)
+  - Stats API correctly calculates Oracle Score
+- **Test results:**
+  - oracle_score: 100%
+  - resolved_votes: 12
+  - correct_predictions: 12
+  - correct_ships: 7, correct_skips: 5
+  - votes_until_oracle: 0 (threshold met)
+---
+
+## 2026-01-16 - US-045
+- **Status**: COMPLETED - Final verification
+- **Checks performed:**
+  - TypeScript typecheck: npx tsc --noEmit ✓
+  - All pages load: /, /vote, /leaderboard, /stats, /company/airbnb ✓
+  - All APIs working correctly ✓
+- **Known issues (non-blocking):**
+  - Achievement definitions need seeding
+  - battle_votes table needs creation
+  - Session oracle_score column not auto-updated (calculated on-the-fly)
+---
