@@ -1,11 +1,7 @@
 "use client";
 
-import { useState } from "react";
-
-// Placeholder component interfaces for future implementation
-interface SearchState {
-  query: string;
-}
+import { useState, useCallback } from "react";
+import { SearchBar } from "@/components/explore/search-bar";
 
 interface FilterState {
   outcome: string;
@@ -21,8 +17,7 @@ interface StatsState {
 }
 
 export function ExploreClient() {
-  // State placeholders for future components
-  const [search, setSearch] = useState<SearchState>({ query: "" });
+  const [searchQuery, setSearchQuery] = useState("");
   const [filters, setFilters] = useState<FilterState>({
     outcome: "all",
     industry: "all",
@@ -37,10 +32,14 @@ export function ExploreClient() {
   const [loading] = useState(false);
 
   // Suppress unused variable warnings - these will be used in future stories
-  void search;
-  void setSearch;
+  void searchQuery;
   void filters;
   void setFilters;
+
+  const handleSearch = useCallback((query: string) => {
+    setSearchQuery(query);
+    // TODO: Trigger API call with search query
+  }, []);
 
   return (
     <div className="min-h-screen p-4">
@@ -57,34 +56,7 @@ export function ExploreClient() {
 
         {/* Search Bar Section */}
         <section className="mb-6">
-          <div className="bg-surface rounded-xl p-4">
-            <div className="relative">
-              <svg
-                className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-foreground/50"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                />
-              </svg>
-              <input
-                type="text"
-                placeholder="Search companies, pitches..."
-                className="w-full pl-12 pr-4 py-3 bg-background border border-foreground/20 rounded-lg
-                  text-foreground placeholder:text-foreground/50
-                  focus:outline-none focus:border-ship transition-colors"
-                disabled
-              />
-            </div>
-            <p className="text-xs text-foreground/40 mt-2 text-center">
-              Search functionality coming soon
-            </p>
-          </div>
+          <SearchBar onSearch={handleSearch} />
         </section>
 
         {/* Filter Bar Section */}
