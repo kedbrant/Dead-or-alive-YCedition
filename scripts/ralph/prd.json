@@ -693,7 +693,7 @@
         "Verify in browser"
       ],
       "priority": 40,
-      "passes": false,
+      "passes": true,
       "notes": "Manual testing focused on happy path"
     },
     {

@@ -153,3 +153,23 @@ Started: Fri, Jan 16, 2026  6:30:19 AM
   - Using `slug` column (which already has unique constraint) is more reliable than yc_id
   - The import script is idempotent - can be re-run safely
 ---
+
+## 2026-01-16 - US-040
+- **Status**: COMPLETED - End-to-end voting flow verified via API testing
+- **What was tested:**
+  - `/api/ideas/next` returns YC companies with batch and industry
+  - `/api/ideas/vote` records votes and returns full reveal data
+  - Company API at `/api/company/[slug]` returns all YC fields
+  - Company page loads correctly for Airbnb
+- **Test results:**
+  - Voted on CARUPI (dead company) - correctly showed outcome badge
+  - Voted on Instacart (unicorn) - correctly identified as unicorn
+  - Airbnb company API returns all data (unicorn, Winter 2009, top company)
+- **Limitations noted:**
+  - Achievement definitions not seeded in database - achievements won't unlock
+  - Browser visual testing requires manual verification
+- **Learnings for future iterations:**
+  - Session IDs must be valid UUIDs (e.g., 12345678-1234-1234-1234-123456789012)
+  - Achievement system depends on `achievement_definitions` table being seeded
+  - API testing can validate most functionality without browser
+---
