@@ -28,6 +28,62 @@ interface ValidateResults {
   category_stats: CategoryStatsData;
 }
 
+// Skeleton components for loading state
+function CategoryStatsSkeleton() {
+  return (
+    <section className="bg-surface rounded-xl p-6 animate-pulse">
+      <div className="h-6 w-48 bg-foreground/10 rounded mb-4" />
+      <div className="h-4 w-64 bg-foreground/10 rounded mb-6" />
+      <div className="flex items-center justify-center gap-4 mb-6">
+        {[1, 2, 3, 4].map((i) => (
+          <div key={i} className="h-6 w-16 bg-foreground/10 rounded" />
+        ))}
+      </div>
+      <div className="h-4 w-full bg-foreground/10 rounded-full mb-4" />
+      <div className="flex justify-center gap-4">
+        {[1, 2, 3, 4].map((i) => (
+          <div key={i} className="h-4 w-20 bg-foreground/10 rounded" />
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function SimilarCompanyCardSkeleton() {
+  return (
+    <div className="bg-surface rounded-xl p-6 animate-pulse">
+      {/* Top row: Badge and score */}
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-3">
+          <div className="h-6 w-20 bg-foreground/10 rounded-full" />
+          <div className="h-4 w-12 bg-foreground/10 rounded" />
+        </div>
+        <div className="h-4 w-24 bg-foreground/10 rounded" />
+      </div>
+      {/* Company name */}
+      <div className="h-6 w-48 bg-foreground/10 rounded mb-2" />
+      {/* Pitch */}
+      <div className="h-4 w-full bg-foreground/10 rounded mb-2" />
+      <div className="h-4 w-3/4 bg-foreground/10 rounded mb-4" />
+      {/* Button */}
+      <div className="h-10 w-32 bg-foreground/10 rounded-lg" />
+    </div>
+  );
+}
+
+function SimilarCompaniesSkeleton() {
+  return (
+    <section>
+      <div className="h-6 w-64 bg-foreground/10 rounded mb-4 animate-pulse" />
+      <div className="grid gap-4">
+        {[1, 2, 3].map((i) => (
+          <SimilarCompanyCardSkeleton key={i} />
+        ))}
+      </div>
+    </section>
+  );
+}
+
 export function ValidateClient() {
   const [pitch, setPitch] = useState("");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -38,6 +94,7 @@ export function ValidateClient() {
     setPitch(submittedPitch);
     setIsAnalyzing(true);
     setError(null);
+    setResults(null); // Clear previous results to show loading state
 
     try {
       const response = await fetch("/api/validate", {
@@ -72,13 +129,54 @@ export function ValidateClient() {
     setResults(null);
   };
 
+  // Loading state - show skeleton while analyzing
+  if (isAnalyzing) {
+    return (
+      <div className="min-h-screen p-4">
+        <div className="max-w-3xl mx-auto">
+          {/* Header */}
+          <div className="text-center mb-8 pt-8">
+            <h1 className="text-[32px] md:text-[40px] font-bold mb-2">
+              ANALYZING YOUR PITCH
+            </h1>
+            <p className="text-[16px] md:text-[18px] text-foreground/70">
+              Comparing against 5,500+ YC companies...
+            </p>
+          </div>
+
+          {/* User's Pitch Section - show the pitch being analyzed */}
+          <section className="bg-surface rounded-xl p-6 mb-6 animate-fade-in">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold">YOUR PITCH</h2>
+              <div className="flex items-center gap-2 text-sm text-foreground/60">
+                <div className="w-4 h-4 border-2 border-foreground/30 border-t-ship rounded-full animate-spin" />
+                Analyzing...
+              </div>
+            </div>
+            <p className="text-foreground/80 text-lg">{pitch}</p>
+          </section>
+
+          {/* Category Stats Skeleton */}
+          <div className="mb-6">
+            <CategoryStatsSkeleton />
+          </div>
+
+          {/* Similar Companies Skeleton */}
+          <div className="mb-8">
+            <SimilarCompaniesSkeleton />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // Results state - show after successful analysis
   if (results) {
     const submitUrl = `/submit?pitch=${encodeURIComponent(pitch)}`;
 
     return (
       <div className="min-h-screen p-4">
-        <div className="max-w-3xl mx-auto">
+        <div className="max-w-3xl mx-auto animate-fade-in">
           {/* Header */}
           <div className="text-center mb-8 pt-8">
             <h1 className="text-[32px] md:text-[40px] font-bold mb-2">
@@ -90,7 +188,7 @@ export function ValidateClient() {
           </div>
 
           {/* User's Pitch Section */}
-          <section className="bg-surface rounded-xl p-6 mb-6">
+          <section className="bg-surface rounded-xl p-6 mb-6 animate-fade-in-up">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-bold">YOUR PITCH</h2>
               <button
@@ -104,7 +202,7 @@ export function ValidateClient() {
           </section>
 
           {/* Category Stats Section */}
-          <div className="mb-6">
+          <div className="mb-6 animate-fade-in-up" style={{ animationDelay: "100ms" }}>
             <CategoryStats
               total={results.category_stats.total}
               unicorn_pct={results.category_stats.unicorn_pct}
@@ -115,12 +213,12 @@ export function ValidateClient() {
           </div>
 
           {/* Similar Companies Section */}
-          <div className="mb-8">
+          <div className="mb-8 animate-fade-in-up" style={{ animationDelay: "200ms" }}>
             <SimilarCompanies companies={results.similar_companies} />
           </div>
 
           {/* Submit CTA Section */}
-          <section className="bg-surface rounded-xl p-6 text-center">
+          <section className="bg-surface rounded-xl p-6 text-center animate-fade-in-up" style={{ animationDelay: "300ms" }}>
             <h2 className="text-xl font-bold mb-2">
               Want the crowd&apos;s opinion?
             </h2>
@@ -157,8 +255,21 @@ export function ValidateClient() {
 
         {/* Error Message */}
         {error && (
-          <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4 mb-6 text-red-400">
-            {error}
+          <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 mb-6 animate-fade-in">
+            <div className="flex items-start gap-3">
+              <span className="text-xl" role="img" aria-label="Error">⚠️</span>
+              <div className="flex-1">
+                <p className="text-red-400 font-medium mb-1">Analysis failed</p>
+                <p className="text-red-400/80 text-sm">{error}</p>
+              </div>
+              <button
+                onClick={() => setError(null)}
+                className="text-red-400/60 hover:text-red-400 transition-colors"
+                aria-label="Dismiss error"
+              >
+                ✕
+              </button>
+            </div>
           </div>
         )}
 
