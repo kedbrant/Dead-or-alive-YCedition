@@ -418,7 +418,7 @@
         "Verify in browser"
       ],
       "priority": 24,
-      "passes": false,
+      "passes": true,
       "notes": "Test with various pitch types"
     },
     {

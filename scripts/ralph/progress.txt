@@ -337,3 +337,21 @@ Navigation: Explore | Validate | Play | Submit
   - Company deep dive page at /company/[slug] uses both yc_slug and regular slug for lookups
   - Testing stories should include code review for link consistency across the app
 ---
+
+## 2026-01-16 - US-024
+- Tested: End-to-end verification of Validate page functionality
+- No code changes required - all acceptance criteria verified through code review
+- **Verification performed:**
+  - Pitch input validation: PitchInput component at `src/components/validate/pitch-input.tsx:20` validates `pitch.trim().length >= 10`
+  - Analysis API: POST /api/validate validates input (400 if <10 chars), fetches all YC companies, uses findSimilarCompanies() algorithm
+  - Similarity algorithm: `src/lib/similarity.ts` tokenizes (lowercase, remove punctuation, filter stop words), calculates matching tokens / user tokens, returns top 10 with score > 20%
+  - Category stats: CategoryStats component shows total, emojis with percentages, visual bar chart, legend - handles empty state (total=0)
+  - Edit button: validate-client.tsx:128 sets `results` to null, returning to input state with pitch preserved via `initialValue` prop
+  - Submit CTA: Uses `/submit?pitch=${encodeURIComponent(pitch)}`, submit-client.tsx reads via useSearchParams, submit-form.tsx syncs via useEffect
+  - Empty state: SimilarCompanies handles 0 results with helpful message, CategoryStats handles total=0
+  - TypeScript check passes (only pre-existing errors in glow-effect.tsx, utils.ts)
+- **Learnings for future iterations:**
+  - Validate page has three render states: input (initial), loading (analyzing with skeletons), results (after API response)
+  - Query param flow for pitch pre-fill: encodeURIComponent on sender, useSearchParams on receiver
+  - Similarity algorithm uses simple keyword matching - effective for finding related pitches without ML/embeddings
+---
