@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { PitchInput } from "@/components/validate/pitch-input";
 
 // Example pitches for inspiration
 const EXAMPLE_PITCHES = [
@@ -14,14 +15,13 @@ export function ValidateClient() {
   const [pitch, setPitch] = useState("");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
 
-  const handleAnalyze = async () => {
-    if (pitch.trim().length < 10) return;
-
+  const handleAnalyze = async (submittedPitch: string) => {
+    setPitch(submittedPitch);
     setIsAnalyzing(true);
     // TODO: US-015 will implement the results state after API is built
     try {
       // Placeholder for API call
-      console.log("Analyzing pitch:", pitch);
+      console.log("Analyzing pitch:", submittedPitch);
     } catch (error) {
       console.error("Error analyzing pitch:", error);
     } finally {
@@ -48,48 +48,11 @@ export function ValidateClient() {
 
         {/* Pitch Input Section */}
         <section className="mb-8">
-          <div className="bg-surface rounded-xl p-6">
-            <label htmlFor="pitch-input" className="sr-only">
-              Enter your pitch
-            </label>
-            <textarea
-              id="pitch-input"
-              value={pitch}
-              onChange={(e) => setPitch(e.target.value)}
-              placeholder="Enter your one-liner pitch..."
-              className="w-full h-40 bg-background rounded-lg p-4 text-foreground placeholder:text-foreground/40 resize-none focus:outline-none focus:ring-2 focus:ring-ship/50 border border-foreground/10"
-            />
-
-            {/* Character count */}
-            <div className="flex justify-between items-center mt-3">
-              <span className="text-sm text-foreground/50">
-                {pitch.length} characters
-              </span>
-              <button
-                onClick={handleAnalyze}
-                disabled={pitch.trim().length < 10 || isAnalyzing}
-                className="px-6 py-3 bg-ship text-background font-semibold rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-ship/90 transition-colors flex items-center gap-2"
-              >
-                {isAnalyzing ? (
-                  <>
-                    <div className="w-4 h-4 border-2 border-background/30 border-t-background rounded-full animate-spin" />
-                    Analyzing...
-                  </>
-                ) : (
-                  <>
-                    🔍 Analyze Pitch
-                  </>
-                )}
-              </button>
-            </div>
-
-            {/* Minimum length hint */}
-            {pitch.length > 0 && pitch.length < 10 && (
-              <p className="text-sm text-skip mt-2">
-                Enter at least 10 characters to analyze
-              </p>
-            )}
-          </div>
+          <PitchInput
+            onSubmit={handleAnalyze}
+            loading={isAnalyzing}
+            initialValue={pitch}
+          />
         </section>
 
         {/* Example Pitches Section */}
