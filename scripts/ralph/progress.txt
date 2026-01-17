@@ -85,3 +85,29 @@ Started: Sat, Jan 17, 2026  4:18:56 PM
   - Fetch more results than needed (50) to ensure quality after scoring and sorting
   - Pattern: Export both the function and helper utilities (extractKeywords) for testing/reuse
 ---
+
+## 2026-01-17 20:15 - US-004
+- What was implemented:
+  - Created `/lib/data-sources/news.ts` with `fetchRecentNews(idea)` function
+  - Fetches from Google News RSS with search query built from idea keywords
+  - Fetches from TechCrunch RSS general feed, filtered by relevance
+  - Parses RSS XML using regex-based parsing (no external dependencies needed)
+  - Extracts title, source, date, url from RSS items
+  - Filters to articles within last 30 days
+  - Returns top 10 most relevant articles sorted by date (newest first)
+  - Handles fetch errors gracefully with 10s timeout, returns empty array on failure
+  - Updated validate route to import and use fetchRecentNews from news module
+  - Updated generateAnalysis to populate market section with real news data
+
+- Files changed:
+  - ship-or-skip/src/lib/data-sources/news.ts - NEW: News RSS fetching module
+  - ship-or-skip/src/app/api/validate/route.ts - Removed stub, imports real fetchRecentNews
+
+- **Learnings for future iterations:**
+  - RSS XML parsing can be done with simple regex patterns: `/<item>([\s\S]*?)<\/item>/g`
+  - Handle CDATA in RSS titles: `/<title>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/title>/`
+  - Google News RSS URL format: `https://news.google.com/rss/search?q=QUERY&hl=en-US&gl=US&ceid=US:en`
+  - TechCrunch general feed is at `https://techcrunch.com/feed/` - filter by keywords for relevance
+  - Use AbortController with setTimeout for fetch timeouts
+  - Pattern: Reuse extractKeywords from yc.ts for consistent keyword extraction across modules
+---
