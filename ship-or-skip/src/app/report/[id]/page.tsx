@@ -6,6 +6,7 @@ import { Report, ReportData } from "@/lib/supabase/types";
 import { ReportActions } from "@/components/report/report-actions";
 import { ScoreDisplay } from "@/components/report/score-display";
 import { HistoricalSection } from "@/components/report/historical-section";
+import { MarketSection } from "@/components/report/market-section";
 
 export const dynamic = "force-dynamic";
 
@@ -158,40 +159,10 @@ export default async function ReportPage({ params }: ReportPageProps) {
         />
 
         {/* Market Analysis Section */}
-        <div className="bg-surface rounded-2xl p-6 mb-6">
-          <h2 className="text-xl font-bold mb-1">CURRENT MARKET</h2>
-          <p className="text-foreground/60 text-sm mb-4">
-            What&apos;s happening right now
-          </p>
-
-          <p className="text-foreground/80 mb-4">{sections.market.summary}</p>
-
-          {/* News Articles */}
-          {sections.market.articles && sections.market.articles.length > 0 ? (
-            <div className="space-y-2">
-              {sections.market.articles.slice(0, 5).map((article, index) => (
-                <a
-                  key={index}
-                  href={article.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="block p-3 bg-foreground/5 rounded-lg hover:bg-foreground/10 transition-colors"
-                >
-                  <div className="font-medium text-sm line-clamp-2">
-                    {article.title}
-                  </div>
-                  <div className="text-xs text-foreground/60 mt-1">
-                    {article.source} • {article.date}
-                  </div>
-                </a>
-              ))}
-            </div>
-          ) : (
-            <p className="text-foreground/60 text-sm italic">
-              No recent news articles found for this topic.
-            </p>
-          )}
-        </div>
+        <MarketSection
+          summary={sections.market.summary}
+          articles={sections.market.articles}
+        />
 
         {/* Sentiment Analysis Section */}
         <div className="bg-surface rounded-2xl p-6 mb-6">
