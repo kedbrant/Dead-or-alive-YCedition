@@ -256,7 +256,7 @@
         "Typecheck passes"
       ],
       "priority": 14,
-      "passes": false,
+      "passes": true,
       "notes": "Visual trend chart adds credibility"
     },
     {

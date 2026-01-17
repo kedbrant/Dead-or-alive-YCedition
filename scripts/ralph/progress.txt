@@ -341,3 +341,31 @@ Started: Sat, Jan 17, 2026  4:18:56 PM
   - Pattern: Colored dot indicator + text label for overall status (like health indicators)
   - Report section components continue consistent pattern: heading, subheading, AI summary, list items, expandable button
 ---
+
+## 2026-01-17 - US-014
+- What was implemented:
+  - Created TrendsSection component in /components/report/trends-section.tsx
+  - Section heading "MARKET TRENDS" with subheading "Search interest over time"
+  - Shows current interest level (0-100) with labeled indicator (Very High/High/Moderate/Low/Very Low)
+  - Displays percentage change with trend direction icons (up/down/stable arrows)
+  - Trend indicators: "Growing rapidly" (50%+), "Growing" (10-50%), "Stable" (-10 to 10%), "Declining" (-50 to -10%), "Declining rapidly" (<-50%)
+  - SVG line chart with gradient fill for trend visualization
+  - Bar chart showing timeline values for quick visual comparison
+  - Timeline labels showing start and end dates
+  - Key insight summary from AI displayed as paragraph
+  - Graceful display when trends data unavailable (null data)
+  - Updated report page to use the new component, removed 64 lines of inline code
+  - Cleaned up unused helper functions (getScoreColor, getScoreBgColor) from report page
+  - Typecheck passes
+
+- Files changed:
+  - ship-or-skip/src/components/report/trends-section.tsx - NEW: Trends analysis section component
+  - ship-or-skip/src/app/report/[id]/page.tsx - Updated to use TrendsSection component, removed unused helpers
+
+- **Learnings for future iterations:**
+  - SVG charts: Use viewBox="0 0 100 40" with preserveAspectRatio="none" for responsive charts
+  - SVG gradient definitions: Place <defs> with linearGradient inside the SVG element
+  - Trend direction icons: Up arrow for positive, down arrow for negative, horizontal line for stable
+  - Interest level indicators: Combine numeric value with descriptive label for context
+  - Pattern: Report section components continue consistent structure across all sections
+---
