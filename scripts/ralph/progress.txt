@@ -293,3 +293,25 @@ Started: Sat, Jan 17, 2026  4:18:56 PM
   - When extracting inline components, also clean up unused imports and helper functions
   - Report section components follow pattern: heading, subheading, content, expandable list
 ---
+
+## 2026-01-17 - US-012
+- What was implemented:
+  - Created MarketSection component in /components/report/market-section.tsx
+  - Section heading "CURRENT MARKET" with subheading "What's happening right now"
+  - Lists news articles with: title (line-clamped to 2 lines), source, date
+  - Articles are clickable links opening in new tab (target="_blank" with noopener noreferrer)
+  - Key insight summary from AI displayed as paragraph
+  - Expandable view: "Show all X articles" / "Show less" button with chevron icons (shows first 5 by default)
+  - Empty state message when no recent news articles found
+  - Updated report page to use the new component, removed inline market section
+  - Typecheck passes
+
+- Files changed:
+  - ship-or-skip/src/components/report/market-section.tsx - NEW: Market analysis section component
+  - ship-or-skip/src/app/report/[id]/page.tsx - Updated to use MarketSection component
+
+- **Learnings for future iterations:**
+  - Report section components follow consistent pattern: heading, subheading, AI summary, list with items, expandable button
+  - Use &bull; (HTML entity) instead of • character for better rendering consistency
+  - Pattern: Keep 5 as default visible items before "Show more"
+---
