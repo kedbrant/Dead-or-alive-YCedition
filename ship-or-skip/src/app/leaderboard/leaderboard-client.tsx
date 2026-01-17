@@ -17,9 +17,21 @@ interface VoterItem {
   resolved_votes: number | null;
 }
 
+interface IdeaItem {
+  id: string;
+  slug: string;
+  hero: string;
+  subtitle: string;
+  ship_percentage: number;
+  total_votes: number;
+  ship_votes: number;
+  yc_name: string | null;
+  source: string;
+}
+
 const TABS: { type: LeaderboardType; label: string }[] = [
   { type: "voters", label: "Top Voters" },
-  { type: "most_ships", label: "Most Ships" },
+  { type: "most_ships", label: "Most Shipped" },
 ];
 
 const DEFAULT_TAB: LeaderboardType = "voters";
@@ -35,6 +47,7 @@ export function LeaderboardClient() {
   const activeTab = isValidTab(tabParam) ? tabParam : DEFAULT_TAB;
 
   const [voters, setVoters] = useState<VoterItem[]>([]);
+  const [ideas, setIdeas] = useState<IdeaItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -48,7 +61,11 @@ export function LeaderboardClient() {
         throw new Error("Failed to fetch leaderboard");
       }
       const data = await response.json();
-      setVoters(data);
+      if (type === "most_ships") {
+        setIdeas(data);
+      } else {
+        setVoters(data);
+      }
     } catch {
       setError("Failed to load leaderboard. Please try again.");
     } finally {
@@ -128,10 +145,10 @@ export function LeaderboardClient() {
         )}
 
         {/* Empty State */}
-        {!loading && !error && voters.length === 0 && (
+        {!loading && !error && ((activeTab === "voters" && voters.length === 0) || (activeTab === "most_ships" && ideas.length === 0)) && (
           <div className="text-center py-12">
             <p className="text-foreground/60 text-lg">
-              No voters yet. Be the first!
+              {activeTab === "voters" ? "No voters yet. Be the first!" : "No pitches with enough votes yet."}
             </p>
             <Link
               href="/play"
@@ -143,7 +160,7 @@ export function LeaderboardClient() {
         )}
 
         {/* Voters Leaderboard Rows */}
-        {!loading && !error && voters.length > 0 && (
+        {!loading && !error && activeTab === "voters" && voters.length > 0 && (
           <div className="space-y-2">
             {voters.map((voter, index) => (
               <div
@@ -166,17 +183,11 @@ export function LeaderboardClient() {
                     </p>
                   </div>
 
-                  {/* Stats - show ships for most_ships tab, votes for voters tab */}
+                  {/* Stats */}
                   <div className="text-right flex-shrink-0">
-                    {activeTab === "most_ships" ? (
-                      <p className="font-bold text-ship">
-                        {voter.ship_votes.toLocaleString()} 🚀
-                      </p>
-                    ) : (
-                      <p className="font-bold text-ship">
-                        {voter.total_votes.toLocaleString()} votes
-                      </p>
-                    )}
+                    <p className="font-bold text-ship">
+                      {voter.total_votes.toLocaleString()} votes
+                    </p>
                     {voter.oracle_score !== null && voter.resolved_votes && voter.resolved_votes >= 10 && (
                       <p className="text-sm text-foreground/60">
                         🔮 {voter.oracle_score}%
@@ -185,6 +196,46 @@ export function LeaderboardClient() {
                   </div>
                 </div>
               </div>
+            ))}
+          </div>
+        )}
+
+        {/* Most Shipped Ideas Leaderboard Rows */}
+        {!loading && !error && activeTab === "most_ships" && ideas.length > 0 && (
+          <div className="space-y-2">
+            {ideas.map((idea, index) => (
+              <Link
+                key={idea.id}
+                href={`/pitch/${idea.slug}`}
+                className="block bg-surface rounded-lg p-4 hover:bg-surface/80 transition-colors"
+              >
+                <div className="flex items-center gap-4">
+                  {/* Rank */}
+                  <div className="w-8 h-8 flex items-center justify-center rounded-full bg-ship/20 text-ship font-bold text-sm">
+                    {index + 1}
+                  </div>
+
+                  {/* Idea Info */}
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-semibold text-foreground line-clamp-1">
+                      {idea.hero}
+                    </h3>
+                    <p className="text-sm text-foreground/60">
+                      {idea.yc_name || "User Submission"} • {idea.total_votes.toLocaleString()} total votes
+                    </p>
+                  </div>
+
+                  {/* Ship Stats */}
+                  <div className="text-right flex-shrink-0">
+                    <p className="font-bold text-ship">
+                      {idea.ship_votes.toLocaleString()} 🚀
+                    </p>
+                    <p className="text-sm text-foreground/60">
+                      {idea.ship_percentage}% shipped
+                    </p>
+                  </div>
+                </div>
+              </Link>
             ))}
           </div>
         )}

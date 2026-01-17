@@ -77,26 +77,34 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(voters ?? []);
   }
 
-  // Handle most_ships leaderboard (voters sorted by ship_votes)
+  // Handle most_ships leaderboard (ideas sorted by absolute ship votes count)
   if (type === "most_ships") {
-    const voterSelectFields = "id, twitter_handle, total_votes, ship_votes, skip_votes, crowd_agreements, oracle_score, resolved_votes";
+    const { data: ideas, error: ideasError } = await supabase
+      .from("ideas")
+      .select(selectFields)
+      .eq("is_active", true)
+      .gte("total_votes", MIN_VOTES_YC_LEADERBOARD)
+      .order("total_votes", { ascending: false })
+      .limit(500)
+      .returns<LeaderboardItem[]>();
 
-    const { data: voters, error: voterError } = await supabase
-      .from("sessions")
-      .select(voterSelectFields)
-      .gte("ship_votes", 1) // Only show users who have shipped
-      .order("ship_votes", { ascending: false })
-      .limit(limit)
-      .returns<VoterLeaderboardItem[]>();
-
-    if (voterError) {
+    if (ideasError) {
       return NextResponse.json(
         { error: "Failed to fetch most ships leaderboard" },
         { status: 500 }
       );
     }
 
-    return NextResponse.json(voters ?? []);
+    // Calculate ship votes and sort by absolute count
+    const sortedByShipVotes = (ideas ?? [])
+      .map(idea => ({
+        ...idea,
+        ship_votes: Math.round(idea.total_votes * idea.ship_percentage / 100)
+      }))
+      .sort((a, b) => b.ship_votes - a.ship_votes)
+      .slice(0, limit);
+
+    return NextResponse.json(sortedByShipVotes);
   }
 
   // Ideas leaderboard types
