@@ -359,7 +359,7 @@
         "Typecheck passes"
       ],
       "priority": 20,
-      "passes": false,
+      "passes": true,
       "notes": "Clean slate for focused product"
     },
     {

@@ -487,3 +487,26 @@ Started: Sat, Jan 17, 2026  4:18:56 PM
   - Pattern: truncate idea text for OG images (100 chars) to prevent overflow
   - Score color helpers (getScoreColor, getScoreLabel) duplicated in OG route for edge runtime compatibility
 ---
+
+## 2026-01-17 - US-020
+- What was implemented:
+  - Removed all unused pages/routes from app directory: /battle, /leaderboard, /submit, /vote, /stats, /pitch, /company
+  - Removed all unused API routes: /api/battle, /api/ideas, /api/leaderboard, /api/session, /api/stats, /api/landing-stats, /api/pitch, /api/company
+  - Removed all unused components: battle/, voting/, submit/, stats/
+  - Removed unused lib files: insights.ts, achievements.ts, scoring.ts, session/manager.ts
+  - Removed middleware.ts (was only running on now-deleted routes)
+  - Kept only: landing page (/), report page (/report/[id]), validate API (/api/validate), OG API (/api/og)
+  - No TypeScript errors from missing imports after cleanup
+  - Typecheck passes
+
+- Files changed:
+  - Deleted 42 files in total (pages, API routes, components, lib files)
+  - 6323 lines of code removed
+  - Clean slate for the focused idea validation product
+
+- **Learnings for future iterations:**
+  - Pattern: When removing features, check for imports from deleted files using grep
+  - Pattern: Middleware may reference removed routes - check matcher config
+  - Pattern: Types file may have unused type exports but keep them if they're database schema definitions
+  - Pattern: Test typecheck after each batch of deletions to catch import issues early
+---
