@@ -9,6 +9,7 @@ import { HistoricalSection } from "@/components/report/historical-section";
 import { MarketSection } from "@/components/report/market-section";
 import { SentimentSection } from "@/components/report/sentiment-section";
 import { TrendsSection } from "@/components/report/trends-section";
+import { RecommendationsSection } from "@/components/report/recommendations-section";
 
 export const dynamic = "force-dynamic";
 
@@ -166,31 +167,7 @@ export default async function ReportPage({ params }: ReportPageProps) {
         />
 
         {/* Recommendations Section */}
-        <div className="bg-surface rounded-2xl p-6 mb-6">
-          <h2 className="text-xl font-bold mb-4">RECOMMENDATIONS</h2>
-
-          {sections.recommendations && sections.recommendations.length > 0 ? (
-            <div className="space-y-4">
-              {sections.recommendations.map((rec, index) => (
-                <div key={index} className="flex gap-4">
-                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-purple-500/20 text-purple-400 flex items-center justify-center font-bold">
-                    {index + 1}
-                  </div>
-                  <div>
-                    <h3 className="font-bold mb-1">{rec.title}</h3>
-                    <p className="text-foreground/70 text-sm">
-                      {rec.description}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-foreground/60 text-sm italic">
-              No specific recommendations available.
-            </p>
-          )}
-        </div>
+        <RecommendationsSection recommendations={sections.recommendations} />
 
         {/* Actions Bar */}
         <ReportActions reportId={id} score={report.score} />
