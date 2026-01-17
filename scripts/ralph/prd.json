@@ -339,7 +339,7 @@
         "Typecheck passes"
       ],
       "priority": 19,
-      "passes": false,
+      "passes": true,
       "notes": "Important for viral sharing"
     },
     {
