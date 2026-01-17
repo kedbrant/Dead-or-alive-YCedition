@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { Report, ReportData, SourceOutcome } from "@/lib/supabase/types";
 import { ReportActions } from "@/components/report/report-actions";
+import { ScoreDisplay } from "@/components/report/score-display";
 
 export const dynamic = "force-dynamic";
 
@@ -159,48 +160,8 @@ export default async function ReportPage({ params }: ReportPageProps) {
         </div>
 
         {/* Score Display */}
-        <div className="bg-surface rounded-2xl p-8 mb-6 text-center">
-          <div className="mb-4">
-            <span className={`text-7xl font-bold ${getScoreColor(report.score)}`}>
-              {report.score}
-            </span>
-            <span className="text-3xl text-foreground/60">/100</span>
-          </div>
-
-          {/* Score Ring */}
-          <div className="relative w-40 h-40 mx-auto mb-4">
-            <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
-              <circle
-                cx="50"
-                cy="50"
-                r="45"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="8"
-                className="text-foreground/10"
-              />
-              <circle
-                cx="50"
-                cy="50"
-                r="45"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="8"
-                strokeDasharray={`${report.score * 2.83} 283`}
-                strokeLinecap="round"
-                className={getScoreColor(report.score)}
-              />
-            </svg>
-            <div className="absolute inset-0 flex items-center justify-center">
-              <span className={`text-2xl font-bold ${getScoreColor(report.score)}`}>
-                {getScoreLabel(report.score)}
-              </span>
-            </div>
-          </div>
-
-          <p className="text-foreground/80 max-w-md mx-auto">
-            {reportData.scoreReasoning}
-          </p>
+        <div className="mb-6">
+          <ScoreDisplay score={report.score} scoreReasoning={reportData.scoreReasoning} />
         </div>
 
         {/* Historical Analysis Section */}
