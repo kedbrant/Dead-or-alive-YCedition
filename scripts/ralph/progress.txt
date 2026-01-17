@@ -11,6 +11,8 @@ Started: Sat, Jan 17, 2026  4:18:56 PM
 - API routes: Use `NextRequest`/`NextResponse`, import `createServerSupabaseClient` from `@/lib/supabase/server`
 - Database types: All table types defined in `@/lib/supabase/types.ts`, export Row/Insert/Update variants
 - Data source modules: Place external data fetching in `/lib/data-sources/` (e.g., yc.ts, news.ts, reddit.ts)
+- AI modules: Place AI/ML integrations in `/lib/ai/` (e.g., openai.ts)
+- OpenAI: Use `response_format: { type: 'json_object' }` for structured output, always provide fallback
 
 ---
 
@@ -161,4 +163,32 @@ Started: Sat, Jan 17, 2026  4:18:56 PM
   - Mock data pattern: Use keyword hash for deterministic results across same idea
   - Pattern: Reuse extractKeywords from yc.ts for consistent keyword extraction
   - Pattern: calculateChangePercent using averages of first/last 3 months avoids outlier issues
+---
+
+## 2026-01-17 22:30 - US-007
+- What was implemented:
+  - Created `/lib/ai/openai.ts` with `generateAnalysis(data)` function
+  - Added OpenAI SDK dependency (openai package)
+  - System prompt instructs AI to act as expert startup analyst
+  - User prompt includes all aggregated data: idea, YC companies (with outcomes), news, Reddit, trends
+  - Uses GPT-4o model with response_format: { type: 'json_object' } for structured output
+  - Returns structured analysis: score (0-100), scoreReasoning, section summaries, sentiment breakdown, 3-5 recommendations
+  - Score bands: 80+ strong, 60-79 moderate, 40-59 risky, 0-39 caution
+  - Handles API errors gracefully with fallback to basic analysis
+  - Falls back if OPENAI_API_KEY not configured (for local dev without API key)
+  - Updated validate route to import generateAnalysis from new location
+
+- Files changed:
+  - ship-or-skip/src/lib/ai/openai.ts - NEW: OpenAI integration module
+  - ship-or-skip/src/app/api/validate/route.ts - Removed inline generateAnalysis, imports from /lib/ai/openai
+  - ship-or-skip/package.json - Added openai dependency
+  - ship-or-skip/package-lock.json - Updated lockfile
+
+- **Learnings for future iterations:**
+  - AI modules go in `/lib/ai/` directory (separate from data-sources)
+  - OpenAI structured output: use `response_format: { type: 'json_object' }` for reliable JSON parsing
+  - Always provide fallback analysis when AI is unavailable (API key missing, rate limits, errors)
+  - Interface pattern: Use single object parameter `generateAnalysis(data: AnalysisInput)` for cleaner API
+  - System prompt sets role and constraints; user prompt provides data and requests specific output format
+  - Score band labels: "Strong" (80+), "Moderate" (60-79), "Risky" (40-59), "Caution" (0-39)
 ---
