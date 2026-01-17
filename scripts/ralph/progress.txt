@@ -1,3 +1,37 @@
 # Ralph Progress Log
 Started: Sat, Jan 17, 2026  4:18:56 PM
 ---
+
+## Codebase Patterns
+- Use Tailwind classes for styling: `bg-surface`, `text-foreground`, `text-ship` (green), `text-skip` (red)
+- Color scheme: purple-400/500 for accents, ship (green #22C55E), skip (red #EF4444)
+- Form inputs use `bg-surface border border-foreground/20 rounded-xl`
+- Buttons use hover effects: `hover:shadow-[0_0_20px_rgba(34,197,94,0.5)] hover:scale-[1.02]`
+- Missing dependencies may exist in node_modules but not package.json (clsx, tailwind-merge, motion)
+
+---
+
+## 2026-01-17 17:30 - US-001
+- What was implemented:
+  - Replaced game-focused landing page with idea validation form
+  - Created large textarea for startup idea input with "Describe your startup idea..." placeholder
+  - Added "Validate My Idea" CTA button (green, full-width)
+  - Added 3 example ideas users can click to populate the textarea
+  - Added feature badges: "5,500+ YC startups", "Live news feed", "Reddit sentiment"
+  - Simplified navbar to show only logo (removed all nav tabs)
+  - Form validates idea length >= 10 characters
+  - Form submits to /api/validate (endpoint not yet implemented)
+  - Responsive layout with max-w-2xl container
+
+- Files changed:
+  - ship-or-skip/src/app/page.tsx - Complete rewrite for idea validation
+  - ship-or-skip/src/components/layout/navbar.tsx - Simplified to logo only
+  - ship-or-skip/package.json - Added clsx, tailwind-merge, motion dependencies
+  - ship-or-skip/package-lock.json - Updated lockfile
+
+- **Learnings for future iterations:**
+  - The codebase had missing dependencies (clsx, tailwind-merge, motion) that caused TypeScript errors
+  - Clean .next cache with `rm -rf .next` when seeing stale route errors
+  - Navbar was complex with mobile hamburger menu, now simplified
+  - Example ideas pattern: store as const array, map to buttons that populate textarea
+---
