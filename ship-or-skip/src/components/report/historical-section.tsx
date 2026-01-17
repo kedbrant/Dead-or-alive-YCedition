@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { YCCompanyMatch, SourceOutcome } from "@/lib/supabase/types";
 
 interface HistoricalSectionProps {
@@ -81,27 +82,49 @@ export function HistoricalSection({
             Similar Companies ({totalCompanies})
           </h3>
           <div className="space-y-2">
-            {displayedCompanies.map((company, index) => (
-              <div
-                key={index}
-                className="flex items-start gap-3 p-3 bg-foreground/5 rounded-lg"
-              >
-                <span className="text-xl">{getOutcomeEmoji(company.outcome)}</span>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium">{company.name}</span>
-                    {company.batch && (
-                      <span className="text-xs text-foreground/60">
-                        {company.batch}
-                      </span>
-                    )}
+            {displayedCompanies.map((company, index) => {
+              const content = (
+                <>
+                  <span className="text-xl">{getOutcomeEmoji(company.outcome)}</span>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium">{company.name}</span>
+                      {company.batch && (
+                        <span className="text-xs text-foreground/60">
+                          {company.batch}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-sm text-foreground/70 truncate">
+                      {company.pitch}
+                    </p>
                   </div>
-                  <p className="text-sm text-foreground/70 truncate">
-                    {company.pitch}
-                  </p>
+                </>
+              );
+
+              // If company has a slug, make it clickable
+              if (company.slug) {
+                return (
+                  <Link
+                    key={index}
+                    href={`/company/${company.slug}`}
+                    className="flex items-start gap-3 p-3 bg-foreground/5 rounded-lg hover:bg-foreground/10 transition-colors"
+                  >
+                    {content}
+                  </Link>
+                );
+              }
+
+              // Fallback to non-clickable div
+              return (
+                <div
+                  key={index}
+                  className="flex items-start gap-3 p-3 bg-foreground/5 rounded-lg"
+                >
+                  {content}
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           {/* Expand/Collapse Button */}
