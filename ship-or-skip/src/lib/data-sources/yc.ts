@@ -39,7 +39,22 @@ const IMPORTANT_SHORT_TERMS = new Set([
 ]);
 
 // Minimum similarity score to include a company (filters out weak matches)
-const MIN_SIMILARITY_SCORE = 15;
+// Requires ~3 keyword matches from 10 keywords to filter out weak single-field matches
+const MIN_SIMILARITY_SCORE = 30;
+
+/**
+ * Parse YC batch string to a sortable number
+ * "W24" -> 2024.0, "S24" -> 2024.5, "F24" -> 2024.7
+ * Used for sorting by newest batch when scores are tied
+ */
+function parseBatchToNumber(batch: string): number {
+  const match = batch.match(/^([WSF])(\d{2})$/i);
+  if (!match) return 0;
+  const [, season, year] = match;
+  const fullYear = parseInt(year) + (parseInt(year) > 50 ? 1900 : 2000);
+  const seasonOffset = season.toUpperCase() === 'W' ? 0 : season.toUpperCase() === 'S' ? 0.5 : 0.7;
+  return fullYear + seasonOffset;
+}
 
 /**
  * Extract keywords from idea text for searching
@@ -61,50 +76,69 @@ export function extractKeywords(idea: string): string[] {
 /**
  * Calculate similarity score between an idea and a company's pitch
  * Returns a score from 0-100 based on keyword matches
- * Enhanced to also check yc_tags and yc_industry for better semantic matching
+ * Enhanced to require matches across multiple fields for higher precision
  */
 function calculateSimilarityScore(
   keywords: string[],
   hero: string,
   ycName: string | null,
   ycTags: string[] | null,
-  ycIndustry: string | null
+  ycIndustry: string | null,
+  ycLongDescription: string | null
 ): number {
   if (keywords.length === 0) return 0;
 
   const heroLower = hero.toLowerCase();
   const nameLower = (ycName || "").toLowerCase();
   const industryLower = (ycIndustry || "").toLowerCase();
+  const descLower = (ycLongDescription || "").toLowerCase();
   const tagsLower = (ycTags || []).map(t => t.toLowerCase());
 
-  let matchCount = 0;
-  let nameMatchBonus = 0;
-  let tagMatchBonus = 0;
+  // Track which fields have matches for multi-field requirement
+  const heroMatches = new Set<string>();
+  const descMatches = new Set<string>();
+  const tagMatches = new Set<string>();
+  const nameMatches = new Set<string>();
+  const industryMatches = new Set<string>();
 
   for (const kw of keywords) {
-    // Check if keyword appears in hero text
-    if (heroLower.includes(kw)) {
-      matchCount++;
-    }
-    // Bonus for matching company name
-    if (nameLower.includes(kw)) {
-      nameMatchBonus += 0.5;
-    }
-    // Bonus for matching tags (strong signal)
-    if (tagsLower.some(tag => tag.includes(kw) || kw.includes(tag))) {
-      tagMatchBonus += 0.7;
-    }
-    // Bonus for matching industry
-    if (industryLower.includes(kw)) {
-      tagMatchBonus += 0.4;
+    if (heroLower.includes(kw)) heroMatches.add(kw);
+    if (descLower.includes(kw)) descMatches.add(kw);
+    if (nameLower.includes(kw)) nameMatches.add(kw);
+    if (industryLower.includes(kw)) industryMatches.add(kw);
+    if (tagsLower.some(tag => tag.includes(kw) || kw.includes(tag))) tagMatches.add(kw);
+  }
+
+  // Count keywords that match in 2+ different fields (higher quality matches)
+  let multiFieldMatchCount = 0;
+  let singleFieldMatchCount = 0;
+
+  for (const kw of keywords) {
+    let fieldCount = 0;
+    if (heroMatches.has(kw)) fieldCount++;
+    if (descMatches.has(kw)) fieldCount++;
+    if (tagMatches.has(kw)) fieldCount++;
+    if (nameMatches.has(kw)) fieldCount++;
+    if (industryMatches.has(kw)) fieldCount++;
+
+    if (fieldCount >= 2) {
+      multiFieldMatchCount++;
+    } else if (fieldCount === 1) {
+      singleFieldMatchCount++;
     }
   }
 
-  // Calculate base similarity as percentage of keywords matched
-  const baseSimilarity = matchCount / keywords.length;
+  // Multi-field matches are worth more (2x weight)
+  const effectiveMatches = multiFieldMatchCount * 2 + singleFieldMatchCount;
+  const maxPossible = keywords.length * 2; // If all keywords matched in 2+ fields
 
-  // Add bonuses (capped)
-  const bonuses = (nameMatchBonus + tagMatchBonus) / keywords.length;
+  // Bonus for tag matches (strong semantic signal)
+  const tagBonus = tagMatches.size * 0.5;
+  // Bonus for name matches
+  const nameBonus = nameMatches.size * 0.3;
+
+  const baseSimilarity = effectiveMatches / maxPossible;
+  const bonuses = (tagBonus + nameBonus) / keywords.length;
   const totalSimilarity = Math.min(1, baseSimilarity + bonuses);
 
   return Math.round(totalSimilarity * 100);
@@ -138,11 +172,12 @@ export async function searchYCCompanies(idea: string, aiSearchTerms?: string[]):
   const heroConditions = uniqueSearchTerms.map((kw) => `hero.ilike.%${kw}%`);
   const nameConditions = uniqueSearchTerms.map((kw) => `yc_name.ilike.%${kw}%`);
   const industryConditions = uniqueSearchTerms.map((kw) => `yc_industry.ilike.%${kw}%`);
-  const searchConditions = [...heroConditions, ...nameConditions, ...industryConditions].join(",");
+  const descConditions = uniqueSearchTerms.map((kw) => `yc_long_description.ilike.%${kw}%`);
+  const searchConditions = [...heroConditions, ...nameConditions, ...industryConditions, ...descConditions].join(",");
 
   const { data: ideas, error } = await supabase
     .from("ideas")
-    .select("yc_name, yc_batch, hero, source_outcome, yc_team_size, yc_slug, yc_tags, yc_industry")
+    .select("yc_name, yc_batch, hero, source_outcome, yc_team_size, yc_slug, yc_tags, yc_industry, yc_long_description")
     .eq("source", "yc")
     .or(searchConditions)
     .limit(100) // Fetch more to ensure we get 20 quality matches after scoring
@@ -166,13 +201,18 @@ export async function searchYCCompanies(idea: string, aiSearchTerms?: string[]):
       item.hero,
       item.yc_name,
       item.yc_tags,
-      item.yc_industry
+      item.yc_industry,
+      item.yc_long_description
     ),
   }));
 
-  // Filter out weak matches and sort by similarity score descending
+  // Filter out weak matches and sort by score (primary) then batch date (secondary, newest wins ties)
   return matches
     .filter((m) => m.similarity_score >= MIN_SIMILARITY_SCORE)
-    .sort((a, b) => b.similarity_score - a.similarity_score)
+    .sort((a, b) => {
+      const scoreDiff = b.similarity_score - a.similarity_score;
+      if (scoreDiff !== 0) return scoreDiff;
+      return parseBatchToNumber(b.batch) - parseBatchToNumber(a.batch);
+    })
     .slice(0, 20);
 }
