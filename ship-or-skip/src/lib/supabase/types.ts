@@ -9,6 +9,56 @@ export type Json =
 // Source outcome type for YC companies
 export type SourceOutcome = "unicorn" | "acquired" | "dead" | "active" | null;
 
+// Report section types for idea validation
+export interface YCCompanyMatch {
+  name: string;
+  batch: string;
+  pitch: string;
+  outcome: SourceOutcome;
+  team_size: number | null;
+  slug: string;
+  similarity_score: number;
+}
+
+export interface NewsArticle {
+  title: string;
+  source: string;
+  date: string;
+  url: string;
+}
+
+export interface RedditPost {
+  subreddit: string;
+  title: string;
+  score: number;
+  comments: number;
+  url: string;
+}
+
+export interface TrendsData {
+  currentLevel: number;
+  changePercent: number;
+  timeline: { date: string; value: number }[];
+}
+
+export interface ReportSection {
+  summary: string;
+  data?: unknown;
+}
+
+export interface ReportData {
+  idea: string;
+  score: number;
+  scoreReasoning: string;
+  sections: {
+    historical: ReportSection & { companies: YCCompanyMatch[]; outcomeCounts: { unicorn: number; acquired: number; dead: number; active: number } };
+    market: ReportSection & { articles: NewsArticle[] };
+    sentiment: ReportSection & { posts: RedditPost[]; sentimentBreakdown: { positive: number; negative: number; neutral: number } };
+    trends: ReportSection & { data: TrendsData | null };
+    recommendations: { title: string; description: string }[];
+  };
+}
+
 export type Database = {
   public: {
     Tables: {
@@ -351,6 +401,30 @@ export type Database = {
         };
         Relationships: [];
       };
+      reports: {
+        Row: {
+          id: string;
+          idea: string;
+          score: number;
+          report_data: ReportData;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          idea: string;
+          score: number;
+          report_data: ReportData;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          idea?: string;
+          score?: number;
+          report_data?: ReportData;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: {
       [_ in never]: never;
@@ -395,6 +469,10 @@ export type AchievementProgressUpdate = Database["public"]["Tables"]["achievemen
 export type SessionAchievement = Database["public"]["Tables"]["session_achievements"]["Row"];
 export type SessionAchievementInsert = Database["public"]["Tables"]["session_achievements"]["Insert"];
 export type SessionAchievementUpdate = Database["public"]["Tables"]["session_achievements"]["Update"];
+
+export type Report = Database["public"]["Tables"]["reports"]["Row"];
+export type ReportInsert = Database["public"]["Tables"]["reports"]["Insert"];
+export type ReportUpdate = Database["public"]["Tables"]["reports"]["Update"];
 
 // Achievement rarity and category types for convenience
 export type AchievementRarity = "common" | "uncommon" | "rare" | "epic" | "legendary";
