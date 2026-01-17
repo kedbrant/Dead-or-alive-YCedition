@@ -182,7 +182,7 @@
         "Typecheck passes"
       ],
       "priority": 10,
-      "passes": false,
+      "passes": true,
       "notes": "This is the hero element of the report"
     },
     {
