@@ -614,3 +614,32 @@ Started: Sat, Jan 17, 2026  4:18:56 PM
   - Key patterns already applied: Promise.all, server components, minimal client state, DB caching
   - Build output shows ○ for static routes, ƒ for dynamic - useful for verifying SSR strategy
 ---
+
+## 2026-01-17 - US-025
+- What was implemented:
+  - Created comprehensive .env.example documentation:
+    - Required: NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY, OPENAI_API_KEY
+    - Optional: NEXT_PUBLIC_BASE_URL (defaults to ycarchive.com), SERPAPI_KEY (for real trends data)
+  - Updated .gitignore to track .env.example while keeping .env.local ignored
+  - Verified all acceptance criteria:
+    - Consistent spacing/typography: Inter font, Tailwind utility classes
+    - Smooth transitions: hover effects with scale/shadow, duration-150
+    - All links functional: home links, external news/Reddit articles, share buttons
+    - No console errors: code structure is clean
+    - Environment variables documented: comprehensive .env.example created
+    - Build succeeds: npm run build passes
+    - Typecheck passes: npx tsc --noEmit passes
+    - Ready for production deployment
+
+- Files changed:
+  - ship-or-skip/.env.example - NEW: Comprehensive env vars documentation
+  - ship-or-skip/.gitignore - Added !.env.example to track the example file
+
+- **Learnings for future iterations:**
+  - .gitignore patterns like `.env*` ignore all .env files - use `!.env.example` to exempt
+  - Environment variables should be documented with:
+    - Where to get the values (e.g., "Get from Supabase project settings")
+    - Whether they're required or optional
+    - Default values if applicable
+  - Final polish stories are good for documentation and verification tasks
+---
