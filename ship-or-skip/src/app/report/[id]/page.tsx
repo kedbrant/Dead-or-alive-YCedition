@@ -64,31 +64,37 @@ export async function generateMetadata({
 
   const siteUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://shiporskip.app";
 
+  // Build dynamic OG image URL with report-specific parameters
+  const ogImageParams = new URLSearchParams({
+    type: "report",
+    score: report.score.toString(),
+    idea: truncateIdea(reportData.idea, 100),
+  });
+  const ogImageUrl = `${siteUrl}/api/og?${ogImageParams.toString()}`;
+
   return {
     title,
     description,
     openGraph: {
       type: "article",
-      title: `Startup Idea Validation: ${report.score}/100`,
+      title: `Startup Idea Validation: ${report.score}/100 - ${getScoreLabel(report.score)}`,
       description,
       siteName: "YC Archive - Idea Validator",
       url: `${siteUrl}/report/${id}`,
       images: [
         {
-          url: `${siteUrl}/api/og?hero=${encodeURIComponent(`Score: ${report.score}/100 - ${getScoreLabel(report.score)}`)}`,
+          url: ogImageUrl,
           width: 1200,
           height: 630,
-          alt: `Validation score: ${report.score}/100`,
+          alt: `Validation score: ${report.score}/100 - ${getScoreLabel(report.score)}`,
         },
       ],
     },
     twitter: {
       card: "summary_large_image",
-      title: `Startup Idea Validation: ${report.score}/100`,
+      title: `Startup Idea Validation: ${report.score}/100 - ${getScoreLabel(report.score)}`,
       description,
-      images: [
-        `${siteUrl}/api/og?hero=${encodeURIComponent(`Score: ${report.score}/100 - ${getScoreLabel(report.score)}`)}`,
-      ],
+      images: [ogImageUrl],
     },
   };
 }
