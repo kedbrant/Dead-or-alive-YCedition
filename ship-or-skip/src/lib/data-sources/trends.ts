@@ -1,3 +1,4 @@
+import OpenAI from "openai";
 import type { TrendsData } from "@/lib/supabase/types";
 import { extractKeywords } from "./yc";
 
@@ -9,6 +10,77 @@ import { extractKeywords } from "./yc";
  */
 const SERPAPI_KEY = process.env.SERPAPI_KEY;
 const SERPAPI_BASE_URL = "https://serpapi.com/search.json";
+
+// Lazily initialized OpenAI client
+let openaiClient: OpenAI | null = null;
+
+function getOpenAIClient(): OpenAI | null {
+  if (!process.env.OPENAI_API_KEY) {
+    return null;
+  }
+  if (!openaiClient) {
+    openaiClient = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    });
+  }
+  return openaiClient;
+}
+
+/**
+ * Use AI to generate relevant Google Trends search terms for the idea
+ * Returns 2-3 word phrases that people would actually search for
+ */
+async function generateSearchTerms(idea: string): Promise<string[]> {
+  const openai = getOpenAIClient();
+  if (!openai) {
+    // Fallback to basic keyword extraction
+    return extractKeywords(idea).slice(0, 3);
+  }
+
+  try {
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        {
+          role: "system",
+          content: `You generate Google Trends search terms. Given a startup idea, return 2-3 search phrases that potential customers would actually search for on Google.
+
+Rules:
+- Each phrase should be 2-3 words
+- Focus on what customers search for, not business terms
+- Be specific to the core product/service
+- No generic terms like "app", "platform", "service"
+
+Example:
+Idea: "A marketplace to buy and sell horses"
+Output: ["buy horses", "horses for sale", "horse trading"]
+
+Respond with ONLY a JSON array of strings, no explanation.`,
+        },
+        {
+          role: "user",
+          content: idea,
+        },
+      ],
+      temperature: 0.3,
+      max_tokens: 100,
+    });
+
+    const response = completion.choices[0]?.message?.content;
+    if (!response) {
+      return extractKeywords(idea).slice(0, 3);
+    }
+
+    const terms = JSON.parse(response) as string[];
+    if (Array.isArray(terms) && terms.length > 0) {
+      return terms.slice(0, 3);
+    }
+    return extractKeywords(idea).slice(0, 3);
+  } catch (error) {
+    console.warn("Failed to generate AI search terms:", error);
+    return extractKeywords(idea).slice(0, 3);
+  }
+}
 
 /**
  * Generate timeline data points spanning 1 year
@@ -24,12 +96,11 @@ function generateMockTimeline(baseLevel: number): { date: string; value: number 
     const endDate = new Date(date.getTime() + 6 * 24 * 60 * 60 * 1000);
     const dateStr = `${date.toLocaleDateString("en-US", { month: "short", day: "numeric" })} – ${endDate.toLocaleDateString("en-US", { month: "short", day: "numeric" })}, ${date.getFullYear()}`;
 
-    // Simulate organic growth with some variation
-    // Start at lower level, gradually increase with noise
-    const progress = (52 - i) / 52; // 0 to 1 over time
-    const baseValue = Math.round(baseLevel * (0.5 + 0.5 * progress));
-    const noise = Math.round((Math.random() - 0.5) * 10);
-    const value = Math.max(0, Math.min(100, baseValue + noise));
+    // Simulate realistic fluctuation around the base level
+    // Small random walk with mean reversion - no artificial growth trend
+    const noise = Math.round((Math.random() - 0.5) * 15);
+    const seasonalVariation = Math.round(Math.sin(i / 8) * 5); // slight seasonal pattern
+    const value = Math.max(5, Math.min(100, baseLevel + noise + seasonalVariation));
 
     timeline.push({ date: dateStr, value });
   }
@@ -39,20 +110,26 @@ function generateMockTimeline(baseLevel: number): { date: string; value: number 
 
 /**
  * Calculate percentage change between start and end of timeline
+ * Capped at ±100% to avoid unrealistic numbers
  */
 function calculateChangePercent(timeline: { date: string; value: number }[]): number {
-  if (timeline.length < 2) return 0;
+  if (timeline.length < 6) return 0;
 
-  // Use average of first 3 months vs last 3 months for stability
-  const startValues = timeline.slice(0, 3).map(t => t.value);
-  const endValues = timeline.slice(-3).map(t => t.value);
+  // Use average of first quarter vs last quarter for stability
+  const quarterLength = Math.floor(timeline.length / 4);
+  const startValues = timeline.slice(0, quarterLength).map(t => t.value);
+  const endValues = timeline.slice(-quarterLength).map(t => t.value);
 
   const startAvg = startValues.reduce((a, b) => a + b, 0) / startValues.length;
   const endAvg = endValues.reduce((a, b) => a + b, 0) / endValues.length;
 
-  if (startAvg === 0) return endAvg > 0 ? 100 : 0;
+  // Avoid division by zero - use a minimum baseline
+  const baseline = Math.max(startAvg, 10);
 
-  return Math.round(((endAvg - startAvg) / startAvg) * 100);
+  const changePercent = Math.round(((endAvg - baseline) / baseline) * 100);
+
+  // Cap at ±100% to keep it realistic
+  return Math.max(-100, Math.min(100, changePercent));
 }
 
 /**
@@ -176,19 +253,19 @@ async function fetchFromSerpAPI(query: string, keywords: string[]): Promise<Tren
  * @returns TrendsData with currentLevel (0-100), changePercent, and timeline
  */
 export async function getGoogleTrends(idea: string): Promise<TrendsData | null> {
-  const keywords = extractKeywords(idea);
+  // Use AI to generate relevant search terms (e.g., "buy horses" instead of just "horses")
+  const searchTerms = await generateSearchTerms(idea);
 
-  if (keywords.length === 0) {
+  if (searchTerms.length === 0) {
     return null;
   }
 
-  // Build search query from most relevant keywords (first 3)
-  const searchKeywords = keywords.slice(0, 3);
-  const searchQuery = searchKeywords.join(" ");
+  // Use the first search term as the main query
+  const searchQuery = searchTerms[0];
 
   // Try to fetch real data from SerpAPI if configured
   if (SERPAPI_KEY) {
-    const serpApiData = await fetchFromSerpAPI(searchQuery, searchKeywords);
+    const serpApiData = await fetchFromSerpAPI(searchQuery, searchTerms);
     if (serpApiData) {
       return serpApiData;
     }
