@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { searchYCCompanies } from "@/lib/data-sources/yc";
 import type {
   ReportInsert,
   ReportData,
@@ -7,86 +8,13 @@ import type {
   NewsArticle,
   RedditPost,
   TrendsData,
-  SourceOutcome,
-  Idea,
 } from "@/lib/supabase/types";
 
 // Minimum idea length requirement
 const MIN_IDEA_LENGTH = 10;
 
-// Stop words to filter out during keyword extraction
-const STOP_WORDS = new Set([
-  "a", "an", "the", "and", "or", "but", "in", "on", "at", "to", "for",
-  "of", "with", "by", "from", "as", "is", "was", "are", "were", "been",
-  "be", "have", "has", "had", "do", "does", "did", "will", "would", "could",
-  "should", "may", "might", "must", "shall", "can", "need", "that", "this",
-  "these", "those", "i", "you", "he", "she", "it", "we", "they", "what",
-  "which", "who", "whom", "whose", "where", "when", "why", "how", "all",
-  "each", "every", "both", "few", "more", "most", "other", "some", "such",
-  "no", "nor", "not", "only", "own", "same", "so", "than", "too", "very",
-  "just", "also", "now", "your", "my", "our", "their", "its", "his", "her",
-]);
-
 interface ValidateRequestBody {
   idea: string;
-}
-
-/**
- * Extract keywords from idea text for searching
- */
-function extractKeywords(idea: string): string[] {
-  return idea
-    .toLowerCase()
-    .replace(/[^\w\s]/g, " ")
-    .split(/\s+/)
-    .filter((word) => word.length > 2 && !STOP_WORDS.has(word))
-    .slice(0, 10); // Limit to top 10 keywords
-}
-
-/**
- * Search YC companies for similar ideas
- * (Full implementation in US-003)
- */
-async function searchYCCompanies(idea: string): Promise<YCCompanyMatch[]> {
-  const supabase = createServerSupabaseClient();
-  const keywords = extractKeywords(idea);
-
-  if (keywords.length === 0) {
-    return [];
-  }
-
-  // Build ILIKE conditions for each keyword
-  const searchConditions = keywords.map((kw) => `hero.ilike.%${kw}%`).join(",");
-
-  const { data: ideas, error } = await supabase
-    .from("ideas")
-    .select("yc_name, yc_batch, hero, source_outcome, yc_team_size, yc_slug")
-    .eq("source", "yc")
-    .or(searchConditions)
-    .limit(20)
-    .returns<Idea[]>();
-
-  if (error || !ideas) {
-    console.error("Error searching YC companies:", error);
-    return [];
-  }
-
-  // Calculate simple similarity score based on keyword matches
-  return ideas.map((item) => {
-    const heroLower = item.hero.toLowerCase();
-    const matchCount = keywords.filter((kw) => heroLower.includes(kw)).length;
-    const similarity = matchCount / keywords.length;
-
-    return {
-      name: item.yc_name || item.hero.slice(0, 50),
-      batch: item.yc_batch || "Unknown",
-      pitch: item.hero,
-      outcome: item.source_outcome,
-      team_size: item.yc_team_size,
-      slug: item.yc_slug || "",
-      similarity_score: Math.round(similarity * 100),
-    };
-  }).sort((a, b) => b.similarity_score - a.similarity_score);
 }
 
 /**
