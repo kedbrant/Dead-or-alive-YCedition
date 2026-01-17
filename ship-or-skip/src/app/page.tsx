@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
+import { ValidationLoading } from "@/components/validation-loading";
 
 const EXAMPLE_IDEAS = [
   "A marketplace connecting homeowners with people who want to rent their spare rooms",
@@ -52,6 +53,11 @@ export default function Home() {
     setIdea(example);
     setError(null);
   };
+
+  // Show loading state when validating
+  if (isSubmitting) {
+    return <ValidationLoading />;
+  }
 
   return (
     <div className="flex min-h-screen items-center justify-center px-4 py-12">
