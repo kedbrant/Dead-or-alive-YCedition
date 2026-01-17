@@ -6,6 +6,7 @@
   --surface: #18181B;
   --ship: #22C55E;
   --skip: #EF4444;
+  --yc-orange: #FF6600;
 }
 
 @theme inline {
@@ -14,6 +15,7 @@
   --color-surface: var(--surface);
   --color-ship: var(--ship);
   --color-skip: var(--skip);
+  --color-yc-orange: var(--yc-orange);
   --font-sans: var(--font-inter);
 }
 

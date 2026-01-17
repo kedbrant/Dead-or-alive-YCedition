@@ -3,6 +3,7 @@ import type { YCCompanyMatch, Idea } from "@/lib/supabase/types";
 
 // Stop words to filter out during keyword extraction
 const STOP_WORDS = new Set([
+  // Common words
   "a", "an", "the", "and", "or", "but", "in", "on", "at", "to", "for",
   "of", "with", "by", "from", "as", "is", "was", "are", "were", "been",
   "be", "have", "has", "had", "do", "does", "did", "will", "would", "could",
@@ -12,9 +13,21 @@ const STOP_WORDS = new Set([
   "each", "every", "both", "few", "more", "most", "other", "some", "such",
   "no", "nor", "not", "only", "own", "same", "so", "than", "too", "very",
   "just", "also", "now", "your", "my", "our", "their", "its", "his", "her",
+  // Generic startup/tech terms (too broad for matching)
   "app", "platform", "software", "service", "tool", "company", "startup",
   "business", "product", "solution", "market", "users", "customers",
+  "powered", "based", "driven", "enabled", "using", "helps", "helps",
+  "make", "makes", "making", "create", "creates", "creating", "build",
+  "building", "new", "better", "easy", "simple", "fast", "smart",
+  "intelligent", "automated", "automatic", "digital", "online", "web",
+  "mobile", "cloud", "data", "tech", "technology", "modern", "next",
+  "generation", "innovative", "innovation", "revolutionary", "disruptive",
+  "world", "global", "local", "people", "anyone", "everyone", "way",
+  "time", "first", "best", "top", "leading", "fastest", "easiest",
 ]);
+
+// Minimum similarity score to include a company (filters out weak matches)
+const MIN_SIMILARITY_SCORE = 15;
 
 /**
  * Extract keywords from idea text for searching
@@ -110,8 +123,9 @@ export async function searchYCCompanies(idea: string): Promise<YCCompanyMatch[]>
     similarity_score: calculateSimilarityScore(keywords, item.hero, item.yc_name),
   }));
 
-  // Sort by similarity score descending and return top 20
+  // Filter out weak matches and sort by similarity score descending
   return matches
+    .filter((m) => m.similarity_score >= MIN_SIMILARITY_SCORE)
     .sort((a, b) => b.similarity_score - a.similarity_score)
     .slice(0, 20);
 }

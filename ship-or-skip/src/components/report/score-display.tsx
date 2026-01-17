@@ -37,16 +37,8 @@ export function ScoreDisplay({ score, scoreReasoning }: ScoreDisplayProps) {
 
   return (
     <div className={`bg-surface rounded-2xl p-8 text-center ${getScoreBgGlow(score)}`}>
-      {/* Score Number */}
-      <div className="mb-6">
-        <span className={`text-7xl font-bold ${getScoreColor(score)}`}>
-          {score}
-        </span>
-        <span className="text-3xl text-foreground/60">/100</span>
-      </div>
-
-      {/* Score Ring Gauge */}
-      <div className="relative w-40 h-40 mx-auto mb-6">
+      {/* Score Ring Gauge with Score Inside */}
+      <div className="relative w-48 h-48 mx-auto mb-4">
         <svg
           className="w-full h-full transform -rotate-90"
           viewBox="0 0 100 100"
@@ -75,12 +67,22 @@ export function ScoreDisplay({ score, scoreReasoning }: ScoreDisplayProps) {
             }}
           />
         </svg>
-        {/* Center label */}
+        {/* Score inside the circle */}
         <div className="absolute inset-0 flex items-center justify-center">
-          <span className={`text-2xl font-bold ${getScoreColor(score)}`}>
-            {getScoreLabel(score)}
-          </span>
+          <div className="text-center">
+            <span className={`text-5xl font-bold ${getScoreColor(score)}`}>
+              {score}
+            </span>
+            <span className="text-xl text-foreground/60">/100</span>
+          </div>
         </div>
+      </div>
+
+      {/* Classification label below the circle */}
+      <div className="mb-6">
+        <span className={`text-2xl font-bold ${getScoreColor(score)}`}>
+          {getScoreLabel(score)}
+        </span>
       </div>
 
       {/* Score Reasoning */}

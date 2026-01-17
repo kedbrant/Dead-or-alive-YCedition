@@ -112,7 +112,7 @@ export default async function ReportPage({ params }: ReportPageProps) {
 
   return (
     <div className="min-h-screen py-8 px-4">
-      <div className="max-w-3xl mx-auto">
+      <div className="max-w-4xl mx-auto">
         {/* Back link */}
         <Link
           href="/"

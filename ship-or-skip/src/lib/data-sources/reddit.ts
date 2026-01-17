@@ -1,14 +1,83 @@
+import OpenAI from "openai";
 import { extractKeywords } from "./yc";
 import type { RedditPost } from "@/lib/supabase/types";
 
-// Subreddits to search for startup-related discussions
-const SUBREDDITS = ["startups", "SaaS", "Entrepreneur", "smallbusiness"];
+// Fallback subreddits when AI suggestion is unavailable
+const FALLBACK_SUBREDDITS = ["startups", "SaaS", "Entrepreneur", "smallbusiness"];
 
 // Request timeout in milliseconds
 const FETCH_TIMEOUT = 10000;
 
 // User-Agent header required by Reddit API
 const USER_AGENT = "YCArchive/1.0 (Idea Validation Tool)";
+
+// Lazily initialized OpenAI client
+let openaiClient: OpenAI | null = null;
+
+function getOpenAIClient(): OpenAI | null {
+  if (!process.env.OPENAI_API_KEY) {
+    return null;
+  }
+  if (!openaiClient) {
+    openaiClient = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    });
+  }
+  return openaiClient;
+}
+
+/**
+ * Use AI to suggest relevant subreddits for the target customers of this idea
+ * Returns subreddits where potential customers would discuss their problems
+ */
+async function suggestSubreddits(idea: string): Promise<string[]> {
+  const openai = getOpenAIClient();
+  if (!openai) {
+    return FALLBACK_SUBREDDITS;
+  }
+
+  try {
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        {
+          role: "system",
+          content: `You are an expert at identifying Reddit communities. Given a startup idea, suggest 4-6 subreddits where the TARGET CUSTOMERS would discuss their problems and needs.
+
+IMPORTANT: Focus on CUSTOMER communities, not entrepreneur/business communities. We want to understand what customers are saying about the problem, not what founders say about running businesses.
+
+For example:
+- Room rental marketplace → r/roommates, r/personalfinance, r/landlord, r/realestate, r/frugal
+- Pet sitting app → r/dogs, r/cats, r/pets, r/petcare, r/travel
+- Fitness tracking app → r/fitness, r/running, r/loseit, r/bodybuilding
+
+Respond with ONLY a JSON array of subreddit names (without r/ prefix), no explanation.
+Example: ["roommates", "personalfinance", "landlord", "realestate"]`,
+        },
+        {
+          role: "user",
+          content: idea,
+        },
+      ],
+      temperature: 0.3,
+      max_tokens: 100,
+    });
+
+    const response = completion.choices[0]?.message?.content;
+    if (!response) {
+      return FALLBACK_SUBREDDITS;
+    }
+
+    const subreddits = JSON.parse(response) as string[];
+    if (Array.isArray(subreddits) && subreddits.length > 0) {
+      return subreddits.slice(0, 6);
+    }
+    return FALLBACK_SUBREDDITS;
+  } catch (error) {
+    console.warn("Failed to get AI subreddit suggestions:", error);
+    return FALLBACK_SUBREDDITS;
+  }
+}
 
 interface RedditSearchResponse {
   kind: string;
@@ -94,7 +163,7 @@ async function searchSubreddit(
 
 /**
  * Search Reddit for discussions about the idea topic
- * Searches multiple startup-related subreddits and returns the top posts
+ * Uses AI to suggest relevant customer-focused subreddits based on the idea
  *
  * @param idea - The startup idea to search for
  * @returns Array of Reddit posts sorted by score descending, max 15 posts
@@ -107,11 +176,14 @@ export async function searchReddit(idea: string): Promise<RedditPost[]> {
     return [];
   }
 
+  // Get AI-suggested subreddits based on the idea (targets customers, not entrepreneurs)
+  const subreddits = await suggestSubreddits(idea);
+
   // Build search query from keywords (join with space for Reddit search)
   const searchQuery = keywords.slice(0, 5).join(" ");
 
   // Search all subreddits in parallel
-  const searchPromises = SUBREDDITS.map((sub) =>
+  const searchPromises = subreddits.map((sub) =>
     searchSubreddit(sub, searchQuery)
   );
 

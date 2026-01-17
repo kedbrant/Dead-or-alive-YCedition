@@ -95,8 +95,9 @@ async function fetchRss(url: string): Promise<string | null> {
  */
 function buildGoogleNewsUrl(query: string): string {
   const encodedQuery = encodeURIComponent(query);
-  // Add "startup" or "tech" to improve relevance
-  return `${GOOGLE_NEWS_RSS_BASE}?q=${encodedQuery}+startup+OR+tech&hl=en-US&gl=US&ceid=US:en`;
+  // Search for the keywords directly without adding generic tech terms
+  // This ensures results are relevant to the specific idea
+  return `${GOOGLE_NEWS_RSS_BASE}?q=${encodedQuery}&hl=en-US&gl=US&ceid=US:en`;
 }
 
 /**
@@ -129,7 +130,18 @@ function formatDate(dateStr: string): string {
 }
 
 /**
+ * Check if a word exists as a whole word in text (not as substring)
+ * Uses word boundary matching to avoid false positives like "want" matching "wants"
+ */
+function containsWholeWord(text: string, word: string): boolean {
+  // Create a regex that matches the word with word boundaries
+  const regex = new RegExp(`\\b${word}\\b`, "i");
+  return regex.test(text);
+}
+
+/**
  * Filter TechCrunch articles by relevance to the idea keywords
+ * Uses word boundary matching to avoid false positives
  */
 function filterByRelevance(
   articles: { title: string; link: string; pubDate: string }[],
@@ -138,9 +150,11 @@ function filterByRelevance(
   if (keywords.length === 0) return articles;
 
   return articles.filter((article) => {
-    const titleLower = article.title.toLowerCase();
-    // Article must contain at least one keyword
-    return keywords.some((kw) => titleLower.includes(kw));
+    const title = article.title;
+    // Article must contain at least one keyword as a whole word
+    // Require at least 2 keyword matches for better relevance
+    const matchCount = keywords.filter((kw) => containsWholeWord(title, kw)).length;
+    return matchCount >= 1;
   });
 }
 

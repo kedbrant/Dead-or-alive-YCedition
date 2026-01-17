@@ -11,21 +11,22 @@ const SERPAPI_KEY = process.env.SERPAPI_KEY;
 const SERPAPI_BASE_URL = "https://serpapi.com/search.json";
 
 /**
- * Generate timeline data points spanning 2 years
- * Creates monthly data points from 2 years ago to current date
+ * Generate timeline data points spanning 1 year
+ * Creates weekly data points from 1 year ago to current date (matches SerpAPI)
  */
 function generateMockTimeline(baseLevel: number): { date: string; value: number }[] {
   const timeline: { date: string; value: number }[] = [];
   const now = new Date();
 
-  // Generate 24 monthly data points over 2 years
-  for (let i = 23; i >= 0; i--) {
-    const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+  // Generate ~52 weekly data points over 1 year (matches SerpAPI format)
+  for (let i = 52; i >= 0; i--) {
+    const date = new Date(now.getTime() - i * 7 * 24 * 60 * 60 * 1000);
+    const endDate = new Date(date.getTime() + 6 * 24 * 60 * 60 * 1000);
+    const dateStr = `${date.toLocaleDateString("en-US", { month: "short", day: "numeric" })} – ${endDate.toLocaleDateString("en-US", { month: "short", day: "numeric" })}, ${date.getFullYear()}`;
 
     // Simulate organic growth with some variation
     // Start at lower level, gradually increase with noise
-    const progress = (23 - i) / 23; // 0 to 1 over time
+    const progress = (52 - i) / 52; // 0 to 1 over time
     const baseValue = Math.round(baseLevel * (0.5 + 0.5 * progress));
     const noise = Math.round((Math.random() - 0.5) * 10);
     const value = Math.max(0, Math.min(100, baseValue + noise));
@@ -60,6 +61,7 @@ function calculateChangePercent(timeline: { date: string; value: number }[]): nu
  */
 function generateMockTrendsData(idea: string): TrendsData {
   const keywords = extractKeywords(idea);
+  const searchKeywords = keywords.slice(0, 3);
 
   // Create a simple hash from keywords for deterministic but varied results
   let hash = 0;
@@ -85,6 +87,8 @@ function generateMockTrendsData(idea: string): TrendsData {
     currentLevel,
     changePercent,
     timeline,
+    keywords: searchKeywords,
+    isRealData: false,
   };
 }
 
@@ -92,7 +96,7 @@ function generateMockTrendsData(idea: string): TrendsData {
  * Fetch Google Trends data from SerpAPI
  * See: https://serpapi.com/google-trends-api
  */
-async function fetchFromSerpAPI(query: string): Promise<TrendsData | null> {
+async function fetchFromSerpAPI(query: string, keywords: string[]): Promise<TrendsData | null> {
   if (!SERPAPI_KEY) {
     return null;
   }
@@ -106,7 +110,7 @@ async function fetchFromSerpAPI(query: string): Promise<TrendsData | null> {
       engine: "google_trends",
       q: query,
       data_type: "TIMESERIES",
-      date: "today 24-m", // Last 24 months
+      date: "today 12-m", // Last 12 months (max supported by SerpAPI)
     });
 
     const response = await fetch(`${SERPAPI_BASE_URL}?${params}`, {
@@ -122,6 +126,12 @@ async function fetchFromSerpAPI(query: string): Promise<TrendsData | null> {
 
     const data = await response.json();
 
+    // Check for API errors
+    if (data.error) {
+      console.warn("SerpAPI error:", data.error);
+      return null;
+    }
+
     // Parse SerpAPI response
     if (!data.interest_over_time?.timeline_data) {
       console.warn("SerpAPI returned no timeline data");
@@ -130,9 +140,9 @@ async function fetchFromSerpAPI(query: string): Promise<TrendsData | null> {
 
     const timelineData = data.interest_over_time.timeline_data;
     const timeline: { date: string; value: number }[] = timelineData.map(
-      (point: { date: string; values: { value: number }[] }) => ({
+      (point: { date: string; values: { extracted_value: number }[] }) => ({
         date: point.date,
-        value: point.values?.[0]?.value ?? 0,
+        value: point.values?.[0]?.extracted_value ?? 0,
       })
     );
 
@@ -143,6 +153,8 @@ async function fetchFromSerpAPI(query: string): Promise<TrendsData | null> {
       currentLevel,
       changePercent,
       timeline,
+      keywords,
+      isRealData: true,
     };
   } catch (error) {
     if (error instanceof Error && error.name === "AbortError") {
@@ -170,12 +182,13 @@ export async function getGoogleTrends(idea: string): Promise<TrendsData | null> 
     return null;
   }
 
-  // Build search query from most relevant keywords
-  const searchQuery = keywords.slice(0, 3).join(" ");
+  // Build search query from most relevant keywords (first 3)
+  const searchKeywords = keywords.slice(0, 3);
+  const searchQuery = searchKeywords.join(" ");
 
   // Try to fetch real data from SerpAPI if configured
   if (SERPAPI_KEY) {
-    const serpApiData = await fetchFromSerpAPI(searchQuery);
+    const serpApiData = await fetchFromSerpAPI(searchQuery, searchKeywords);
     if (serpApiData) {
       return serpApiData;
     }

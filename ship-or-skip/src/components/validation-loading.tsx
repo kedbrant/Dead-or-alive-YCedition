@@ -41,7 +41,7 @@ export function ValidationLoading() {
         {/* Animated Spinner */}
         <div className="relative">
           <div className="w-20 h-20 rounded-full border-4 border-foreground/10" />
-          <div className="absolute inset-0 w-20 h-20 rounded-full border-4 border-transparent border-t-purple-500 animate-spin" />
+          <div className="absolute inset-0 w-20 h-20 rounded-full border-4 border-transparent border-t-yc-orange animate-spin" />
         </div>
 
         {/* Heading */}
@@ -62,7 +62,7 @@ export function ValidationLoading() {
               <div
                 key={source.id}
                 className={`flex items-center gap-3 p-3 rounded-lg transition-colors ${
-                  isCompleted ? "bg-ship/10" : "bg-foreground/5"
+                  isCompleted ? "bg-yc-orange/10" : "bg-foreground/5"
                 }`}
               >
                 {/* Icon */}
@@ -79,10 +79,10 @@ export function ValidationLoading() {
 
                 {/* Status Indicator */}
                 {isLoading ? (
-                  <div className="w-5 h-5 rounded-full border-2 border-foreground/20 border-t-purple-500 animate-spin" />
+                  <div className="w-5 h-5 rounded-full border-2 border-foreground/20 border-t-yc-orange animate-spin" />
                 ) : (
                   <svg
-                    className="w-5 h-5 text-ship"
+                    className="w-5 h-5 text-yc-orange"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"

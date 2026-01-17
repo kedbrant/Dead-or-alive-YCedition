@@ -75,9 +75,27 @@ export function TrendsSection({ summary, data }: TrendsSectionProps) {
   return (
     <div className="bg-surface rounded-2xl p-6 mb-6">
       <h2 className="text-xl font-bold mb-1">MARKET TRENDS</h2>
-      <p className="text-foreground/60 text-sm mb-4">
+      <p className="text-foreground/60 text-sm mb-2">
         Search interest over time
       </p>
+
+      {/* Keywords being tracked */}
+      {data.keywords && data.keywords.length > 0 && (
+        <div className="mb-4">
+          <span className="text-foreground/60 text-xs">Tracking: </span>
+          <span className="text-foreground/80 text-xs">
+            {data.keywords.map((kw, i) => (
+              <span key={kw}>
+                <span className="bg-foreground/10 px-1.5 py-0.5 rounded">{kw}</span>
+                {i < data.keywords!.length - 1 && " + "}
+              </span>
+            ))}
+          </span>
+          {data.isRealData === false && (
+            <span className="ml-2 text-xs text-orange-500/80 italic">(simulated data)</span>
+          )}
+        </div>
+      )}
 
       {/* Current Level and Change */}
       <div className="flex items-center justify-between mb-4">

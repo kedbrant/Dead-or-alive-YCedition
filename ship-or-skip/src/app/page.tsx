@@ -2,8 +2,6 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
-import Link from "next/link";
 import { ValidationLoading } from "@/components/validation-loading";
 
 const EXAMPLE_IDEAS = [
@@ -108,26 +106,14 @@ export default function Home() {
   return (
     <div className="flex min-h-screen items-center justify-center px-4 py-12">
       <main className="flex flex-col items-center gap-8 max-w-2xl text-center w-full">
-        {/* Logo */}
-        <Link href="/" className="hover:opacity-80 transition-opacity">
-          <Image
-            src="/logo.png"
-            alt="YC Archive"
-            width={80}
-            height={80}
-            className="rounded-2xl shadow-2xl"
-            priority
-          />
-        </Link>
-
         {/* Headline */}
         <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold leading-tight tracking-tight">
-          VALIDATE YOUR STARTUP IDEA
+          Test your idea against the <span className="text-yc-orange">past</span> and the <span className="text-yc-orange">present</span>
         </h1>
 
         {/* Subtitle */}
         <p className="text-lg sm:text-xl text-foreground/70 max-w-lg">
-          Against 5,500 YC companies + live market data
+          Validate against 5,500+ YC startups and real-time market signals
         </p>
 
         {/* Idea Input Form */}
@@ -143,7 +129,7 @@ export default function Home() {
               rows={4}
               className="w-full px-4 py-4 bg-surface border border-foreground/20 rounded-xl text-lg
                 placeholder:text-foreground/40
-                focus:outline-none focus:border-ship focus:ring-1 focus:ring-ship
+                focus:outline-none focus:border-yc-orange focus:ring-1 focus:ring-yc-orange
                 transition-colors resize-none"
             />
             {error && (
@@ -167,8 +153,8 @@ export default function Home() {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="w-full bg-ship text-background font-bold text-lg px-8 py-4 rounded-xl
-              hover:shadow-[0_0_20px_rgba(34,197,94,0.5)] hover:scale-[1.02] active:scale-[0.98]
+            className="w-full bg-yc-orange text-background font-bold text-lg px-8 py-4 rounded-xl
+              hover:shadow-[0_0_20px_rgba(255,102,0,0.5)] hover:scale-[1.02] active:scale-[0.98]
               transition-all duration-150
               disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
           >
@@ -196,21 +182,6 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Feature Badges */}
-        <div className="flex flex-wrap justify-center gap-3 mt-4">
-          <div className="flex items-center gap-2 px-4 py-2 bg-surface rounded-full text-sm">
-            <span className="text-purple-400">🏢</span>
-            <span className="text-foreground/80">5,500+ YC startups</span>
-          </div>
-          <div className="flex items-center gap-2 px-4 py-2 bg-surface rounded-full text-sm">
-            <span className="text-purple-400">📰</span>
-            <span className="text-foreground/80">Live news feed</span>
-          </div>
-          <div className="flex items-center gap-2 px-4 py-2 bg-surface rounded-full text-sm">
-            <span className="text-purple-400">💬</span>
-            <span className="text-foreground/80">Reddit sentiment</span>
-          </div>
-        </div>
       </main>
     </div>
   );

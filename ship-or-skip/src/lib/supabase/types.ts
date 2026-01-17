@@ -39,6 +39,8 @@ export interface TrendsData {
   currentLevel: number;
   changePercent: number;
   timeline: { date: string; value: number }[];
+  keywords?: string[];  // Keywords used for the search query
+  isRealData?: boolean; // True if from SerpAPI, false if mock data
 }
 
 export interface ReportSection {
