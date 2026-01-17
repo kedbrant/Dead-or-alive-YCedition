@@ -244,6 +244,51 @@ async function fetchFromSerpAPI(query: string, keywords: string[]): Promise<Tren
 }
 
 /**
+ * Aggregate trends data from multiple search term results
+ * Uses highest currentLevel and averages timeline values
+ */
+function aggregateTrendsData(results: TrendsData[]): TrendsData {
+  if (results.length === 0) {
+    throw new Error("Cannot aggregate empty results");
+  }
+
+  if (results.length === 1) {
+    return results[0];
+  }
+
+  // Find the highest current level across all terms
+  const maxCurrentLevel = Math.max(...results.map(r => r.currentLevel));
+
+  // Collect all keywords (filter out undefined)
+  const allKeywords = [...new Set(results.flatMap(r => r.keywords || []))];
+
+  // Average the timeline values across all results
+  // Use the timeline from the result with highest currentLevel as base
+  const bestResult = results.find(r => r.currentLevel === maxCurrentLevel) || results[0];
+  const baseTimeline = bestResult.timeline;
+
+  const aggregatedTimeline = baseTimeline.map((point, index) => {
+    const values = results
+      .map(r => r.timeline[index]?.value)
+      .filter((v): v is number => v !== undefined);
+    const avgValue = values.length > 0
+      ? Math.round(values.reduce((a, b) => a + b, 0) / values.length)
+      : point.value;
+    return { date: point.date, value: avgValue };
+  });
+
+  const changePercent = calculateChangePercent(aggregatedTimeline);
+
+  return {
+    currentLevel: maxCurrentLevel,
+    changePercent,
+    timeline: aggregatedTimeline,
+    keywords: allKeywords,
+    isRealData: true,
+  };
+}
+
+/**
  * Get Google Trends data for a startup idea
  *
  * If SERPAPI_KEY environment variable is set, fetches real data from Google Trends
@@ -263,16 +308,20 @@ export async function getGoogleTrends(idea: string, precomputedTerms?: string[])
     return null;
   }
 
-  // Use the first search term as the main query
-  const searchQuery = searchTerms[0];
-
   // Try to fetch real data from SerpAPI if configured
   if (SERPAPI_KEY) {
-    const serpApiData = await fetchFromSerpAPI(searchQuery, searchTerms);
-    if (serpApiData) {
-      return serpApiData;
+    // Make parallel SerpAPI calls for all search terms
+    const serpApiPromises = searchTerms.map(term =>
+      fetchFromSerpAPI(term, [term])
+    );
+    const results = await Promise.all(serpApiPromises);
+    const validResults = results.filter((r): r is TrendsData => r !== null);
+
+    if (validResults.length > 0) {
+      // Aggregate results from all search terms
+      return aggregateTrendsData(validResults);
     }
-    // Fall through to mock data if API fails
+    // Fall through to mock data if all API calls fail
     console.log("Falling back to mock trends data");
   }
 

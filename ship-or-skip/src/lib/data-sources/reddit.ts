@@ -3,7 +3,8 @@ import { extractKeywords } from "./yc";
 import type { RedditPost } from "@/lib/supabase/types";
 
 // Fallback subreddits when AI suggestion is unavailable
-const FALLBACK_SUBREDDITS = ["startups", "SaaS", "Entrepreneur", "smallbusiness"];
+// These are customer-focused general communities, not entrepreneur communities
+const FALLBACK_SUBREDDITS = ["technology", "gadgets", "productivity", "InternetIsBeautiful", "LifeProTips"];
 
 // Request timeout in milliseconds
 const FETCH_TIMEOUT = 10000;

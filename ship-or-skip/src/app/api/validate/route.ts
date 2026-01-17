@@ -82,7 +82,7 @@ export async function POST(request: NextRequest) {
     // This allows partial failures - if Reddit is down, we still get YC, news, and trends
     // Use AI-generated search terms and subreddits for better relevance
     const [companiesResult, newsResult, redditResult, trendsResult] = await Promise.all([
-      fetchWithFallback(() => searchYCCompanies(trimmedIdea), [], "YC Companies"),
+      fetchWithFallback(() => searchYCCompanies(trimmedIdea, analysis.ycSearchTerms), [], "YC Companies"),
       fetchWithFallback(() => fetchRecentNews(trimmedIdea), [], "News"),
       fetchWithFallback(() => searchReddit(trimmedIdea, analysis.subreddits), [], "Reddit"),
       fetchWithFallback(() => getGoogleTrends(trimmedIdea, analysis.searchTerms), null, "Trends"),

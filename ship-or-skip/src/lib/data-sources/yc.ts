@@ -32,6 +32,12 @@ const STOP_WORDS = new Set([
   "time", "first", "best", "top", "leading", "fastest", "easiest",
 ]);
 
+// Important short terms that should NOT be filtered out despite being 2 chars or less
+const IMPORTANT_SHORT_TERMS = new Set([
+  "ai", "ml", "vr", "ar", "xr", "ui", "ux", "api", "qr", "iot",
+  "hr", "pr", "cx", "pm", "b2b", "b2c", "d2c", "p2p", "vc", "db", "os", "id", "crm", "erp"
+]);
+
 // Minimum similarity score to include a company (filters out weak matches)
 const MIN_SIMILARITY_SCORE = 15;
 
@@ -45,26 +51,35 @@ export function extractKeywords(idea: string): string[] {
     .toLowerCase()
     .replace(/[^\w\s]/g, " ") // Remove punctuation
     .split(/\s+/)
-    .filter((word) => word.length > 2 && !STOP_WORDS.has(word))
+    .filter((word) =>
+      !STOP_WORDS.has(word) &&
+      (word.length > 2 || IMPORTANT_SHORT_TERMS.has(word))
+    )
     .slice(0, 10); // Limit to top 10 keywords
 }
 
 /**
  * Calculate similarity score between an idea and a company's pitch
  * Returns a score from 0-100 based on keyword matches
+ * Enhanced to also check yc_tags and yc_industry for better semantic matching
  */
 function calculateSimilarityScore(
   keywords: string[],
   hero: string,
-  ycName: string | null
+  ycName: string | null,
+  ycTags: string[] | null,
+  ycIndustry: string | null
 ): number {
   if (keywords.length === 0) return 0;
 
   const heroLower = hero.toLowerCase();
   const nameLower = (ycName || "").toLowerCase();
+  const industryLower = (ycIndustry || "").toLowerCase();
+  const tagsLower = (ycTags || []).map(t => t.toLowerCase());
 
   let matchCount = 0;
   let nameMatchBonus = 0;
+  let tagMatchBonus = 0;
 
   for (const kw of keywords) {
     // Check if keyword appears in hero text
@@ -75,13 +90,22 @@ function calculateSimilarityScore(
     if (nameLower.includes(kw)) {
       nameMatchBonus += 0.5;
     }
+    // Bonus for matching tags (strong signal)
+    if (tagsLower.some(tag => tag.includes(kw) || kw.includes(tag))) {
+      tagMatchBonus += 0.7;
+    }
+    // Bonus for matching industry
+    if (industryLower.includes(kw)) {
+      tagMatchBonus += 0.4;
+    }
   }
 
   // Calculate base similarity as percentage of keywords matched
   const baseSimilarity = matchCount / keywords.length;
 
-  // Add name match bonus (capped)
-  const totalSimilarity = Math.min(1, baseSimilarity + nameMatchBonus / keywords.length);
+  // Add bonuses (capped)
+  const bonuses = (nameMatchBonus + tagMatchBonus) / keywords.length;
+  const totalSimilarity = Math.min(1, baseSimilarity + bonuses);
 
   return Math.round(totalSimilarity * 100);
 }
@@ -90,27 +114,38 @@ function calculateSimilarityScore(
  * Search YC companies for similar ideas
  *
  * @param idea - The startup idea to search for similar companies
+ * @param aiSearchTerms - Optional AI-generated semantic search terms for better matching
  * @returns Array of matching YC companies with similarity scores, sorted by score descending
  */
-export async function searchYCCompanies(idea: string): Promise<YCCompanyMatch[]> {
+export async function searchYCCompanies(idea: string, aiSearchTerms?: string[]): Promise<YCCompanyMatch[]> {
   const supabase = createServerSupabaseClient();
   const keywords = extractKeywords(idea);
 
-  if (keywords.length === 0) {
+  // Combine extracted keywords with AI-generated semantic terms for better coverage
+  const allSearchTerms = [
+    ...keywords,
+    ...(aiSearchTerms || []).map(t => t.toLowerCase())
+  ];
+
+  // Deduplicate search terms
+  const uniqueSearchTerms = [...new Set(allSearchTerms)];
+
+  if (uniqueSearchTerms.length === 0) {
     return [];
   }
 
-  // Build ILIKE conditions for each keyword on both hero and yc_name fields
-  const heroConditions = keywords.map((kw) => `hero.ilike.%${kw}%`);
-  const nameConditions = keywords.map((kw) => `yc_name.ilike.%${kw}%`);
-  const searchConditions = [...heroConditions, ...nameConditions].join(",");
+  // Build ILIKE conditions for multiple fields to find relevant companies
+  const heroConditions = uniqueSearchTerms.map((kw) => `hero.ilike.%${kw}%`);
+  const nameConditions = uniqueSearchTerms.map((kw) => `yc_name.ilike.%${kw}%`);
+  const industryConditions = uniqueSearchTerms.map((kw) => `yc_industry.ilike.%${kw}%`);
+  const searchConditions = [...heroConditions, ...nameConditions, ...industryConditions].join(",");
 
   const { data: ideas, error } = await supabase
     .from("ideas")
-    .select("yc_name, yc_batch, hero, source_outcome, yc_team_size, yc_slug")
+    .select("yc_name, yc_batch, hero, source_outcome, yc_team_size, yc_slug, yc_tags, yc_industry")
     .eq("source", "yc")
     .or(searchConditions)
-    .limit(50) // Fetch more to ensure we get 20 quality matches after scoring
+    .limit(100) // Fetch more to ensure we get 20 quality matches after scoring
     .returns<Idea[]>();
 
   if (error || !ideas) {
@@ -118,7 +153,7 @@ export async function searchYCCompanies(idea: string): Promise<YCCompanyMatch[]>
     return [];
   }
 
-  // Calculate similarity scores and map to YCCompanyMatch format
+  // Calculate similarity scores using both original keywords and AI terms
   const matches: YCCompanyMatch[] = ideas.map((item) => ({
     name: item.yc_name || item.hero.slice(0, 50),
     batch: item.yc_batch || "Unknown",
@@ -126,7 +161,13 @@ export async function searchYCCompanies(idea: string): Promise<YCCompanyMatch[]>
     outcome: item.source_outcome,
     team_size: item.yc_team_size,
     slug: item.yc_slug || "",
-    similarity_score: calculateSimilarityScore(keywords, item.hero, item.yc_name),
+    similarity_score: calculateSimilarityScore(
+      uniqueSearchTerms,
+      item.hero,
+      item.yc_name,
+      item.yc_tags,
+      item.yc_industry
+    ),
   }));
 
   // Filter out weak matches and sort by similarity score descending
