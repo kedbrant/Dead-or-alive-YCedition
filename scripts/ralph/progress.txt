@@ -111,3 +111,29 @@ Started: Sat, Jan 17, 2026  4:18:56 PM
   - Use AbortController with setTimeout for fetch timeouts
   - Pattern: Reuse extractKeywords from yc.ts for consistent keyword extraction across modules
 ---
+
+## 2026-01-17 21:00 - US-005
+- What was implemented:
+  - Created `/lib/data-sources/reddit.ts` with `searchReddit(idea)` function
+  - Searches 4 startup-related subreddits: startups, SaaS, Entrepreneur, smallbusiness
+  - Uses Reddit JSON API (no auth required): `reddit.com/r/{sub}/search.json`
+  - Searches all subreddits in parallel with Promise.all for performance
+  - Returns posts with: subreddit, title, score, comments, url
+  - Sorts by score descending, returns top 15 posts across all subreddits
+  - Handles rate limits and errors gracefully with 10s timeout, returns empty array on failure
+  - Uses User-Agent header as required by Reddit API
+  - Updated validate route to import and use searchReddit from reddit module
+  - Updated generateAnalysis to populate sentiment section with real Reddit data
+
+- Files changed:
+  - ship-or-skip/src/lib/data-sources/reddit.ts - NEW: Reddit search module
+  - ship-or-skip/src/app/api/validate/route.ts - Removed stub, imports real searchReddit, uses Reddit data in sentiment section
+
+- **Learnings for future iterations:**
+  - Reddit JSON API search endpoint format: `https://www.reddit.com/r/{subreddit}/search.json?q=QUERY&restrict_sr=on&sort=relevance&t=year&limit=10`
+  - Required query params: `restrict_sr=on` restricts to that subreddit, `t=year` for posts from last year
+  - Reddit requires User-Agent header (e.g., "YCArchive/1.0 (Idea Validation Tool)")
+  - Use AbortController with setTimeout for fetch timeouts (same pattern as news.ts)
+  - Reddit response structure: `data.children[].data` contains post objects with `subreddit`, `title`, `score`, `num_comments`, `permalink`
+  - Pattern: Reuse extractKeywords from yc.ts for consistent keyword extraction
+---
