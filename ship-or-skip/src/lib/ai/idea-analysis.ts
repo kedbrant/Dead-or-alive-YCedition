@@ -39,7 +39,7 @@ export async function analyzeIdea(idea: string): Promise<IdeaAnalysis> {
     const words = idea.toLowerCase().split(/\s+/).filter(w => w.length > 2);
     return {
       initialTake: "Let's analyze this idea against historical data and current market signals.",
-      searchTerms: idea.split(" ").filter(w => w.length > 3).slice(0, 3),
+      searchTerms: idea.split(" ").filter(w => w.length > 3).slice(0, 5),
       subreddits: FALLBACK_SUBREDDITS,
       ycSearchTerms: words.slice(0, 5),
     };
@@ -59,9 +59,9 @@ export async function analyzeIdea(idea: string): Promise<IdeaAnalysis> {
    - Ends with something like "Let's see what the data shows."
    - Be honest but not discouraging
 
-2. **searchTerms**: 2-3 Google search phrases (2-3 words each) that potential CUSTOMERS would search for. Focus on the problem/need, not the solution.
-   - Example for "horse marketplace": ["buy horses", "horses for sale", "horse trading"]
-   - Example for "AI code review": ["code review tools", "automated code review", "find code bugs"]
+2. **searchTerms**: 4-5 Google search phrases (2-3 words each) that potential CUSTOMERS would search for. Focus on the problem/need, not the solution.
+   - Example for "horse marketplace": ["buy horses", "horses for sale", "horse trading", "horse auction", "sell my horse"]
+   - Example for "AI code review": ["code review tools", "automated code review", "find code bugs", "code quality checker", "lint code"]
 
 3. **subreddits**: 4-6 subreddit names where TARGET CUSTOMERS discuss their problems (not entrepreneur subreddits).
    - Example for "horse marketplace": ["Horses", "Equestrian", "HorseTrading", "farming"]
@@ -97,7 +97,7 @@ Respond with ONLY valid JSON, no markdown:
     const words = idea.toLowerCase().split(/\s+/).filter(w => w.length > 2);
     return {
       initialTake: analysis.initialTake || "Let's analyze this idea against the data.",
-      searchTerms: Array.isArray(analysis.searchTerms) ? analysis.searchTerms.slice(0, 3) : [],
+      searchTerms: Array.isArray(analysis.searchTerms) ? analysis.searchTerms.slice(0, 5) : [],
       subreddits: Array.isArray(analysis.subreddits) ? analysis.subreddits.slice(0, 6) : FALLBACK_SUBREDDITS,
       ycSearchTerms: Array.isArray(analysis.ycSearchTerms) ? analysis.ycSearchTerms.slice(0, 6) : words.slice(0, 5),
     };
@@ -106,7 +106,7 @@ Respond with ONLY valid JSON, no markdown:
     const words = idea.toLowerCase().split(/\s+/).filter(w => w.length > 2);
     return {
       initialTake: "Let's analyze this idea against historical data and current market signals.",
-      searchTerms: idea.split(" ").filter(w => w.length > 3).slice(0, 3),
+      searchTerms: idea.split(" ").filter(w => w.length > 3).slice(0, 5),
       subreddits: FALLBACK_SUBREDDITS,
       ycSearchTerms: words.slice(0, 5),
     };

@@ -34,7 +34,7 @@ async function generateSearchTerms(idea: string): Promise<string[]> {
   const openai = getOpenAIClient();
   if (!openai) {
     // Fallback to basic keyword extraction
-    return extractKeywords(idea).slice(0, 3);
+    return extractKeywords(idea).slice(0, 5);
   }
 
   try {
@@ -68,17 +68,17 @@ Respond with ONLY a JSON array of strings, no explanation.`,
 
     const response = completion.choices[0]?.message?.content;
     if (!response) {
-      return extractKeywords(idea).slice(0, 3);
+      return extractKeywords(idea).slice(0, 5);
     }
 
     const terms = JSON.parse(response) as string[];
     if (Array.isArray(terms) && terms.length > 0) {
-      return terms.slice(0, 3);
+      return terms.slice(0, 5);
     }
-    return extractKeywords(idea).slice(0, 3);
+    return extractKeywords(idea).slice(0, 5);
   } catch (error) {
     console.warn("Failed to generate AI search terms:", error);
-    return extractKeywords(idea).slice(0, 3);
+    return extractKeywords(idea).slice(0, 5);
   }
 }
 
@@ -138,7 +138,7 @@ function calculateChangePercent(timeline: { date: string; value: number }[]): nu
  */
 function generateMockTrendsData(idea: string): TrendsData {
   const keywords = extractKeywords(idea);
-  const searchKeywords = keywords.slice(0, 3);
+  const searchKeywords = keywords.slice(0, 5);
 
   // Create a simple hash from keywords for deterministic but varied results
   let hash = 0;
