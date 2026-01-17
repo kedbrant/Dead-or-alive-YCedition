@@ -8,6 +8,9 @@ Started: Sat, Jan 17, 2026  4:18:56 PM
 - Form inputs use `bg-surface border border-foreground/20 rounded-xl`
 - Buttons use hover effects: `hover:shadow-[0_0_20px_rgba(34,197,94,0.5)] hover:scale-[1.02]`
 - Missing dependencies may exist in node_modules but not package.json (clsx, tailwind-merge, motion)
+- API routes: Use `NextRequest`/`NextResponse`, import `createServerSupabaseClient` from `@/lib/supabase/server`
+- Database types: All table types defined in `@/lib/supabase/types.ts`, export Row/Insert/Update variants
+- Data source modules: Place external data fetching in `/lib/data-sources/` (e.g., yc.ts, news.ts, reddit.ts)
 
 ---
 
@@ -34,4 +37,51 @@ Started: Sat, Jan 17, 2026  4:18:56 PM
   - Clean .next cache with `rm -rf .next` when seeing stale route errors
   - Navbar was complex with mobile hamburger menu, now simplified
   - Example ideas pattern: store as const array, map to buttons that populate textarea
+---
+
+## 2026-01-17 18:45 - US-002
+- What was implemented:
+  - Created POST /api/validate/route.ts endpoint
+  - Request validation: returns 400 if idea missing or < 10 chars
+  - Parallel data fetching with Promise.all for YC companies, news, Reddit, trends
+  - YC company search using ILIKE queries on hero field with keyword extraction
+  - Stub implementations for news, Reddit, trends (to be enhanced in US-004, US-005, US-006)
+  - Preliminary score calculation based on similar company outcomes
+  - Report saved to database with UUID, returns ID for redirect
+  - Added ReportData, YCCompanyMatch, NewsArticle, RedditPost, TrendsData types
+  - Added reports table types to Database type
+
+- Files changed:
+  - ship-or-skip/src/app/api/validate/route.ts - New API endpoint
+  - ship-or-skip/src/lib/supabase/types.ts - Added report types and interfaces
+
+- **Learnings for future iterations:**
+  - Use `extractKeywords()` function to tokenize search queries, filtering stop words
+  - Pattern: Promise.all for parallel API/DB calls, improves performance
+  - Supabase ILIKE queries: `.or('hero.ilike.%keyword1%,hero.ilike.%keyword2%')`
+  - ReportData structure: score, scoreReasoning, sections with historical/market/sentiment/trends/recommendations
+  - The reports table needs to be created via migration (US-008) before this endpoint works fully
+---
+
+## 2026-01-17 19:30 - US-003
+- What was implemented:
+  - Created `/lib/data-sources/yc.ts` with `searchYCCompanies(idea)` function
+  - Implemented keyword tokenization with extended stop words list (includes startup-specific terms)
+  - Searches `ideas` table using ILIKE on BOTH `hero` AND `yc_name` fields
+  - Filters to `source='yc'` only
+  - Returns top 20 matches with: name, batch, pitch, outcome, team_size, slug, similarity_score
+  - Similarity score calculation includes bonus for company name matches
+  - Fetches 50 results, scores them, then returns top 20
+  - Updated validate route to import from new location
+
+- Files changed:
+  - ship-or-skip/src/lib/data-sources/yc.ts - NEW: YC company search module
+  - ship-or-skip/src/app/api/validate/route.ts - Updated to import searchYCCompanies from new location
+
+- **Learnings for future iterations:**
+  - Data source modules go in `/lib/data-sources/` directory
+  - Extended STOP_WORDS include startup-generic terms: app, platform, software, service, tool, company, startup, etc.
+  - Similarity scoring: base score from keyword matches + bonus for company name matches
+  - Fetch more results than needed (50) to ensure quality after scoring and sorting
+  - Pattern: Export both the function and helper utilities (extractKeywords) for testing/reuse
 ---
