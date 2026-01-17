@@ -7,6 +7,7 @@ import { ReportActions } from "@/components/report/report-actions";
 import { ScoreDisplay } from "@/components/report/score-display";
 import { HistoricalSection } from "@/components/report/historical-section";
 import { MarketSection } from "@/components/report/market-section";
+import { SentimentSection } from "@/components/report/sentiment-section";
 
 export const dynamic = "force-dynamic";
 
@@ -165,64 +166,11 @@ export default async function ReportPage({ params }: ReportPageProps) {
         />
 
         {/* Sentiment Analysis Section */}
-        <div className="bg-surface rounded-2xl p-6 mb-6">
-          <h2 className="text-xl font-bold mb-1">COMMUNITY SENTIMENT</h2>
-          <p className="text-foreground/60 text-sm mb-4">
-            What people are saying
-          </p>
-
-          {/* Sentiment Breakdown */}
-          {sections.sentiment.sentimentBreakdown && (
-            <div className="flex gap-2 mb-4">
-              <div className="flex-1 text-center p-2 bg-green-500/10 rounded-lg">
-                <div className="text-green-500 font-bold">
-                  {sections.sentiment.sentimentBreakdown.positive}%
-                </div>
-                <div className="text-xs text-foreground/60">Positive</div>
-              </div>
-              <div className="flex-1 text-center p-2 bg-gray-500/10 rounded-lg">
-                <div className="text-gray-400 font-bold">
-                  {sections.sentiment.sentimentBreakdown.neutral}%
-                </div>
-                <div className="text-xs text-foreground/60">Neutral</div>
-              </div>
-              <div className="flex-1 text-center p-2 bg-red-500/10 rounded-lg">
-                <div className="text-red-500 font-bold">
-                  {sections.sentiment.sentimentBreakdown.negative}%
-                </div>
-                <div className="text-xs text-foreground/60">Negative</div>
-              </div>
-            </div>
-          )}
-
-          <p className="text-foreground/80 mb-4">{sections.sentiment.summary}</p>
-
-          {/* Reddit Posts */}
-          {sections.sentiment.posts && sections.sentiment.posts.length > 0 && (
-            <div className="space-y-2">
-              {sections.sentiment.posts.slice(0, 5).map((post, index) => (
-                <a
-                  key={index}
-                  href={post.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="block p-3 bg-foreground/5 rounded-lg hover:bg-foreground/10 transition-colors"
-                >
-                  <div className="font-medium text-sm line-clamp-2">
-                    {post.title}
-                  </div>
-                  <div className="text-xs text-foreground/60 mt-1 flex items-center gap-2">
-                    <span>r/{post.subreddit}</span>
-                    <span>•</span>
-                    <span>{post.score} upvotes</span>
-                    <span>•</span>
-                    <span>{post.comments} comments</span>
-                  </div>
-                </a>
-              ))}
-            </div>
-          )}
-        </div>
+        <SentimentSection
+          summary={sections.sentiment.summary}
+          posts={sections.sentiment.posts}
+          sentimentBreakdown={sections.sentiment.sentimentBreakdown}
+        />
 
         {/* Trends Analysis Section */}
         <div className="bg-surface rounded-2xl p-6 mb-6">
