@@ -393,7 +393,7 @@
         "Verify in browser"
       ],
       "priority": 22,
-      "passes": false,
+      "passes": true,
       "notes": "End-to-end testing is critical"
     },
     {

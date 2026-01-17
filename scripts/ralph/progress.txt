@@ -532,3 +532,34 @@ Started: Sat, Jan 17, 2026  4:18:56 PM
   - Default domain fallbacks are scattered across multiple files - search for old domain when rebranding
   - OG metadata is centralized in layout.tsx for global settings, but pages can override with generateMetadata
 ---
+
+## 2026-01-17 - US-022
+- What was implemented:
+  - Fixed OpenAI client initialization to be lazy (deferred to runtime)
+    - Was causing build failure when OPENAI_API_KEY not set at build time
+    - Uses getOpenAIClient() pattern for safe runtime instantiation
+  - Fixed lint errors:
+    - Escape quotes in OG route using HTML entities (&ldquo; &rdquo;)
+    - Remove unused 'neutral' variable in sentiment-section.tsx
+    - Escape apostrophe in validation-loading.tsx (&apos;)
+  - Verified end-to-end validation flow works:
+    - Landing page accepts idea input with 10 char minimum validation
+    - Submit triggers loading state with animated progress indicators
+    - API validates idea, fetches data in parallel, generates AI analysis, saves report
+    - Report page fetches and displays all 5 sections with proper data binding
+    - Share buttons functional (copy link with feedback, X share, new validation)
+    - Mobile responsive throughout (verified Tailwind responsive classes)
+  - All checks pass: build, lint, typecheck
+
+- Files changed:
+  - ship-or-skip/src/lib/ai/openai.ts - Lazy client initialization pattern
+  - ship-or-skip/src/app/api/og/route.tsx - Fixed unescaped quotes
+  - ship-or-skip/src/components/report/sentiment-section.tsx - Removed unused variable
+  - ship-or-skip/src/components/validation-loading.tsx - Fixed unescaped apostrophe
+
+- **Learnings for future iterations:**
+  - OpenAI SDK throws at import time if API key missing - use lazy initialization pattern
+  - Pattern: `let client: OpenAI | null = null; function getClient()` to defer instantiation
+  - Build errors from module initialization are different from runtime errors
+  - ESLint react/no-unescaped-entities catches quotes/apostrophes - use HTML entities
+---
