@@ -141,6 +141,16 @@ export default async function ReportPage({ params }: ReportPageProps) {
           <p className="text-lg text-foreground">{reportData.idea}</p>
         </div>
 
+        {/* Initial Take - Quick AI Assessment */}
+        {reportData.initialTake && (
+          <div className="bg-surface rounded-2xl p-6 mb-6 border-l-4 border-[var(--yc-orange)]">
+            <h2 className="text-sm font-medium text-foreground/60 uppercase tracking-wide mb-2">
+              Quick Take
+            </h2>
+            <p className="text-foreground/90 italic">{reportData.initialTake}</p>
+          </div>
+        )}
+
         {/* Score Display */}
         <div className="mb-6">
           <ScoreDisplay score={report.score} scoreReasoning={reportData.scoreReasoning} />

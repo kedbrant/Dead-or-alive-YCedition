@@ -25,6 +25,7 @@ function getOpenAIClient(): OpenAI | null {
 // Input data structure for analysis
 export interface AnalysisInput {
   idea: string;
+  initialTake?: string; // Quick AI assessment from initial analysis
   companies: YCCompanyMatch[];
   news: NewsArticle[];
   reddit: RedditPost[];
@@ -156,7 +157,7 @@ Be specific and reference the actual data provided. Do not make up companies or 
 
 // Generate fallback analysis when OpenAI is unavailable
 function generateFallbackAnalysis(data: AnalysisInput): ReportData {
-  const { idea, companies, news, reddit, trends } = data;
+  const { idea, initialTake, companies, news, reddit, trends } = data;
 
   // Count outcomes
   const outcomeCounts = { unicorn: 0, acquired: 0, dead: 0, active: 0 };
@@ -181,6 +182,7 @@ function generateFallbackAnalysis(data: AnalysisInput): ReportData {
 
   return {
     idea,
+    initialTake,
     score,
     scoreReasoning: `Preliminary score based on ${companies.length} similar YC companies. ${outcomeCounts.unicorn} unicorns, ${outcomeCounts.acquired} acquired, ${outcomeCounts.dead} failed. AI analysis unavailable.`,
     sections: {
@@ -288,6 +290,7 @@ export async function generateAnalysis(data: AnalysisInput): Promise<ReportData>
     // Build the report data structure
     const reportData: ReportData = {
       idea,
+      initialTake: data.initialTake,
       score,
       scoreReasoning: aiResponse.scoreReasoning,
       sections: {

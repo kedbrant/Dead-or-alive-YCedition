@@ -5,6 +5,7 @@ import { fetchRecentNews } from "@/lib/data-sources/news";
 import { searchReddit } from "@/lib/data-sources/reddit";
 import { getGoogleTrends } from "@/lib/data-sources/trends";
 import { generateAnalysis } from "@/lib/ai/openai";
+import { analyzeIdea } from "@/lib/ai/idea-analysis";
 import type { ReportInsert } from "@/lib/supabase/types";
 
 // Minimum idea length requirement
@@ -73,13 +74,18 @@ export async function POST(request: NextRequest) {
   }
 
   try {
+    // First, get AI analysis (initial take + search terms + subreddits)
+    // This single call extracts all the context we need for better data fetching
+    const analysis = await analyzeIdea(trimmedIdea);
+
     // Fetch data from multiple sources in parallel with individual error handling
     // This allows partial failures - if Reddit is down, we still get YC, news, and trends
+    // Use AI-generated search terms and subreddits for better relevance
     const [companiesResult, newsResult, redditResult, trendsResult] = await Promise.all([
       fetchWithFallback(() => searchYCCompanies(trimmedIdea), [], "YC Companies"),
       fetchWithFallback(() => fetchRecentNews(trimmedIdea), [], "News"),
-      fetchWithFallback(() => searchReddit(trimmedIdea), [], "Reddit"),
-      fetchWithFallback(() => getGoogleTrends(trimmedIdea), null, "Trends"),
+      fetchWithFallback(() => searchReddit(trimmedIdea, analysis.subreddits), [], "Reddit"),
+      fetchWithFallback(() => getGoogleTrends(trimmedIdea, analysis.searchTerms), null, "Trends"),
     ]);
 
     const companies = companiesResult.data;
@@ -99,6 +105,7 @@ export async function POST(request: NextRequest) {
     // Generate AI analysis using OpenAI GPT-4o
     const reportData = await generateAnalysis({
       idea: trimmedIdea,
+      initialTake: analysis.initialTake,
       companies,
       news,
       reddit,

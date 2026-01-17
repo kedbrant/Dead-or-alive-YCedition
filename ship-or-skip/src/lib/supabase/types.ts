@@ -50,6 +50,7 @@ export interface ReportSection {
 
 export interface ReportData {
   idea: string;
+  initialTake?: string; // Quick AI assessment before diving into data
   score: number;
   scoreReasoning: string;
   sections: {

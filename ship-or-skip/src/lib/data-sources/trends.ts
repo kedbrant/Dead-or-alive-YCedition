@@ -250,11 +250,14 @@ async function fetchFromSerpAPI(query: string, keywords: string[]): Promise<Tren
  * via SerpAPI. Otherwise, returns mock data that simulates typical trend patterns.
  *
  * @param idea - The startup idea to get trends for
+ * @param precomputedTerms - Optional pre-computed search terms from initial analysis
  * @returns TrendsData with currentLevel (0-100), changePercent, and timeline
  */
-export async function getGoogleTrends(idea: string): Promise<TrendsData | null> {
-  // Use AI to generate relevant search terms (e.g., "buy horses" instead of just "horses")
-  const searchTerms = await generateSearchTerms(idea);
+export async function getGoogleTrends(idea: string, precomputedTerms?: string[]): Promise<TrendsData | null> {
+  // Use pre-computed terms if provided, otherwise generate them
+  const searchTerms = precomputedTerms && precomputedTerms.length > 0
+    ? precomputedTerms
+    : await generateSearchTerms(idea);
 
   if (searchTerms.length === 0) {
     return null;

@@ -166,9 +166,10 @@ async function searchSubreddit(
  * Uses AI to suggest relevant customer-focused subreddits based on the idea
  *
  * @param idea - The startup idea to search for
+ * @param precomputedSubreddits - Optional pre-computed subreddits from initial analysis
  * @returns Array of Reddit posts sorted by score descending, max 15 posts
  */
-export async function searchReddit(idea: string): Promise<RedditPost[]> {
+export async function searchReddit(idea: string, precomputedSubreddits?: string[]): Promise<RedditPost[]> {
   // Extract keywords from idea for search query
   const keywords = extractKeywords(idea);
 
@@ -176,8 +177,10 @@ export async function searchReddit(idea: string): Promise<RedditPost[]> {
     return [];
   }
 
-  // Get AI-suggested subreddits based on the idea (targets customers, not entrepreneurs)
-  const subreddits = await suggestSubreddits(idea);
+  // Use pre-computed subreddits if provided, otherwise generate them
+  const subreddits = precomputedSubreddits && precomputedSubreddits.length > 0
+    ? precomputedSubreddits
+    : await suggestSubreddits(idea);
 
   // Build search query from keywords (join with space for Reddit search)
   const searchQuery = keywords.slice(0, 5).join(" ");
