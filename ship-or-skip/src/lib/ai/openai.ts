@@ -7,10 +7,20 @@ import type {
   TrendsData,
 } from "@/lib/supabase/types";
 
-// Initialize OpenAI client
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+// Lazily initialized OpenAI client (defer to runtime to avoid build errors)
+let openaiClient: OpenAI | null = null;
+
+function getOpenAIClient(): OpenAI | null {
+  if (!process.env.OPENAI_API_KEY) {
+    return null;
+  }
+  if (!openaiClient) {
+    openaiClient = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    });
+  }
+  return openaiClient;
+}
 
 // Input data structure for analysis
 export interface AnalysisInput {
@@ -234,7 +244,8 @@ export async function generateAnalysis(data: AnalysisInput): Promise<ReportData>
   const { idea, companies, news, reddit, trends } = data;
 
   // Check if OpenAI API key is configured
-  if (!process.env.OPENAI_API_KEY) {
+  const openai = getOpenAIClient();
+  if (!openai) {
     console.warn("OpenAI API key not configured, using fallback analysis");
     return generateFallbackAnalysis(data);
   }

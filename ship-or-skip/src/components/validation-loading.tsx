@@ -102,7 +102,7 @@ export function ValidationLoading() {
 
         {/* Progress Message */}
         <p className="text-foreground/50 text-xs">
-          We're searching through 5,500+ YC companies and live market data
+          We&apos;re searching through 5,500+ YC companies and live market data
         </p>
       </div>
     </div>

@@ -161,7 +161,7 @@ export async function GET(request: NextRequest) {
                   maxWidth: "800px",
                 }}
               >
-                "{ideaText}"
+                &ldquo;{ideaText}&rdquo;
               </div>
             )}
           </div>

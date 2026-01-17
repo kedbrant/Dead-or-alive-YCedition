@@ -32,7 +32,7 @@ export function SentimentSection({
     color: string;
     bgColor: string;
   } => {
-    const { positive, negative, neutral } = sentimentBreakdown;
+    const { positive, negative } = sentimentBreakdown;
     if (positive >= 50) {
       return {
         label: "Positive",
