@@ -8,6 +8,7 @@ import { ScoreDisplay } from "@/components/report/score-display";
 import { HistoricalSection } from "@/components/report/historical-section";
 import { MarketSection } from "@/components/report/market-section";
 import { SentimentSection } from "@/components/report/sentiment-section";
+import { TrendsSection } from "@/components/report/trends-section";
 
 export const dynamic = "force-dynamic";
 
@@ -36,20 +37,6 @@ function getScoreLabel(score: number): string {
   if (score >= 60) return "Moderate";
   if (score >= 40) return "Risky";
   return "Caution";
-}
-
-function getScoreColor(score: number): string {
-  if (score >= 80) return "text-green-500";
-  if (score >= 60) return "text-yellow-500";
-  if (score >= 40) return "text-orange-500";
-  return "text-red-500";
-}
-
-function getScoreBgColor(score: number): string {
-  if (score >= 80) return "bg-green-500";
-  if (score >= 60) return "bg-yellow-500";
-  if (score >= 40) return "bg-orange-500";
-  return "bg-red-500";
 }
 
 function truncateIdea(idea: string, maxLength: number = 60): string {
@@ -173,56 +160,10 @@ export default async function ReportPage({ params }: ReportPageProps) {
         />
 
         {/* Trends Analysis Section */}
-        <div className="bg-surface rounded-2xl p-6 mb-6">
-          <h2 className="text-xl font-bold mb-1">MARKET TRENDS</h2>
-          <p className="text-foreground/60 text-sm mb-4">
-            Search interest over time
-          </p>
-
-          {sections.trends.data ? (
-            <>
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <span className="text-3xl font-bold">
-                    {sections.trends.data.currentLevel}
-                  </span>
-                  <span className="text-foreground/60">/100</span>
-                </div>
-                <div
-                  className={`text-lg font-medium ${
-                    sections.trends.data.changePercent >= 0
-                      ? "text-green-500"
-                      : "text-red-500"
-                  }`}
-                >
-                  {sections.trends.data.changePercent >= 0 ? "+" : ""}
-                  {sections.trends.data.changePercent}%
-                </div>
-              </div>
-
-              {/* Simple Trend Chart */}
-              {sections.trends.data.timeline &&
-                sections.trends.data.timeline.length > 0 && (
-                  <div className="h-24 flex items-end gap-0.5 mb-4">
-                    {sections.trends.data.timeline.map((point, index) => (
-                      <div
-                        key={index}
-                        className={`flex-1 ${getScoreBgColor(point.value)} opacity-60 rounded-t`}
-                        style={{ height: `${Math.max(point.value, 5)}%` }}
-                        title={`${point.date}: ${point.value}`}
-                      />
-                    ))}
-                  </div>
-                )}
-            </>
-          ) : (
-            <p className="text-foreground/60 text-sm italic">
-              Trends data not available for this topic.
-            </p>
-          )}
-
-          <p className="text-foreground/80">{sections.trends.summary}</p>
-        </div>
+        <TrendsSection
+          summary={sections.trends.summary}
+          data={sections.trends.data}
+        />
 
         {/* Recommendations Section */}
         <div className="bg-surface rounded-2xl p-6 mb-6">
