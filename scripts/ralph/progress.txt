@@ -267,3 +267,29 @@ Started: Sat, Jan 17, 2026  4:18:56 PM
   - Glow effects: Use shadow-[0_0_60px_rgba(...)] for subtle background glow
   - Pattern: Extract reusable UI components to /components/report/ directory
 ---
+
+## 2026-01-17 - US-011
+- What was implemented:
+  - Created HistoricalSection component in /components/report/historical-section.tsx
+  - Section heading "HISTORICAL ANALYSIS" with subheading "Based on 5,500+ YC companies"
+  - Shows count of similar companies found (displayed in heading)
+  - Outcome distribution grid with emojis: unicorn, acquired, active, dead with counts
+  - Lists similar companies with: outcome emoji badge, company name, batch, pitch (truncated)
+  - Key insight summary from AI displayed as paragraph
+  - Expandable view: "Show all X companies" / "Show less" button with chevron icons
+  - Uses useState for expand/collapse state (client component with "use client")
+  - Updated report page to use the new component, removed inline historical section
+  - Cleaned up unused getOutcomeEmoji function and SourceOutcome import from page
+  - Typecheck passes
+
+- Files changed:
+  - ship-or-skip/src/components/report/historical-section.tsx - NEW: Historical analysis section component
+  - ship-or-skip/src/app/report/[id]/page.tsx - Updated to use HistoricalSection component
+
+- **Learnings for future iterations:**
+  - Client components need "use client" directive for useState hooks
+  - Pattern: Show first N items (5), expand to show all with toggle button
+  - SVG chevron icons for expand/collapse: up arrow for collapse, down arrow for expand
+  - When extracting inline components, also clean up unused imports and helper functions
+  - Report section components follow pattern: heading, subheading, content, expandable list
+---
