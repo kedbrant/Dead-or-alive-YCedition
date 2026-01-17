@@ -315,3 +315,29 @@ Started: Sat, Jan 17, 2026  4:18:56 PM
   - Use &bull; (HTML entity) instead of • character for better rendering consistency
   - Pattern: Keep 5 as default visible items before "Show more"
 ---
+
+## 2026-01-17 - US-013
+- What was implemented:
+  - Created SentimentSection component in /components/report/sentiment-section.tsx
+  - Section heading "COMMUNITY SENTIMENT" with subheading "What people are saying"
+  - Shows subreddits analyzed with badge-style chips (r/startups, r/SaaS, etc.)
+  - Sentiment indicator with overall label (Positive/Negative/Mixed) with colored dot
+  - Detailed sentiment breakdown: positive/negative/neutral percentages with colored backgrounds
+  - Key insight summary from AI displayed as paragraph
+  - Lists Reddit posts with: title (line-clamped), subreddit, score, comments
+  - Posts are clickable links opening in new tab
+  - Expandable view: "Show all X posts" / "Show less" button with chevron icons (shows first 5 by default)
+  - Empty state message when no community discussions found
+  - Updated report page to use the new component, removed inline sentiment section (reduced 58 lines)
+  - Typecheck passes
+
+- Files changed:
+  - ship-or-skip/src/components/report/sentiment-section.tsx - NEW: Sentiment analysis section component
+  - ship-or-skip/src/app/report/[id]/page.tsx - Updated to use SentimentSection component
+
+- **Learnings for future iterations:**
+  - Extract unique values from arrays using `[...new Set(posts.map(p => p.subreddit))]`
+  - Overall sentiment calculation: positive>=50 = Positive, negative>=50 = Negative, else Mixed
+  - Pattern: Colored dot indicator + text label for overall status (like health indicators)
+  - Report section components continue consistent pattern: heading, subheading, AI summary, list items, expandable button
+---
