@@ -216,11 +216,18 @@ async function fetchFromSerpAPI(query: string, keywords: string[]): Promise<Tren
     }
 
     const timelineData = data.interest_over_time.timeline_data;
+
+    // When comparing multiple terms, take the max value across all terms for each time point
+    // This gives us the strongest signal from any of the search terms
     const timeline: { date: string; value: number }[] = timelineData.map(
-      (point: { date: string; values: { extracted_value: number }[] }) => ({
-        date: point.date,
-        value: point.values?.[0]?.extracted_value ?? 0,
-      })
+      (point: { date: string; values: { extracted_value: number }[] }) => {
+        const values = point.values?.map((v: { extracted_value: number }) => v.extracted_value) ?? [0];
+        const maxValue = Math.max(...values);
+        return {
+          date: point.date,
+          value: maxValue,
+        };
+      }
     );
 
     const currentLevel = timeline[timeline.length - 1]?.value ?? 0;
@@ -241,51 +248,6 @@ async function fetchFromSerpAPI(query: string, keywords: string[]): Promise<Tren
     }
     return null;
   }
-}
-
-/**
- * Aggregate trends data from multiple search term results
- * Uses highest currentLevel and averages timeline values
- */
-function aggregateTrendsData(results: TrendsData[]): TrendsData {
-  if (results.length === 0) {
-    throw new Error("Cannot aggregate empty results");
-  }
-
-  if (results.length === 1) {
-    return results[0];
-  }
-
-  // Find the highest current level across all terms
-  const maxCurrentLevel = Math.max(...results.map(r => r.currentLevel));
-
-  // Collect all keywords (filter out undefined)
-  const allKeywords = [...new Set(results.flatMap(r => r.keywords || []))];
-
-  // Average the timeline values across all results
-  // Use the timeline from the result with highest currentLevel as base
-  const bestResult = results.find(r => r.currentLevel === maxCurrentLevel) || results[0];
-  const baseTimeline = bestResult.timeline;
-
-  const aggregatedTimeline = baseTimeline.map((point, index) => {
-    const values = results
-      .map(r => r.timeline[index]?.value)
-      .filter((v): v is number => v !== undefined);
-    const avgValue = values.length > 0
-      ? Math.round(values.reduce((a, b) => a + b, 0) / values.length)
-      : point.value;
-    return { date: point.date, value: avgValue };
-  });
-
-  const changePercent = calculateChangePercent(aggregatedTimeline);
-
-  return {
-    currentLevel: maxCurrentLevel,
-    changePercent,
-    timeline: aggregatedTimeline,
-    keywords: allKeywords,
-    isRealData: true,
-  };
 }
 
 /**
@@ -310,18 +272,15 @@ export async function getGoogleTrends(idea: string, precomputedTerms?: string[])
 
   // Try to fetch real data from SerpAPI if configured
   if (SERPAPI_KEY) {
-    // Make parallel SerpAPI calls for all search terms
-    const serpApiPromises = searchTerms.map(term =>
-      fetchFromSerpAPI(term, [term])
-    );
-    const results = await Promise.all(serpApiPromises);
-    const validResults = results.filter((r): r is TrendsData => r !== null);
+    // SerpAPI supports comparing up to 5 terms in a single call (comma-separated)
+    // This is more efficient and cost-effective than multiple calls
+    const combinedQuery = searchTerms.slice(0, 5).join(",");
+    const serpApiData = await fetchFromSerpAPI(combinedQuery, searchTerms);
 
-    if (validResults.length > 0) {
-      // Aggregate results from all search terms
-      return aggregateTrendsData(validResults);
+    if (serpApiData) {
+      return serpApiData;
     }
-    // Fall through to mock data if all API calls fail
+    // Fall through to mock data if API call fails
     console.log("Falling back to mock trends data");
   }
 
