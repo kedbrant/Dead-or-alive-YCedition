@@ -2,9 +2,10 @@ import { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
-import { Report, ReportData, SourceOutcome } from "@/lib/supabase/types";
+import { Report, ReportData } from "@/lib/supabase/types";
 import { ReportActions } from "@/components/report/report-actions";
 import { ScoreDisplay } from "@/components/report/score-display";
+import { HistoricalSection } from "@/components/report/historical-section";
 
 export const dynamic = "force-dynamic";
 
@@ -47,21 +48,6 @@ function getScoreBgColor(score: number): string {
   if (score >= 60) return "bg-yellow-500";
   if (score >= 40) return "bg-orange-500";
   return "bg-red-500";
-}
-
-function getOutcomeEmoji(outcome: SourceOutcome): string {
-  switch (outcome) {
-    case "unicorn":
-      return "🦄";
-    case "acquired":
-      return "🤝";
-    case "dead":
-      return "💀";
-    case "active":
-      return "🚀";
-    default:
-      return "❓";
-  }
 }
 
 function truncateIdea(idea: string, maxLength: number = 60): string {
@@ -165,82 +151,11 @@ export default async function ReportPage({ params }: ReportPageProps) {
         </div>
 
         {/* Historical Analysis Section */}
-        <div className="bg-surface rounded-2xl p-6 mb-6">
-          <h2 className="text-xl font-bold mb-1">HISTORICAL ANALYSIS</h2>
-          <p className="text-foreground/60 text-sm mb-4">
-            Based on 5,500+ YC companies
-          </p>
-
-          {/* Outcome Distribution */}
-          {sections.historical.outcomeCounts && (
-            <div className="grid grid-cols-4 gap-2 mb-4">
-              <div className="text-center p-3 bg-foreground/5 rounded-xl">
-                <div className="text-2xl mb-1">🦄</div>
-                <div className="text-lg font-bold">
-                  {sections.historical.outcomeCounts.unicorn}
-                </div>
-                <div className="text-xs text-foreground/60">Unicorn</div>
-              </div>
-              <div className="text-center p-3 bg-foreground/5 rounded-xl">
-                <div className="text-2xl mb-1">🤝</div>
-                <div className="text-lg font-bold">
-                  {sections.historical.outcomeCounts.acquired}
-                </div>
-                <div className="text-xs text-foreground/60">Acquired</div>
-              </div>
-              <div className="text-center p-3 bg-foreground/5 rounded-xl">
-                <div className="text-2xl mb-1">🚀</div>
-                <div className="text-lg font-bold">
-                  {sections.historical.outcomeCounts.active}
-                </div>
-                <div className="text-xs text-foreground/60">Active</div>
-              </div>
-              <div className="text-center p-3 bg-foreground/5 rounded-xl">
-                <div className="text-2xl mb-1">💀</div>
-                <div className="text-lg font-bold">
-                  {sections.historical.outcomeCounts.dead}
-                </div>
-                <div className="text-xs text-foreground/60">Dead</div>
-              </div>
-            </div>
-          )}
-
-          <p className="text-foreground/80 mb-4">{sections.historical.summary}</p>
-
-          {/* Similar Companies */}
-          {sections.historical.companies && sections.historical.companies.length > 0 && (
-            <div>
-              <h3 className="text-sm font-medium text-foreground/60 uppercase tracking-wide mb-3">
-                Similar Companies ({sections.historical.companies.length})
-              </h3>
-              <div className="space-y-2">
-                {sections.historical.companies.slice(0, 5).map((company, index) => (
-                  <div
-                    key={index}
-                    className="flex items-start gap-3 p-3 bg-foreground/5 rounded-lg"
-                  >
-                    <span className="text-xl">
-                      {getOutcomeEmoji(company.outcome)}
-                    </span>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium">{company.name}</span>
-                        {company.batch && (
-                          <span className="text-xs text-foreground/60">
-                            {company.batch}
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-sm text-foreground/70 truncate">
-                        {company.pitch}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
+        <HistoricalSection
+          summary={sections.historical.summary}
+          companies={sections.historical.companies}
+          outcomeCounts={sections.historical.outcomeCounts}
+        />
 
         {/* Market Analysis Section */}
         <div className="bg-surface rounded-2xl p-6 mb-6">
