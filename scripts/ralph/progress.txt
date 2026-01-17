@@ -435,3 +435,29 @@ Started: Sat, Jan 17, 2026  4:18:56 PM
   - Loading component replaces entire page content for better UX (no form visible while loading)
   - Cleanup timers in useEffect return to prevent memory leaks
 ---
+
+## 2026-01-17 - US-018
+- What was implemented:
+  - Enhanced error handling throughout the validation flow
+  - API errors return appropriate status codes: 400 (validation), 429 (rate limit), 504 (timeout), 500 (server error)
+  - Client shows error messages with retry button for retryable errors
+  - Retry button on error state (only shows for server errors/rate limiting, not validation errors)
+  - Partial failure handling: Individual data sources wrapped in fetchWithFallback()
+    - If Reddit is down, YC companies, news, and trends still work
+    - Failed sources logged for monitoring but don't break the flow
+  - AI fallback already implemented in openai.ts (verified)
+  - Rate limiting detection: 429 status code with special UI indicator (⏱️)
+  - Max idea length validation added (5000 chars) to prevent abuse
+  - Typecheck passes
+
+- Files changed:
+  - ship-or-skip/src/app/api/validate/route.ts - Added fetchWithFallback wrapper, rate limit/timeout detection, max length validation
+  - ship-or-skip/src/app/page.tsx - Added ValidationError interface, retry button, better error state handling
+
+- **Learnings for future iterations:**
+  - Pattern: fetchWithFallback<T>(fetcher, fallback, source) wraps data sources for graceful degradation
+  - Interface pattern: ValidationError { message, isRateLimited?, isRetryable? } for typed error handling
+  - Rate limiting detection: Check response.status === 429, also check error.message for "rate limit" text
+  - Pattern: Retry button should only show for retryable errors (server errors), not validation errors (user input)
+  - Max length validation prevents abuse and protects against overly long AI prompts
+---
