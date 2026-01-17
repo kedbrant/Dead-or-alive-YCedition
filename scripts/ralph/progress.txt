@@ -214,3 +214,33 @@ Started: Sat, Jan 17, 2026  4:18:56 PM
   - Add SQL COMMENT ON for documentation of tables and columns
   - Database types should be added to types.ts alongside migrations
 ---
+
+## 2026-01-17 23:45 - US-009
+- What was implemented:
+  - Created `/report/[id]/page.tsx` - shareable report page route
+  - Server-side data fetching from `reports` table by UUID
+  - 404 handling with `notFound()` from next/navigation
+  - Full report display with all sections:
+    - Score display with ring indicator and color-coded label (Strong/Moderate/Risky/Caution)
+    - Historical Analysis section with outcome distribution grid and similar companies list
+    - Market Analysis section with news articles
+    - Sentiment Analysis section with Reddit posts and sentiment breakdown
+    - Trends section with simple bar chart visualization
+    - Recommendations section with numbered action items
+  - OpenGraph and Twitter meta tags with dynamic title/description based on report score
+  - Created `/components/report/report-actions.tsx` client component for interactive share buttons
+  - Share buttons: Copy Link (with clipboard API), Share on X, Validate Another Idea
+
+- Files changed:
+  - ship-or-skip/src/app/report/[id]/page.tsx - NEW: Report page route
+  - ship-or-skip/src/components/report/report-actions.tsx - NEW: Client component for share actions
+
+- **Learnings for future iterations:**
+  - Server components can't have onClick handlers - extract interactive elements to client components with "use client"
+  - Next.js 15 params are now Promise<{...}> - must await params in both page and generateMetadata
+  - Use `dynamic = "force-dynamic"` for pages with database queries to prevent caching issues
+  - Pattern: Helper functions like getScoreLabel/getScoreColor keep rendering logic clean
+  - OpenGraph images: Can reuse existing /api/og endpoint with query params for dynamic OG images
+  - Report components directory: `/components/report/` for report-specific client components
+  - Emoji outcome indicators: 🦄 unicorn, 🤝 acquired, 🚀 active, 💀 dead
+---
