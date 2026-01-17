@@ -19,7 +19,7 @@ export function ReportActions({ reportId, score }: ReportActionsProps) {
   };
 
   const shareUrl =
-    (process.env.NEXT_PUBLIC_BASE_URL || "https://shiporskip.app") +
+    (process.env.NEXT_PUBLIC_BASE_URL || "https://ycarchive.com") +
     `/report/${reportId}`;
   const shareText = `I just validated my startup idea and got a score of ${score}/100! Check it out:`;
 

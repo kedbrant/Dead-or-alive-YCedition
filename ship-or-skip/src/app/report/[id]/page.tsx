@@ -62,7 +62,7 @@ export async function generateMetadata({
   const title = `Validation Score: ${report.score}/100 - ${getScoreLabel(report.score)}`;
   const description = `${ideaExcerpt} - ${reportData.scoreReasoning}`;
 
-  const siteUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://shiporskip.app";
+  const siteUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://ycarchive.com";
 
   // Build dynamic OG image URL with report-specific parameters
   const ogImageParams = new URLSearchParams({
