@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { searchYCCompanies } from "@/lib/data-sources/yc";
+import { fetchRecentNews } from "@/lib/data-sources/news";
 import type {
   ReportInsert,
   ReportData,
@@ -15,16 +16,6 @@ const MIN_IDEA_LENGTH = 10;
 
 interface ValidateRequestBody {
   idea: string;
-}
-
-/**
- * Fetch recent news about the idea topic
- * (Full implementation in US-004)
- */
-async function fetchRecentNews(_idea: string): Promise<NewsArticle[]> {
-  // Stub implementation - will be enhanced in US-004
-  // Returns empty array for now as RSS fetching requires additional setup
-  return [];
 }
 
 /**
@@ -62,7 +53,7 @@ async function getGoogleTrends(_idea: string): Promise<TrendsData | null> {
 async function generateAnalysis(
   idea: string,
   companies: YCCompanyMatch[],
-  _news: NewsArticle[],
+  news: NewsArticle[],
   _reddit: RedditPost[],
   trends: TrendsData | null
 ): Promise<ReportData> {
@@ -109,8 +100,10 @@ async function generateAnalysis(
       },
       market: {
         summary:
-          "Market analysis pending. News data will be incorporated in future updates.",
-        articles: [],
+          news.length > 0
+            ? `Found ${news.length} recent news articles related to this space. Recent coverage suggests ${news.length >= 5 ? "active" : "moderate"} media interest in this market.`
+            : "No recent news articles found for this topic. This could indicate a niche market or emerging opportunity with limited media coverage.",
+        articles: news,
       },
       sentiment: {
         summary:
