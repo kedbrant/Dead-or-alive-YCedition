@@ -411,3 +411,27 @@ Started: Sat, Jan 17, 2026  4:18:56 PM
   - Pattern: Share buttons use Twitter intent URL format: `twitter.com/intent/tweet?text=TEXT&url=URL`
   - Pattern: Clipboard copy with feedback uses useState for copied state, setTimeout to reset
 ---
+
+## 2026-01-17 - US-017
+- What was implemented:
+  - Created ValidationLoading component in /components/validation-loading.tsx
+  - Displays 'Analyzing your idea...' heading with animated spinner
+  - Shows checklist of 5 data sources being fetched: YC database, News, Reddit, Trends, AI analysis
+  - Each source shows animated loading spinner, then checkmark when "complete" (simulated with delays)
+  - CSS animated spinner using border-t-purple-500 with animate-spin
+  - Estimated time hint: "Usually takes 10-15 seconds"
+  - Additional context message about searching 5,500+ YC companies
+  - Updated landing page to conditionally render ValidationLoading when isSubmitting is true
+  - Typecheck passes
+
+- Files changed:
+  - ship-or-skip/src/components/validation-loading.tsx - NEW: Loading state component
+  - ship-or-skip/src/app/page.tsx - Added conditional render for loading state
+
+- **Learnings for future iterations:**
+  - CSS spinner pattern: `border-4 border-transparent border-t-purple-500 animate-spin` on a rounded-full div
+  - Simulated progress: Use useEffect with setTimeout delays to show sources completing in sequence
+  - Pattern: Store completed items in Set<string> state for O(1) lookup
+  - Loading component replaces entire page content for better UX (no form visible while loading)
+  - Cleanup timers in useEffect return to prevent memory leaks
+---
