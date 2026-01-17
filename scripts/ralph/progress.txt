@@ -13,6 +13,8 @@ Started: Sat, Jan 17, 2026  4:18:56 PM
 - Data source modules: Place external data fetching in `/lib/data-sources/` (e.g., yc.ts, news.ts, reddit.ts)
 - AI modules: Place AI/ML integrations in `/lib/ai/` (e.g., openai.ts)
 - OpenAI: Use `response_format: { type: 'json_object' }` for structured output, always provide fallback
+- Migrations: Use `IF NOT EXISTS` for idempotent migrations, naming: `NNN_descriptive_name.sql`
+- Use `JSONB` not `JSON` for flexible structured data storage in Postgres
 
 ---
 
@@ -191,4 +193,24 @@ Started: Sat, Jan 17, 2026  4:18:56 PM
   - Interface pattern: Use single object parameter `generateAnalysis(data: AnalysisInput)` for cleaner API
   - System prompt sets role and constraints; user prompt provides data and requests specific output format
   - Score band labels: "Strong" (80+), "Moderate" (60-79), "Risky" (40-59), "Caution" (0-39)
+---
+
+## 2026-01-17 23:15 - US-008
+- What was implemented:
+  - Created SQL migration `018_create_reports_table.sql` in supabase/migrations/
+  - Table schema: id (UUID, PK, auto-generated), idea (TEXT), score (INTEGER), report_data (JSONB), created_at (TIMESTAMPTZ)
+  - Added descending index on created_at for efficient recent reports queries
+  - Added SQL comments for documentation
+  - TypeScript types were already present in types.ts from US-002
+
+- Files changed:
+  - ship-or-skip/supabase/migrations/018_create_reports_table.sql - NEW: Reports table migration
+
+- **Learnings for future iterations:**
+  - Migration naming convention: `NNN_descriptive_name.sql` where NNN is sequential
+  - Use `IF NOT EXISTS` for idempotent migrations
+  - Use `TIMESTAMPTZ` (not TIMESTAMP) for timezone-aware timestamps
+  - Use `JSONB` (not JSON) for better indexing and query performance on JSON data
+  - Add SQL COMMENT ON for documentation of tables and columns
+  - Database types should be added to types.ts alongside migrations
 ---
