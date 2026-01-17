@@ -12,17 +12,29 @@ const EXAMPLE_IDEAS = [
   "Subscription box for healthy snacks delivered to your office",
 ];
 
+// Error types for different handling
+interface ValidationError {
+  message: string;
+  isRateLimited?: boolean;
+  isRetryable?: boolean;
+}
+
 export default function Home() {
   const router = useRouter();
   const [idea, setIdea] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<ValidationError | null>(null);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (e?: React.FormEvent) => {
+    if (e) {
+      e.preventDefault();
+    }
 
     if (!idea.trim() || idea.trim().length < 10) {
-      setError("Please describe your idea in more detail (at least 10 characters)");
+      setError({
+        message: "Please describe your idea in more detail (at least 10 characters)",
+        isRetryable: false
+      });
       return;
     }
 
@@ -38,15 +50,49 @@ export default function Home() {
 
       if (!response.ok) {
         const data = await response.json();
-        throw new Error(data.error || "Failed to validate idea");
+
+        // Handle rate limiting specifically
+        if (response.status === 429) {
+          throw {
+            message: data.error || "Too many requests. Please wait a moment and try again.",
+            isRateLimited: true,
+            isRetryable: true
+          };
+        }
+
+        // Handle server errors (retryable)
+        if (response.status >= 500) {
+          throw {
+            message: data.error || "Server error. Please try again.",
+            isRetryable: true
+          };
+        }
+
+        // Handle client errors (not retryable)
+        throw {
+          message: data.error || "Failed to validate idea",
+          isRetryable: false
+        };
       }
 
       const data = await response.json();
       router.push(`/report/${data.id}`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
+      if (err && typeof err === 'object' && 'message' in err) {
+        setError(err as ValidationError);
+      } else {
+        setError({
+          message: err instanceof Error ? err.message : "Something went wrong. Please try again.",
+          isRetryable: true
+        });
+      }
       setIsSubmitting(false);
     }
+  };
+
+  const handleRetry = () => {
+    setError(null);
+    handleSubmit();
   };
 
   const handleExampleClick = (example: string) => {
@@ -101,7 +147,21 @@ export default function Home() {
                 transition-colors resize-none"
             />
             {error && (
-              <p className="text-skip text-sm text-left">{error}</p>
+              <div className="text-left space-y-2">
+                <p className="text-skip text-sm">
+                  {error.isRateLimited && "⏱️ "}
+                  {error.message}
+                </p>
+                {error.isRetryable && (
+                  <button
+                    type="button"
+                    onClick={handleRetry}
+                    className="text-sm text-purple-400 hover:text-purple-300 underline underline-offset-2 transition-colors"
+                  >
+                    Try again
+                  </button>
+                )}
+              </div>
             )}
           </div>
           <button
