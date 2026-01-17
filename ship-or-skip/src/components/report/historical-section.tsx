@@ -75,7 +75,7 @@ export function HistoricalSection({
       <p className="text-foreground/80 mb-4">{summary}</p>
 
       {/* Similar Companies */}
-      {companies && companies.length > 0 && (
+      {companies && companies.length > 0 ? (
         <div>
           <h3 className="text-sm font-medium text-foreground/60 uppercase tracking-wide mb-3">
             Similar Companies ({totalCompanies})
@@ -145,6 +145,15 @@ export function HistoricalSection({
               )}
             </button>
           )}
+        </div>
+      ) : (
+        <div className="text-center py-6 bg-foreground/5 rounded-xl">
+          <p className="text-foreground/60">
+            No similar YC companies found for this idea.
+          </p>
+          <p className="text-foreground/40 text-sm mt-1">
+            This could indicate a novel opportunity in an unexplored space.
+          </p>
         </div>
       )}
     </div>
