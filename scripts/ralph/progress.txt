@@ -563,3 +563,26 @@ Started: Sat, Jan 17, 2026  4:18:56 PM
   - Build errors from module initialization are different from runtime errors
   - ESLint react/no-unescaped-entities catches quotes/apostrophes - use HTML entities
 ---
+
+## 2026-01-17 - US-023
+- What was implemented:
+  - Added empty state message when no similar YC companies found in historical-section.tsx
+    - Shows "No similar YC companies found for this idea"
+    - Includes helpful message: "This could indicate a novel opportunity in an unexplored space"
+  - Verified all edge cases are properly handled:
+    - Short idea (<10 chars): Client-side validation in page.tsx, server-side in route.ts
+    - Long idea (>5000 chars): Server-side MAX_IDEA_LENGTH validation
+    - No YC matches: Empty state message added
+    - No news: Already had empty state message in market-section.tsx
+    - API failure: Error state with ValidationError interface and retry button
+    - Rapid submissions: Button disabled during submission, loading state replaces page
+  - All checks pass: build, lint, typecheck
+
+- Files changed:
+  - ship-or-skip/src/components/report/historical-section.tsx - Added empty state for no companies
+
+- **Learnings for future iterations:**
+  - When checking edge cases, verify both client-side and server-side validation
+  - Empty states should have helpful context (e.g., "novel opportunity" vs just "not found")
+  - Use ternary with else clause ({length > 0 ? ... : ...}) rather than conditional render for empty states
+---
