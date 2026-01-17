@@ -137,3 +137,28 @@ Started: Sat, Jan 17, 2026  4:18:56 PM
   - Reddit response structure: `data.children[].data` contains post objects with `subreddit`, `title`, `score`, `num_comments`, `permalink`
   - Pattern: Reuse extractKeywords from yc.ts for consistent keyword extraction
 ---
+
+## 2026-01-17 21:45 - US-006
+- What was implemented:
+  - Created `/lib/data-sources/trends.ts` with `getGoogleTrends(idea)` function
+  - Returns TrendsData: { currentLevel (0-100), changePercent, timeline }
+  - Supports SerpAPI for real Google Trends data when SERPAPI_KEY env var is set
+  - Falls back to deterministic mock data for MVP (no API key needed)
+  - Mock data generates 24-month timeline with organic growth simulation
+  - Percentage change calculated from first 3 vs last 3 months for stability
+  - Uses keyword hashing for deterministic but varied mock results per idea
+  - Handles API errors gracefully with 15s timeout, falls back to mock data
+  - Removed inline stub function from validate route, now imports from trends module
+
+- Files changed:
+  - ship-or-skip/src/lib/data-sources/trends.ts - NEW: Google Trends data module
+  - ship-or-skip/src/app/api/validate/route.ts - Removed stub, imports getGoogleTrends from trends module
+
+- **Learnings for future iterations:**
+  - SerpAPI Google Trends endpoint: `serpapi.com/search.json` with `engine=google_trends`
+  - SerpAPI params: `data_type=TIMESERIES`, `date=today 24-m` for 24 months of data
+  - SerpAPI response: `interest_over_time.timeline_data` contains array of {date, values}
+  - Mock data pattern: Use keyword hash for deterministic results across same idea
+  - Pattern: Reuse extractKeywords from yc.ts for consistent keyword extraction
+  - Pattern: calculateChangePercent using averages of first/last 3 months avoids outlier issues
+---
