@@ -3,6 +3,7 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { searchYCCompanies } from "@/lib/data-sources/yc";
 import { fetchRecentNews } from "@/lib/data-sources/news";
 import { searchReddit } from "@/lib/data-sources/reddit";
+import { getGoogleTrends } from "@/lib/data-sources/trends";
 import type {
   ReportInsert,
   ReportData,
@@ -17,24 +18,6 @@ const MIN_IDEA_LENGTH = 10;
 
 interface ValidateRequestBody {
   idea: string;
-}
-
-/**
- * Get Google Trends data
- * (Full implementation in US-006)
- */
-async function getGoogleTrends(_idea: string): Promise<TrendsData | null> {
-  // Stub implementation - will be enhanced in US-006
-  // Returns mock data for MVP
-  return {
-    currentLevel: 65,
-    changePercent: 15,
-    timeline: [
-      { date: "2024-01", value: 45 },
-      { date: "2024-06", value: 55 },
-      { date: "2025-01", value: 65 },
-    ],
-  };
 }
 
 /**
