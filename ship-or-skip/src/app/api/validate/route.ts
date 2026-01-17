@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { searchYCCompanies } from "@/lib/data-sources/yc";
 import { fetchRecentNews } from "@/lib/data-sources/news";
+import { searchReddit } from "@/lib/data-sources/reddit";
 import type {
   ReportInsert,
   ReportData,
@@ -16,16 +17,6 @@ const MIN_IDEA_LENGTH = 10;
 
 interface ValidateRequestBody {
   idea: string;
-}
-
-/**
- * Search Reddit for discussions
- * (Full implementation in US-005)
- */
-async function searchReddit(_idea: string): Promise<RedditPost[]> {
-  // Stub implementation - will be enhanced in US-005
-  // Returns empty array for now as Reddit API requires rate limiting handling
-  return [];
 }
 
 /**
@@ -54,7 +45,7 @@ async function generateAnalysis(
   idea: string,
   companies: YCCompanyMatch[],
   news: NewsArticle[],
-  _reddit: RedditPost[],
+  reddit: RedditPost[],
   trends: TrendsData | null
 ): Promise<ReportData> {
   // Count outcomes from similar companies
@@ -107,8 +98,14 @@ async function generateAnalysis(
       },
       sentiment: {
         summary:
-          "Community sentiment analysis pending. Reddit data will be incorporated in future updates.",
-        posts: [],
+          reddit.length > 0
+            ? `Found ${reddit.length} relevant discussions across startup communities on Reddit. ${
+                reddit.length >= 5
+                  ? "Active community interest suggests this topic resonates with founders and users."
+                  : "Limited discussions found - this may be an emerging space or niche market."
+              }`
+            : "No relevant Reddit discussions found. This could indicate a novel concept or niche market with limited online discourse.",
+        posts: reddit,
         sentimentBreakdown: { positive: 33, negative: 33, neutral: 34 },
       },
       trends: {
