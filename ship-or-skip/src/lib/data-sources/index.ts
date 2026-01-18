@@ -11,4 +11,9 @@ export {
   type DiscoveredCompany,
   type CompanyStatus,
 } from './company-discovery';
-export { searchReddit, type RedditPost } from './reddit';
+export {
+  searchReddit,
+  searchHackerNews,
+  type RedditPost,
+  type HackerNewsPost,
+} from './reddit';

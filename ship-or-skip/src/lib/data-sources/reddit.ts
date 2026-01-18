@@ -13,6 +13,14 @@ export interface RedditPost {
   snippet: string;
 }
 
+export interface HackerNewsPost {
+  title: string;
+  link: string;
+  date: string | null;
+  source: 'Hacker News';
+  snippet: string;
+}
+
 // Subreddits to search for startup-related discussions
 const SUBREDDITS = ['startups', 'SaaS', 'Entrepreneur', 'smallbusiness'];
 
@@ -109,6 +117,37 @@ export async function searchReddit(query: string): Promise<RedditPost[]> {
     return allPosts;
   } catch (error) {
     console.error('Error searching Reddit:', error);
+    return [];
+  }
+}
+
+/**
+ * Search Hacker News for posts related to a query using hnrss.org
+ * @param query - Search query (e.g., startup idea or topic)
+ * @returns Array of top 15 HackerNewsPost objects
+ */
+export async function searchHackerNews(
+  query: string
+): Promise<HackerNewsPost[]> {
+  try {
+    const encodedQuery = encodeURIComponent(query);
+    const url = `https://hnrss.org/newest?q=${encodedQuery}&count=15`;
+
+    const feed = await parser.parseURL(url);
+
+    if (!feed.items || feed.items.length === 0) {
+      return [];
+    }
+
+    return feed.items.map((item) => ({
+      title: item.title || 'Untitled',
+      link: item.link || '',
+      date: item.pubDate ? new Date(item.pubDate).toISOString() : null,
+      source: 'Hacker News' as const,
+      snippet: extractSnippet(item),
+    }));
+  } catch (error) {
+    console.error('Error searching Hacker News:', error);
     return [];
   }
 }
