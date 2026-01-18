@@ -58,7 +58,7 @@ export default function Home() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center px-4">
+    <div className="flex min-h-screen items-center justify-center px-4 animate-page-fade-in">
       <main className="flex flex-col items-center w-full max-w-xl text-center">
         {/* Logo */}
         <span className="text-2xl font-bold tracking-tight mb-8">
@@ -87,7 +87,7 @@ export default function Home() {
               className="w-full min-h-[56px] px-4 py-3 bg-surface border border-border rounded-xl text-base
                 placeholder:text-foreground-secondary
                 focus:outline-none focus:border-focus-ring focus:ring-1 focus:ring-focus-ring
-                transition-colors resize-none"
+                transition-[border-color,box-shadow] duration-150 ease-out resize-none"
             />
             {/* Character counter */}
             <span
@@ -109,8 +109,7 @@ export default function Home() {
             type="submit"
             disabled={isSubmitting || isOverLimit}
             className="w-full bg-button-bg text-button-text font-bold text-lg px-8 py-4 rounded-xl
-              hover:opacity-90 active:scale-[0.98]
-              transition-all duration-150
+              hover:opacity-90 active:scale-[0.98] btn-animate
               disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:opacity-50 disabled:active:scale-100"
           >
             {isSubmitting ? "Validating..." : "Validate My Idea"}
@@ -123,7 +122,7 @@ export default function Home() {
           <button
             type="button"
             onClick={fillExample}
-            className="text-foreground hover:opacity-80 underline underline-offset-2 transition-colors"
+            className="text-foreground hover:opacity-80 underline underline-offset-2 transition-opacity duration-150"
           >
             &ldquo;{EXAMPLE_IDEA}&rdquo;
           </button>

@@ -118,6 +118,18 @@ body::-webkit-scrollbar {
   }
 }
 
+/* Page fade-in animation (300ms) for homepage */
+@keyframes page-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .animate-card-enter {
   animation: card-enter 300ms ease-out forwards;
 }
@@ -132,4 +144,13 @@ body::-webkit-scrollbar {
 
 .animate-fade-in {
   animation: fade-in 200ms ease-out forwards;
+}
+
+.animate-page-fade-in {
+  animation: page-fade-in 300ms ease-out forwards;
+}
+
+/* Button animation with different timing for hover (150ms) and click (100ms) */
+.btn-animate {
+  transition: opacity 150ms ease-out, transform 100ms ease-out;
 }
