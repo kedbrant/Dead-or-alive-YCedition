@@ -220,3 +220,22 @@ Started: Sun, Jan 18, 2026 11:14:05 AM
   - Progress bar: percentage-based width with `transition-all duration-500 ease-out` for smooth animation
   - Use existing theme colors: text-ship for success checkmark, text-foreground-secondary for pending states
 ---
+
+## 2026-01-18 - US-014
+- Created /src/app/report/[id]/page.tsx - new validation report page
+- Implemented EmptyState component with icon, title, description, and optional hint props
+- Added YCCompaniesSection with empty state: "No similar YC companies found" + "Your idea might be truly novel" + hint
+- Added NewsSection with empty state: "No recent news found" + "This space might be emerging"
+- Added CommunitySection with empty state: "No community discussions found"
+- Added AnalysisSection with empty state for unavailable AI analysis
+- All empty states use relevant emoji icons (🔍, 📰, 💬, 🤖)
+- Updated page.tsx to save report to localStorage and redirect to report page
+- Files changed: src/app/report/[id]/page.tsx (new), src/app/page.tsx
+- **Learnings for future iterations:**
+  - Report pages go in src/app/report/[id]/page.tsx (Next.js dynamic route)
+  - Use localStorage for client-side report storage with `report_${id}` key pattern
+  - EmptyState component pattern: icon + title + description + optional hint
+  - Section component wraps content with header and border styling
+  - Use early return pattern for conditional rendering (empty vs populated states)
+  - bg-background/50 for subtle hover states within sections
+---

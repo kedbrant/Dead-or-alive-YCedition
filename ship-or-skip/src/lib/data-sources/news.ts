@@ -1,128 +1,222 @@
-/**
- * News data source using Serper API (Google News)
- * Replaces SerpAPI to save budget for Google Trends
- */
+import type { NewsArticle } from "@/lib/supabase/types";
+import { extractKeywords } from "./yc";
 
-import { searchNews, SerperResult } from '../serper';
+// RSS feed URLs for news sources
+const GOOGLE_NEWS_RSS_BASE = "https://news.google.com/rss/search";
+const TECHCRUNCH_RSS = "https://techcrunch.com/feed/";
 
-export interface NewsArticle {
-  title: string;
-  link: string;
-  snippet: string;
-  date: string | null;
-  source: string;
-}
+// 30 days in milliseconds
+const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
 
 /**
- * Parse a relative date string (e.g., "2 days ago", "1 hour ago") into a Date object
+ * Parse an RSS XML string to extract article items
+ * Uses simple regex-based parsing to avoid external dependencies
  */
-function parseRelativeDate(dateStr: string | undefined): Date | null {
-  if (!dateStr) return null;
+function parseRssXml(
+  xml: string,
+  sourceName: string
+): { title: string; link: string; pubDate: string }[] {
+  const items: { title: string; link: string; pubDate: string }[] = [];
 
-  const now = new Date();
-  const lower = dateStr.toLowerCase();
+  // Match <item>...</item> blocks
+  const itemRegex = /<item>([\s\S]*?)<\/item>/g;
+  let match;
 
-  // Try to parse relative dates like "2 days ago", "1 hour ago", etc.
-  const match = lower.match(/(\d+)\s*(second|minute|hour|day|week|month|year)s?\s*ago/);
-  if (match) {
-    const amount = parseInt(match[1], 10);
-    const unit = match[2];
+  while ((match = itemRegex.exec(xml)) !== null) {
+    const itemContent = match[1];
 
-    const date = new Date(now);
-    switch (unit) {
-      case 'second':
-        date.setSeconds(date.getSeconds() - amount);
-        break;
-      case 'minute':
-        date.setMinutes(date.getMinutes() - amount);
-        break;
-      case 'hour':
-        date.setHours(date.getHours() - amount);
-        break;
-      case 'day':
-        date.setDate(date.getDate() - amount);
-        break;
-      case 'week':
-        date.setDate(date.getDate() - amount * 7);
-        break;
-      case 'month':
-        date.setMonth(date.getMonth() - amount);
-        break;
-      case 'year':
-        date.setFullYear(date.getFullYear() - amount);
-        break;
+    // Extract title (handle CDATA)
+    const titleMatch = itemContent.match(
+      /<title>(?:<!\[CDATA\[)?([\s\S]*?)(?:\]\]>)?<\/title>/
+    );
+    // Extract link
+    const linkMatch = itemContent.match(/<link>([\s\S]*?)<\/link>/);
+    // Extract pubDate
+    const pubDateMatch = itemContent.match(/<pubDate>([\s\S]*?)<\/pubDate>/);
+
+    if (titleMatch && linkMatch) {
+      items.push({
+        title: titleMatch[1].trim(),
+        link: linkMatch[1].trim(),
+        pubDate: pubDateMatch ? pubDateMatch[1].trim() : "",
+      });
     }
-    return date;
   }
 
-  // Try to parse as ISO date or other standard format
-  const parsed = new Date(dateStr);
-  if (!isNaN(parsed.getTime())) {
-    return parsed;
-  }
-
-  return null;
+  return items.map((item) => ({ ...item, sourceName }));
 }
 
 /**
- * Check if a date is within the last N days
+ * Extract actual article URL from Google News redirect URL
+ * Google News URLs are in format: https://news.google.com/rss/articles/...
  */
-function isWithinDays(date: Date | null, days: number): boolean {
-  if (!date) return true; // Include items without dates
-
-  const now = new Date();
-  const cutoff = new Date(now);
-  cutoff.setDate(cutoff.getDate() - days);
-
-  return date >= cutoff;
+function cleanGoogleNewsUrl(url: string): string {
+  // Google News URLs redirect, but we return them as-is since they still work
+  return url;
 }
 
 /**
- * Fetch news articles related to a query using Serper API
- * @param query - Search query (e.g., startup idea or topic)
- * @returns Array of NewsArticle objects (max 10, last 30 days)
+ * Fetch RSS feed with error handling
  */
-export async function fetchNews(query: string): Promise<NewsArticle[]> {
+async function fetchRss(url: string): Promise<string | null> {
   try {
-    const results = await searchNews(query);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
 
-    if (!results || results.length === 0) {
-      return [];
+    const response = await fetch(url, {
+      signal: controller.signal,
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (compatible; YCArchiveBot/1.0; +https://ycarchive.com)",
+      },
+    });
+
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      console.warn(`RSS fetch failed for ${url}: ${response.status}`);
+      return null;
     }
 
-    // Filter to last 30 days and transform to NewsArticle format
-    const articles: NewsArticle[] = results
-      .map((result: SerperResult) => {
-        const parsedDate = parseRelativeDate(result.date);
-        return {
-          title: result.title,
-          link: result.link,
-          snippet: result.snippet,
-          date: parsedDate ? parsedDate.toISOString() : result.date || null,
-          source: extractSource(result.link),
-          _parsedDate: parsedDate,
-        };
-      })
-      .filter((article) => isWithinDays(article._parsedDate, 30))
-      .map(({ _parsedDate, ...article }) => article) // Remove internal field
-      .slice(0, 10); // Return top 10 most relevant
-
-    return articles;
+    return await response.text();
   } catch (error) {
-    console.error('Error fetching news:', error);
+    if (error instanceof Error && error.name === "AbortError") {
+      console.warn(`RSS fetch timeout for ${url}`);
+    } else {
+      console.warn(`RSS fetch error for ${url}:`, error);
+    }
+    return null;
+  }
+}
+
+/**
+ * Build Google News RSS search URL
+ * Encodes the search query for RSS feed
+ */
+function buildGoogleNewsUrl(query: string): string {
+  const encodedQuery = encodeURIComponent(query);
+  // Search for the keywords directly without adding generic tech terms
+  // This ensures results are relevant to the specific idea
+  return `${GOOGLE_NEWS_RSS_BASE}?q=${encodedQuery}&hl=en-US&gl=US&ceid=US:en`;
+}
+
+/**
+ * Check if a date is within the last 30 days
+ */
+function isWithinLast30Days(dateStr: string): boolean {
+  if (!dateStr) return false;
+
+  try {
+    const date = new Date(dateStr);
+    const now = Date.now();
+    return now - date.getTime() <= THIRTY_DAYS_MS;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Format date string for consistent display
+ */
+function formatDate(dateStr: string): string {
+  if (!dateStr) return new Date().toISOString().split("T")[0];
+
+  try {
+    const date = new Date(dateStr);
+    return date.toISOString().split("T")[0]; // YYYY-MM-DD format
+  } catch {
+    return new Date().toISOString().split("T")[0];
+  }
+}
+
+/**
+ * Check if a word exists as a whole word in text (not as substring)
+ * Uses word boundary matching to avoid false positives like "want" matching "wants"
+ */
+function containsWholeWord(text: string, word: string): boolean {
+  // Create a regex that matches the word with word boundaries
+  const regex = new RegExp(`\\b${word}\\b`, "i");
+  return regex.test(text);
+}
+
+/**
+ * Filter TechCrunch articles by relevance to the idea keywords
+ * Uses word boundary matching to avoid false positives
+ */
+function filterByRelevance(
+  articles: { title: string; link: string; pubDate: string }[],
+  keywords: string[]
+): { title: string; link: string; pubDate: string }[] {
+  if (keywords.length === 0) return articles;
+
+  return articles.filter((article) => {
+    const title = article.title;
+    // Article must contain at least one keyword as a whole word
+    // Require at least 2 keyword matches for better relevance
+    const matchCount = keywords.filter((kw) => containsWholeWord(title, kw)).length;
+    return matchCount >= 1;
+  });
+}
+
+/**
+ * Fetch recent news articles about the idea topic from RSS feeds
+ *
+ * @param idea - The startup idea to search for related news
+ * @returns Array of news articles from the last 30 days, max 10 articles
+ */
+export async function fetchRecentNews(idea: string): Promise<NewsArticle[]> {
+  const keywords = extractKeywords(idea);
+
+  if (keywords.length === 0) {
     return [];
   }
-}
 
-/**
- * Extract the source domain from a URL
- */
-function extractSource(url: string): string {
-  try {
-    const hostname = new URL(url).hostname;
-    // Remove www. prefix and return domain
-    return hostname.replace(/^www\./, '');
-  } catch {
-    return 'Unknown';
+  // Create a search query from the most relevant keywords (first 3-4)
+  const searchQuery = keywords.slice(0, 4).join(" ");
+
+  // Fetch from multiple sources in parallel
+  const [googleNewsXml, techCrunchXml] = await Promise.all([
+    fetchRss(buildGoogleNewsUrl(searchQuery)),
+    fetchRss(TECHCRUNCH_RSS),
+  ]);
+
+  const allArticles: NewsArticle[] = [];
+
+  // Parse Google News results
+  if (googleNewsXml) {
+    const googleItems = parseRssXml(googleNewsXml, "Google News");
+
+    for (const item of googleItems) {
+      if (isWithinLast30Days(item.pubDate)) {
+        allArticles.push({
+          title: item.title,
+          source: "Google News",
+          date: formatDate(item.pubDate),
+          url: cleanGoogleNewsUrl(item.link),
+        });
+      }
+    }
   }
+
+  // Parse TechCrunch results (filter by relevance since it's a general feed)
+  if (techCrunchXml) {
+    const techCrunchItems = parseRssXml(techCrunchXml, "TechCrunch");
+    const relevantItems = filterByRelevance(techCrunchItems, keywords);
+
+    for (const item of relevantItems) {
+      if (isWithinLast30Days(item.pubDate)) {
+        allArticles.push({
+          title: item.title,
+          source: "TechCrunch",
+          date: formatDate(item.pubDate),
+          url: item.link,
+        });
+      }
+    }
+  }
+
+  // Sort by date (newest first) and return top 10
+  return allArticles
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+    .slice(0, 10);
 }

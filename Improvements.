@@ -1,0 +1,81 @@
+I think we are missing some things from the other branch. 
+
+Things i noticed. 
+    The new logo is missing, (the favicons are here but not the new logo) i.e the orange backdrop with the black skull/rocket
+    We use YC orange as our accent color. This should be used on the "YC Archive" Text as well as other  accent places.
+
+    The navbar is an old one. Our website is soley focused on the idea validation, we have now hidden the explore, game, leaderboard and stats pages. (removed from nav)
+
+
+General improvements.
+Homepage
+    The input field should look more like a classic AI input field. i.e make the input box wider. Make it 2 rows tall.
+    Delete this "
+        5,500+ YC startups
+        📈
+        Live trends
+        💬
+        Real sentiment" 
+    We have a scroll on the homepage, the total height of the home page should always be 100vh on desktop. 
+
+Loading screen
+    Remove the YC archive Text
+    Change the accent colors to YC orange, including the color of the progress bar, ticks on each box, + the border around each box should get the orange color when completed
+
+
+The report
+    Its a wall of text. This is not neccesarily bad, but we could condense somethings
+
+
+    The YC companys
+        We should feature each vC companies favicon in the list. Clicking on a company should take the user to the company page, there should be a back button that takes the user back to the report.
+            This should exist, i just noticed a session/middleware error preventing it.
+
+
+        I think it would be better to present the YC company name, and one liner. Not the full "about" we show that if a user visits the company page. 
+        
+    Product hunt API error
+            Product Hunt GraphQL errors: [
+                {
+                    message: "Field 'posts' doesn't accept argument 'query'",
+                    locations: [ [Object] ],
+                    path: [ 'query SearchPosts', 'posts', 'query' ],
+                    extensions: {
+                    code: 'argumentNotAccepted',
+                    name: 'posts',
+                    typeName: 'Field',
+                    argumentName: 'query'
+                    }
+                },
+                {
+                    message: 'Variable $query is declared by SearchPosts but not used',
+                    locations: [ [Object] ],
+                    path: [ 'query SearchPosts' ],
+                    extensions: { code: 'variableNotUsed', variableName: 'query' }
+                }
+                    
+    Im noticing alot of 401 errors for Stats in the console. 
+         GET /api/stats 401 in 37ms (compile: 16ms, render: 20ms)
+         Disable this. 
+
+    Competitor landscape 
+        We should be able to click on each company (provided we have the URL), also fetch the Favicon here or fallback to a simple circle with first letter of the company.
+        The analysis we provided in the competitor landscape is  oddly placed. This should analyze all the competitors in the space, so why is it placed here? An alternative would be to place this at the top, before the YC companies. Call it "competitor analysis" Below we could have the 3 cards, YC companies, Product hunt launches and LAndscape as 3 collapsable cards just bellow it. 
+
+    
+
+    WHERE DID THE Google TRENDs ANALYSIS GO? 
+        The keyword analysis and graphs were crucial to have. both for visuals and to understand data. 
+
+    Report general
+        Maybe before each content section, add the summary, the data within each section should be contained within a collapsable card.
+        We need more visual elements. its a heavy read
+            The google trends graph. 
+            The score should be displayed within a circcle where 100% if a full circle etc. 
+            We can combined the top card, where we display the idea with the circle graphic. Something like 
+            in the card Big score with its circle and rating below it. To the left little tag "Idea" Below it the users idea is written out " AI video generation platform"
+
+
+
+
+    We are missing the Share button at the bottom of the page

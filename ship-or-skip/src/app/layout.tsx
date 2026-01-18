@@ -6,16 +6,18 @@ import { Navbar } from "@/components/layout/navbar";
 const inter = Inter({
   variable: "--font-inter",
   subsets: ["latin"],
+  display: "swap", // Prevent FOIT - show fallback font immediately
+  preload: true,
 });
 
 const siteUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://shiporskip.app";
-const defaultTitle = "Ship or Skip - Would You Fund This Startup?";
-const defaultDescription = "Tinder for startup ideas. Swipe through real pitches, see what the crowd thinks, submit your own.";
+const defaultTitle = "YC Archive - Validate Your Startup Idea";
+const defaultDescription = "Validate your startup idea against 5,500+ YC companies and live market data. Get AI-powered analysis with competitor insights, market trends, and community sentiment.";
 
 export const metadata: Metadata = {
   title: {
     default: defaultTitle,
-    template: "%s | Ship or Skip",
+    template: "%s | YC Archive",
   },
   description: defaultDescription,
   metadataBase: new URL(siteUrl),
@@ -34,15 +36,15 @@ export const metadata: Metadata = {
     type: "website",
     locale: "en_US",
     url: siteUrl,
-    siteName: "Ship or Skip",
+    siteName: "YC Archive",
     title: defaultTitle,
     description: defaultDescription,
     images: [
       {
-        url: "/api/og?hero=Would%20You%20Fund%20This%20Startup%3F",
+        url: "/api/og?hero=Validate%20Your%20Startup%20Idea",
         width: 1200,
         height: 630,
-        alt: "Ship or Skip - Would You Fund This Startup?",
+        alt: "YC Archive - Validate Your Startup Idea",
       },
     ],
   },
@@ -50,7 +52,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: defaultTitle,
     description: defaultDescription,
-    images: ["/api/og?hero=Would%20You%20Fund%20This%20Startup%3F"],
+    images: ["/api/og?hero=Validate%20Your%20Startup%20Idea"],
   },
 };
 
@@ -62,8 +64,17 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <body className={`${inter.variable} antialiased bg-background text-foreground min-h-screen`}>
+        {/* Skip link for keyboard navigation */}
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-button-bg focus:text-button-text focus:rounded-lg focus:outline-none focus:ring-2 focus:ring-focus-ring"
+        >
+          Skip to main content
+        </a>
         <Navbar />
-        {children}
+        <main id="main-content">
+          {children}
+        </main>
       </body>
     </html>
   );

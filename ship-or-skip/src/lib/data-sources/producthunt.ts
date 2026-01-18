@@ -1,7 +1,9 @@
 /**
- * Product Hunt data source using GraphQL API
- * Fetches launched products similar to the idea being validated
+ * Product Hunt data source using Serper web search
+ * Searches site:producthunt.com for products similar to the idea
  */
+
+import { searchWeb } from '../serper';
 
 export interface PHProduct {
   name: string;
@@ -12,94 +14,64 @@ export interface PHProduct {
   website: string | null;
 }
 
-interface PHGraphQLResponse {
-  data?: {
-    posts?: {
-      edges?: Array<{
-        node: {
-          name: string;
-          tagline: string;
-          url: string;
-          votesCount: number;
-          createdAt: string;
-          website: string | null;
-        };
-      }>;
-    };
-  };
-  errors?: Array<{ message: string }>;
+/**
+ * Extract keywords from idea for search
+ */
+function extractKeywords(idea: string): string {
+  const stopWords = new Set([
+    'a', 'an', 'the', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for',
+    'of', 'with', 'by', 'is', 'are', 'that', 'which', 'this', 'app',
+    'platform', 'tool', 'software', 'service', 'solution', 'helps', 'using',
+  ]);
+
+  return idea
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .split(/\s+/)
+    .filter((word) => word.length > 2 && !stopWords.has(word))
+    .slice(0, 4)
+    .join(' ');
 }
 
-const PH_GRAPHQL_ENDPOINT = 'https://api.producthunt.com/v2/api/graphql';
-
 /**
- * Search Product Hunt for products related to a query
+ * Search Product Hunt for products related to a query using Serper
  * @param query - Search query (e.g., startup idea or topic)
  * @returns Array of PHProduct objects (max 10)
  */
 export async function searchProductHunt(query: string): Promise<PHProduct[]> {
-  const token = process.env.PRODUCTHUNT_TOKEN;
+  const keywords = extractKeywords(query);
 
-  if (!token) {
-    console.warn('PRODUCTHUNT_TOKEN not configured, skipping Product Hunt search');
+  if (!keywords) {
     return [];
   }
 
-  const graphqlQuery = `
-    query SearchPosts($query: String!) {
-      posts(first: 10, query: $query) {
-        edges {
-          node {
-            name
-            tagline
-            url
-            votesCount
-            createdAt
-            website
-          }
-        }
-      }
-    }
-  `;
-
   try {
-    const response = await fetch(PH_GRAPHQL_ENDPOINT, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({
-        query: graphqlQuery,
-        variables: { query },
-      }),
-    });
+    // Search Product Hunt via Serper
+    const searchResults = await searchWeb(`site:producthunt.com ${keywords}`);
 
-    if (!response.ok) {
-      console.error(`Product Hunt API error: ${response.status} ${response.statusText}`);
+    if (searchResults.length === 0) {
       return [];
     }
 
-    const data: PHGraphQLResponse = await response.json();
+    // Parse search results into PHProduct format
+    const products: PHProduct[] = searchResults
+      .filter((result) => result.link.includes('producthunt.com/posts/'))
+      .slice(0, 10)
+      .map((result) => {
+        // Extract product name from title (usually "Product Name - Tagline")
+        const titleParts = result.title.split(' - ');
+        const name = titleParts[0]?.replace(' | Product Hunt', '').trim() || 'Unknown';
+        const tagline = titleParts[1]?.replace(' | Product Hunt', '').trim() || result.snippet;
 
-    if (data.errors && data.errors.length > 0) {
-      console.error('Product Hunt GraphQL errors:', data.errors);
-      return [];
-    }
-
-    const edges = data.data?.posts?.edges;
-    if (!edges || edges.length === 0) {
-      return [];
-    }
-
-    const products: PHProduct[] = edges.map((edge) => ({
-      name: edge.node.name,
-      tagline: edge.node.tagline,
-      url: edge.node.url,
-      votesCount: edge.node.votesCount,
-      createdAt: edge.node.createdAt,
-      website: edge.node.website,
-    }));
+        return {
+          name,
+          tagline: tagline || result.snippet,
+          url: result.link,
+          votesCount: 0, // Not available from search results
+          createdAt: result.date || new Date().toISOString(),
+          website: null,
+        };
+      });
 
     return products;
   } catch (error) {

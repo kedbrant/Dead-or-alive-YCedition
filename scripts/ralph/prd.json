@@ -244,7 +244,7 @@
         "Typecheck passes"
       ],
       "priority": 14,
-      "passes": false,
+      "passes": true,
       "notes": "Empty != error, guide user forward"
     },
     {
@@ -260,7 +260,7 @@
         "Typecheck passes"
       ],
       "priority": 15,
-      "passes": false,
+      "passes": true,
       "notes": "Friendly errors build trust"
     },
     {
@@ -277,8 +277,8 @@
         "Typecheck passes"
       ],
       "priority": 16,
-      "passes": false,
-      "notes": "Shows what's already launched"
+      "passes": true,
+      "notes": "Added ProductHuntSection to report/[id]/page.tsx with upvote badges, AI insight from analysis, and empty state"
     },
     {
       "id": "US-017",
@@ -294,8 +294,8 @@
         "Typecheck passes"
       ],
       "priority": 17,
-      "passes": false,
-      "notes": "Shows broader market players"
+      "passes": true,
+      "notes": "Added CompetitorsSection with color-coded status badges and AI competitive analysis insight"
     },
     {
       "id": "US-018",
@@ -309,8 +309,8 @@
         "Typecheck passes"
       ],
       "priority": 18,
-      "passes": false,
-      "notes": "HN is high-signal for tech"
+      "passes": true,
+      "notes": "Combined Reddit+HN in CommunitySection with source icons, sentiment analysis insight, and key themes"
     },
     {
       "id": "US-019",
@@ -328,8 +328,8 @@
         "Typecheck passes"
       ],
       "priority": 19,
-      "passes": false,
-      "notes": "Mobile-first generation"
+      "passes": true,
+      "notes": "Added overflow-x:hidden, min 44px touch targets via CSS, word-wrap for text, padding on small links"
     },
     {
       "id": "US-020",
@@ -346,8 +346,8 @@
         "Typecheck passes"
       ],
       "priority": 20,
-      "passes": false,
-      "notes": "Speed is UX"
+      "passes": true,
+      "notes": "Data sources already parallel, added font display:swap, images have dimensions, build succeeds"
     },
     {
       "id": "US-021",
@@ -363,8 +363,8 @@
         "Typecheck passes"
       ],
       "priority": 21,
-      "passes": false,
-      "notes": "Good OG = better sharing"
+      "passes": true,
+      "notes": "Updated layout.tsx with YC Archive branding, added report/[id]/layout.tsx for report-specific OG tags"
     },
     {
       "id": "US-022",
@@ -378,8 +378,8 @@
         "Typecheck passes"
       ],
       "priority": 22,
-      "passes": false,
-      "notes": "Professional detail"
+      "passes": true,
+      "notes": "Favicons already exist: favicon.ico, 16x16, 32x32, apple-touch-icon 180x180 - all configured in layout.tsx"
     },
     {
       "id": "US-023",
@@ -395,8 +395,8 @@
         "Typecheck passes"
       ],
       "priority": 23,
-      "passes": false,
-      "notes": "Accessibility is quality"
+      "passes": true,
+      "notes": "Added sr-only label, aria-describedby, aria-invalid, aria-live for char counter, skip link in layout, simplified navbar to validation-only"
     },
     {
       "id": "US-024",

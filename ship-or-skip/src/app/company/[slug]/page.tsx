@@ -1,13 +1,11 @@
 import { Metadata } from "next";
-import Link from "next/link";
 import Image from "next/image";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
-import { getSessionId } from "@/lib/session/manager";
 import { Idea, SourceOutcome } from "@/lib/supabase/types";
 import { OutcomeBadge } from "@/components/voting/outcome-badge";
-import { InsightCard } from "@/components/voting/insight-card";
-import { CompanyVoteCta } from "@/components/voting/company-vote-cta";
+import { BackButton } from "@/components/ui/back-button";
 
 export const dynamic = "force-dynamic";
 
@@ -127,7 +125,6 @@ export default async function CompanyPage({ params }: CompanyPageProps) {
     notFound();
   }
 
-  const sessionId = await getSessionId();
   const ycProfileUrl = company.yc_slug
     ? `https://www.ycombinator.com/companies/${company.yc_slug}`
     : null;
@@ -135,25 +132,8 @@ export default async function CompanyPage({ params }: CompanyPageProps) {
   return (
     <div className="min-h-screen py-8 px-4">
       <div className="max-w-2xl mx-auto">
-        {/* Back link */}
-        <Link
-          href="/vote"
-          className="inline-flex items-center gap-2 text-foreground/60 hover:text-foreground transition-colors mb-6"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 20 20"
-            fill="currentColor"
-            className="w-5 h-5"
-          >
-            <path
-              fillRule="evenodd"
-              d="M17 10a.75.75 0 01-.75.75H5.612l4.158 3.96a.75.75 0 11-1.04 1.08l-5.5-5.25a.75.75 0 010-1.08l5.5-5.25a.75.75 0 111.04 1.08L5.612 9.25H16.25A.75.75 0 0117 10z"
-              clipRule="evenodd"
-            />
-          </svg>
-          Back to voting
-        </Link>
+        {/* Back link - uses browser history to return to report */}
+        <BackButton className="mb-6" />
 
         {/* Company Header */}
         <div className="bg-surface rounded-2xl p-6 mb-6">
@@ -256,26 +236,6 @@ export default async function CompanyPage({ params }: CompanyPageProps) {
           </div>
         </div>
 
-        {/* Vote CTA */}
-        <div className="mb-6">
-          <CompanyVoteCta
-            ideaId={company.id}
-            companyName={company.yc_name || "this company"}
-            sessionId={sessionId}
-            initialShipPercentage={company.ship_percentage}
-          />
-        </div>
-
-        {/* Insight Card */}
-        <div className="mb-6">
-          <InsightCard
-            outcome={company.source_outcome as SourceOutcome}
-            shipPercentage={company.ship_percentage}
-            totalVotes={company.total_votes}
-            companyName={company.yc_name || "this company"}
-          />
-        </div>
-
         {/* Long Description */}
         {company.yc_long_description && (
           <div className="bg-surface rounded-2xl p-6 mb-6">
@@ -358,13 +318,13 @@ export default async function CompanyPage({ params }: CompanyPageProps) {
           )}
         </div>
 
-        {/* Back to voting CTA */}
+        {/* Back to home CTA */}
         <div className="mt-8 text-center">
           <Link
-            href="/vote"
+            href="/"
             className="text-foreground/60 hover:text-foreground transition-colors"
           >
-            ← Continue voting on more companies
+            ← Back to validation
           </Link>
         </div>
       </div>

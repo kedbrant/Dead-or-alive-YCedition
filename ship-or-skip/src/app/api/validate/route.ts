@@ -1,224 +1,182 @@
-/**
- * Validation API - Fetches data from all sources to validate a startup idea
- *
- * Data sources fetched in parallel:
- * - YC companies (from database)
- * - Product Hunt
- * - News (Serper)
- * - Competitors (Serper)
- * - Reddit (RSS)
- * - Hacker News (RSS)
- * - Google Trends (SerpAPI) - placeholder, not yet implemented
- */
-
 import { NextRequest, NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
-import type { Idea } from "@/lib/supabase/types";
-import {
-  fetchNews,
-  searchReddit,
-  searchHackerNews,
-  searchProductHunt,
-  discoverCompetitors,
-  generateAnalysis,
-  type NewsArticle,
-  type RedditPost,
-  type HackerNewsPost,
-  type PHProduct,
-  type DiscoveredCompany,
-  type AnalysisResult,
-} from "@/lib/data-sources";
+import { searchYCCompanies } from "@/lib/data-sources/yc";
+import { fetchRecentNews } from "@/lib/data-sources/news";
+import { searchReddit, searchHackerNews } from "@/lib/data-sources/reddit";
+import { getGoogleTrends } from "@/lib/data-sources/trends";
+import { searchProductHunt } from "@/lib/data-sources/producthunt";
+import { discoverCompetitors } from "@/lib/data-sources/company-discovery";
+import { generateAnalysis } from "@/lib/ai/openai";
+import { analyzeIdea } from "@/lib/ai/idea-analysis";
+import type { ReportInsert } from "@/lib/supabase/types";
 
-// YC Company type for search results
-type YCCompanyResult = Pick<
-  Idea,
-  | "id"
-  | "yc_name"
-  | "yc_slug"
-  | "yc_batch"
-  | "yc_status"
-  | "yc_industry"
-  | "hero"
-  | "subtitle"
-  | "source_outcome"
->;
+// Minimum idea length requirement
+const MIN_IDEA_LENGTH = 10;
 
-// Validation request body
+// Maximum idea length requirement (prevent abuse)
+const MAX_IDEA_LENGTH = 5000;
+
 interface ValidateRequestBody {
   idea: string;
 }
 
-// Validation response types
-interface ValidationReport {
-  idea: string;
-  timestamp: string;
-  ycCompanies: YCCompanyResult[];
-  phProducts: PHProduct[];
-  competitors: DiscoveredCompany[];
-  news: NewsArticle[];
-  redditPosts: RedditPost[];
-  hnPosts: HackerNewsPost[];
-  trends: null; // Placeholder for Google Trends (SerpAPI) - not yet implemented
-  analysis: AnalysisResult | null; // AI-generated comprehensive analysis
+// Track partial failures for logging
+interface DataFetchResult<T> {
+  data: T;
+  failed: boolean;
+  source: string;
 }
 
-interface ValidateResponse {
-  success: true;
-  report: ValidationReport;
-}
-
-interface ValidateErrorResponse {
-  success: false;
-  error: string;
-}
-
-/**
- * Search YC companies that match the idea
- * Uses text search on hero and subtitle fields
- */
-async function searchYCCompanies(idea: string): Promise<YCCompanyResult[]> {
-  const supabase = createServerSupabaseClient();
-
-  // Extract keywords from idea for search
-  const keywords = idea
-    .toLowerCase()
-    .replace(/[^a-z0-9\s]/g, " ")
-    .split(/\s+/)
-    .filter((word) => word.length > 2)
-    .slice(0, 5)
-    .join(" | "); // PostgreSQL OR operator for text search
-
-  if (!keywords) {
-    return [];
-  }
-
+// Wrapper to catch individual data source failures
+async function fetchWithFallback<T>(
+  fetcher: () => Promise<T>,
+  fallback: T,
+  source: string
+): Promise<DataFetchResult<T>> {
   try {
-    // Search for YC companies matching the idea
-    // Using ilike for flexible matching
-    const searchPattern = `%${idea.split(/\s+/).slice(0, 3).join("%")}%`;
-
-    const { data, error } = await supabase
-      .from("ideas")
-      .select(
-        "id, yc_name, yc_slug, yc_batch, yc_status, yc_industry, hero, subtitle, source_outcome"
-      )
-      .eq("source", "yc")
-      .eq("is_active", true)
-      .or(`hero.ilike.${searchPattern},subtitle.ilike.${searchPattern}`)
-      .limit(20)
-      .returns<YCCompanyResult[]>();
-
-    if (error) {
-      console.error("Error searching YC companies:", error);
-      return [];
-    }
-
-    return data || [];
-  } catch (error) {
-    console.error("Error searching YC companies:", error);
-    return [];
+    const data = await fetcher();
+    return { data, failed: false, source };
+  } catch (err) {
+    console.warn(`Data source ${source} failed:`, err);
+    return { data: fallback, failed: true, source };
   }
 }
 
-export async function POST(
-  request: NextRequest
-): Promise<NextResponse<ValidateResponse | ValidateErrorResponse>> {
+export async function POST(request: NextRequest) {
   let body: ValidateRequestBody;
 
   try {
     body = await request.json();
   } catch {
-    return NextResponse.json(
-      { success: false, error: "Invalid JSON body" },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
   const { idea } = body;
 
-  // Validate required field
+  // Validate idea is present and long enough
   if (!idea || typeof idea !== "string") {
-    return NextResponse.json(
-      { success: false, error: "idea is required and must be a string" },
-      { status: 400 }
-    );
-  }
-
-  // Validate idea length
-  if (idea.length > 500) {
-    return NextResponse.json(
-      { success: false, error: "idea must be 500 characters or less" },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: "idea is required" }, { status: 400 });
   }
 
   const trimmedIdea = idea.trim();
-  if (trimmedIdea.length < 10) {
+
+  if (trimmedIdea.length < MIN_IDEA_LENGTH) {
     return NextResponse.json(
-      { success: false, error: "idea must be at least 10 characters" },
+      { error: `Idea must be at least ${MIN_IDEA_LENGTH} characters` },
+      { status: 400 }
+    );
+  }
+
+  // Validate idea is not too long (prevent abuse)
+  if (trimmedIdea.length > MAX_IDEA_LENGTH) {
+    return NextResponse.json(
+      { error: `Idea must be ${MAX_IDEA_LENGTH} characters or less` },
       { status: 400 }
     );
   }
 
   try {
-    // Fetch all data sources in parallel
-    const [
-      ycCompanies,
-      phProducts,
-      competitors,
-      news,
-      redditPosts,
-      hnPosts,
-    ] = await Promise.all([
-      searchYCCompanies(trimmedIdea),
-      searchProductHunt(trimmedIdea),
-      discoverCompetitors(trimmedIdea),
-      fetchNews(trimmedIdea),
-      searchReddit(trimmedIdea),
-      searchHackerNews(trimmedIdea),
+    // First, get AI analysis (initial take + search terms + subreddits)
+    // This single call extracts all the context we need for better data fetching
+    const analysis = await analyzeIdea(trimmedIdea);
+
+    // Fetch data from multiple sources in parallel with individual error handling
+    // This allows partial failures - if Reddit is down, we still get YC, news, and trends
+    // Use AI-generated search terms and subreddits for better relevance
+    const [companiesResult, newsResult, redditResult, hnResult, trendsResult, phResult, competitorsResult] = await Promise.all([
+      fetchWithFallback(() => searchYCCompanies(trimmedIdea, analysis.ycSearchTerms), [], "YC Companies"),
+      fetchWithFallback(() => fetchRecentNews(trimmedIdea), [], "News"),
+      fetchWithFallback(() => searchReddit(trimmedIdea, analysis.subreddits), [], "Reddit"),
+      fetchWithFallback(() => searchHackerNews(trimmedIdea), [], "Hacker News"),
+      fetchWithFallback(() => getGoogleTrends(trimmedIdea, analysis.searchTerms), null, "Trends"),
+      fetchWithFallback(() => searchProductHunt(trimmedIdea), [], "Product Hunt"),
+      fetchWithFallback(() => discoverCompetitors(trimmedIdea, analysis.knownCompetitors), [], "Competitors"),
     ]);
 
-    // Generate AI analysis with all data sources
-    const analysis = await generateAnalysis({
+    const companies = companiesResult.data;
+    const news = newsResult.data;
+    const reddit = redditResult.data;
+    const hnPosts = hnResult.data;
+    const trends = trendsResult.data;
+    const phProducts = phResult.data;
+    const competitors = competitorsResult.data;
+
+    // Log partial failures for monitoring (but continue with available data)
+    const failedSources = [companiesResult, newsResult, redditResult, hnResult, trendsResult, phResult, competitorsResult]
+      .filter(r => r.failed)
+      .map(r => r.source);
+
+    if (failedSources.length > 0) {
+      console.warn(`Partial data fetch failures: ${failedSources.join(", ")}`);
+    }
+
+    // Generate AI analysis using OpenAI GPT-4o
+    const reportData = await generateAnalysis({
       idea: trimmedIdea,
-      ycCompanies: ycCompanies.map((c) => ({
-        yc_name: c.yc_name,
-        yc_batch: c.yc_batch,
-        yc_status: c.yc_status,
-        yc_industry: c.yc_industry,
-        hero: c.hero,
-        subtitle: c.subtitle,
-        source_outcome: c.source_outcome,
-      })),
+      initialTake: analysis.initialTake,
+      companies,
+      news,
+      reddit,
+      hnPosts,
+      trends,
       phProducts,
       competitors,
-      news,
-      redditPosts,
-      hnPosts,
     });
 
-    // Build the validation report
-    const report: ValidationReport = {
+    // Save report to database
+    const supabase = createServerSupabaseClient();
+
+    const reportInsert: ReportInsert = {
       idea: trimmedIdea,
-      timestamp: new Date().toISOString(),
-      ycCompanies,
-      phProducts,
-      competitors,
-      news,
-      redditPosts,
-      hnPosts,
-      trends: null, // Placeholder for Google Trends (SerpAPI) - not yet implemented
-      analysis,
+      score: reportData.score,
+      report_data: reportData,
     };
 
+    const { data: insertedReport, error: insertError } = await supabase
+      .from("reports")
+      .insert(reportInsert)
+      .select("id")
+      .single();
+
+    if (insertError || !insertedReport) {
+      console.error("Error saving report:", insertError);
+      return NextResponse.json(
+        { error: "Failed to save report" },
+        { status: 500 }
+      );
+    }
+
+    // Return report ID for redirect
     return NextResponse.json({
-      success: true,
-      report,
+      id: insertedReport.id,
+      score: reportData.score,
+      sections: reportData.sections,
     });
-  } catch (error) {
-    console.error("Error validating idea:", error);
+  } catch (err) {
+    console.error("Validation error:", err);
+
+    // Check for rate limiting errors from OpenAI
+    if (err instanceof Error) {
+      const message = err.message.toLowerCase();
+      if (message.includes("rate limit") || message.includes("too many requests")) {
+        return NextResponse.json(
+          { error: "We're experiencing high demand. Please wait a moment and try again." },
+          { status: 429 }
+        );
+      }
+
+      // Check for timeout errors
+      if (message.includes("timeout") || message.includes("timed out")) {
+        return NextResponse.json(
+          { error: "The request took too long. Please try again." },
+          { status: 504 }
+        );
+      }
+    }
+
+    // Generic server error
     return NextResponse.json(
-      { success: false, error: "Failed to validate idea" },
+      { error: "Something went wrong while validating your idea. Please try again." },
       { status: 500 }
     );
   }

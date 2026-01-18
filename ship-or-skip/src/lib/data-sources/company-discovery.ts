@@ -194,26 +194,40 @@ If no relevant companies found, respond with: {"companies": []}`,
 /**
  * Discover competitors for a startup idea using AI anchor + Serper searches
  * @param idea - The startup idea to find competitors for
+ * @param knownCompetitors - Optional array of known competitor names from AI analysis
  * @returns Array of discovered companies with name, description, and status
  */
 export async function discoverCompetitors(
-  idea: string
+  idea: string,
+  knownCompetitors?: string[]
 ): Promise<DiscoveredCompany[]> {
   try {
-    // Step 1: Get anchor company using AI
-    const anchorCompany = await getAnchorCompany(idea);
+    // Step 1: Determine anchor companies
+    // Use known competitors if provided, otherwise ask AI for one
+    let anchors: string[] = [];
+
+    if (knownCompetitors && knownCompetitors.length > 0) {
+      // Use first 2 known competitors as anchors
+      anchors = knownCompetitors.slice(0, 2);
+    } else {
+      // Fallback to AI-generated anchor
+      const anchorCompany = await getAnchorCompany(idea);
+      if (anchorCompany) {
+        anchors = [anchorCompany];
+      }
+    }
 
     // Step 2: Perform searches in parallel
     const searchPromises: Promise<SerperResult[]>[] = [];
 
-    // Search 1: "{anchor} alternatives 2024 2025" (if anchor found)
-    if (anchorCompany) {
+    // Search for alternatives to each anchor company
+    for (const anchor of anchors) {
       searchPromises.push(
-        searchWeb(`${anchorCompany} alternatives 2024 2025`)
+        searchWeb(`${anchor} alternatives 2024 2025`)
       );
     }
 
-    // Search 2: "site:g2.com OR site:capterra.com {keywords}"
+    // Search G2/Capterra for keyword matches
     const keywords = extractKeywords(idea);
     if (keywords) {
       searchPromises.push(
@@ -243,9 +257,23 @@ export async function discoverCompetitors(
     }
 
     // Step 3: Extract company data with AI
-    const companies = await extractCompaniesWithAI(combinedResults, idea);
+    let companies = await extractCompaniesWithAI(combinedResults, idea);
 
-    return companies;
+    // Step 4: Add known competitors that weren't found in search results
+    if (knownCompetitors && knownCompetitors.length > 0) {
+      const foundNames = new Set(companies.map(c => c.name.toLowerCase()));
+      for (const competitor of knownCompetitors) {
+        if (!foundNames.has(competitor.toLowerCase())) {
+          companies.push({
+            name: competitor,
+            description: `Known competitor in this space`,
+            status: 'active',
+          });
+        }
+      }
+    }
+
+    return companies.slice(0, 10);
   } catch (error) {
     console.error('Error discovering competitors:', error);
     return [];
