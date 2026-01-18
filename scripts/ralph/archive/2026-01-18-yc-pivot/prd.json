@@ -1,0 +1,436 @@
+{
+  "project": "YC Archive - Data Sources & Homepage Redesign",
+  "branchName": "ralph/yc-archive-improvements",
+  "description": "Optimize API architecture by splitting SerpAPI/Serper to maximize free tiers. Add new data sources: Product Hunt, Hacker News, tech blogs, company discovery. Migrate Reddit to RSS (free, unlimited). Redesign homepage for mega-sleek single-purpose UX. Comprehensive execution polish for flawless experience.",
+  "userStories": [
+    {
+      "id": "US-001",
+      "title": "Create Serper API integration",
+      "description": "Create Serper client for Google News search and company discovery. This frees up SerpAPI budget for Google Trends only.",
+      "acceptanceCriteria": [
+        "Create /lib/serper.ts with searchNews and searchWeb functions",
+        "searchNews fetches from https://google.serper.dev/news POST endpoint",
+        "searchWeb fetches from https://google.serper.dev/search POST endpoint",
+        "Both use X-API-KEY header with SERPER_API_KEY env var",
+        "Both accept query string and return SerperResult[] with title, link, snippet, date",
+        "Add SERPER_API_KEY to .env.example",
+        "Typecheck passes: npx tsc --noEmit"
+      ],
+      "priority": 1,
+      "passes": false,
+      "notes": "Serper has 2,500 free searches/month vs SerpAPI's 250"
+    },
+    {
+      "id": "US-002",
+      "title": "Migrate Google News from SerpAPI to Serper",
+      "description": "Update news data source to use Serper instead of SerpAPI, freeing SerpAPI for Trends only.",
+      "acceptanceCriteria": [
+        "Update /lib/data-sources/news.ts to use Serper searchNews",
+        "Remove SerpAPI news fetching code",
+        "Maintain same return interface for compatibility",
+        "Filter to last 30 days only",
+        "Return top 10 most relevant articles",
+        "Handle errors gracefully (return empty array)",
+        "Typecheck passes"
+      ],
+      "priority": 2,
+      "passes": false,
+      "notes": "Saves SerpAPI budget for Google Trends"
+    },
+    {
+      "id": "US-003",
+      "title": "Create company discovery via Serper",
+      "description": "Create function to discover non-YC competitors using AI anchor + Serper searches. Searches for alternatives and G2/Capterra listings.",
+      "acceptanceCriteria": [
+        "Create /lib/data-sources/company-discovery.ts",
+        "getAnchorCompany(idea) uses Claude to identify one well-known competitor",
+        "discoverCompetitors(idea) searches for '{anchor} alternatives 2024 2025'",
+        "Also searches 'site:g2.com OR site:capterra.com {keywords}'",
+        "extractCompaniesWithAI parses search results into structured company data",
+        "Returns array with name, description, status (active/acquired/dead/unknown)",
+        "Typecheck passes"
+      ],
+      "priority": 3,
+      "passes": false,
+      "notes": "Uses 2 Serper searches + AI extraction per validation"
+    },
+    {
+      "id": "US-004",
+      "title": "Migrate Reddit to RSS feeds",
+      "description": "Replace Reddit JSON API with RSS feeds for unlimited free access. Reddit's API has rate limits but RSS is unrestricted.",
+      "acceptanceCriteria": [
+        "Install rss-parser package: npm install rss-parser",
+        "Update /lib/data-sources/reddit.ts to use RSS",
+        "RSS URL format: reddit.com/r/{sub}/search.rss?q={query}&sort=relevance&limit=10",
+        "Search subreddits: startups, SaaS, Entrepreneur, smallbusiness",
+        "Parse RSS items to extract: title, link, date, source (subreddit), snippet",
+        "Sort by date descending",
+        "Handle errors gracefully per subreddit",
+        "Typecheck passes"
+      ],
+      "priority": 4,
+      "passes": false,
+      "notes": "RSS is free and unlimited vs blocked API"
+    },
+    {
+      "id": "US-005",
+      "title": "Add Hacker News RSS integration",
+      "description": "Add Hacker News as new data source using hnrss.org for search.",
+      "acceptanceCriteria": [
+        "Create searchHackerNews function in /lib/data-sources/reddit.ts or separate file",
+        "RSS URL: https://hnrss.org/newest?q={query}&count=15",
+        "Parse RSS items to extract: title, link, date, source ('Hacker News'), snippet",
+        "Return top 15 relevant posts",
+        "Handle errors gracefully (return empty array)",
+        "Typecheck passes"
+      ],
+      "priority": 5,
+      "passes": false,
+      "notes": "HN is valuable for tech community sentiment"
+    },
+    {
+      "id": "US-006",
+      "title": "Create Product Hunt integration",
+      "description": "Add Product Hunt as data source to find launched products similar to the idea.",
+      "acceptanceCriteria": [
+        "Create /lib/data-sources/producthunt.ts",
+        "Add PRODUCTHUNT_TOKEN to .env.example",
+        "searchProductHunt(query) uses GraphQL API at api.producthunt.com/v2/api/graphql",
+        "Query posts(first: 10, query: $query) with fields: name, tagline, url, votesCount, createdAt, website",
+        "Uses Bearer token authorization",
+        "Returns PHProduct[] with name, tagline, url, votesCount, createdAt",
+        "Handle errors gracefully",
+        "Typecheck passes"
+      ],
+      "priority": 6,
+      "passes": false,
+      "notes": "PH shows launched products - free with 6,250 pts/15min"
+    },
+    {
+      "id": "US-007",
+      "title": "Update validation API to use all data sources",
+      "description": "Update /api/validate to fetch from all new data sources in parallel.",
+      "acceptanceCriteria": [
+        "Import new data source functions",
+        "Fetch in parallel: YC, Product Hunt, Trends (SerpAPI), News (Serper), Competitors (Serper), Reddit (RSS), HN (RSS)",
+        "Pass all data to AI analysis",
+        "Update report data structure to include phProducts, competitors, hnPosts",
+        "Save all data to report",
+        "Typecheck passes"
+      ],
+      "priority": 7,
+      "passes": false,
+      "notes": "Cost per validation: 1 SerpAPI + 3 Serper + free sources"
+    },
+    {
+      "id": "US-008",
+      "title": "Update AI analysis to include new data sources",
+      "description": "Update OpenAI/Anthropic prompt to analyze Product Hunt, competitors, and HN data.",
+      "acceptanceCriteria": [
+        "Update generateAnalysis function to accept phProducts, competitors, hnPosts",
+        "Update system prompt to analyze Product Hunt launches",
+        "Add section for competitor landscape from discovered companies",
+        "Include HN discussions in sentiment analysis",
+        "Update report sections as needed",
+        "Typecheck passes"
+      ],
+      "priority": 8,
+      "passes": false,
+      "notes": "More data = better analysis"
+    },
+    {
+      "id": "US-009",
+      "title": "Redesign homepage layout",
+      "description": "Create mega-sleek single-purpose homepage with centered input and minimal distractions.",
+      "acceptanceCriteria": [
+        "Update /app/page.tsx with new layout",
+        "Vertically centered content",
+        "Logo 'YC-ARCHIVE' at top (24px, 700 weight)",
+        "Headline 'Validate Your Startup Idea' (48px desktop, 40px mobile, 700 weight)",
+        "Subhead 'Against 5,500+ YC companies and live market data' (20px, 400 weight, gray)",
+        "Single textarea input (56px height, 12px border-radius)",
+        "Character counter (200 max) in bottom-right corner",
+        "Single CTA button 'Validate My Idea'",
+        "Typecheck passes"
+      ],
+      "priority": 9,
+      "passes": false,
+      "notes": "MEGA-sleek, single purpose, no distractions"
+    },
+    {
+      "id": "US-010",
+      "title": "Add homepage example and feature badges",
+      "description": "Add clickable example idea and feature badges below the input.",
+      "acceptanceCriteria": [
+        "Example text: 'Try: \"AI that writes cold outreach emails\"'",
+        "Clicking example fills textarea with that text",
+        "Three feature badges in row below example",
+        "Badge 1: chart emoji + '5,500+ YC startups'",
+        "Badge 2: trending emoji + 'Live trends'",
+        "Badge 3: speech emoji + 'Real sentiment'",
+        "Badges have consistent styling (14px, medium weight)",
+        "Typecheck passes"
+      ],
+      "priority": 10,
+      "passes": false,
+      "notes": "Social proof and quick start"
+    },
+    {
+      "id": "US-011",
+      "title": "Implement homepage color scheme",
+      "description": "Apply the specified color scheme for light and dark modes.",
+      "acceptanceCriteria": [
+        "Light mode background: #FFFFFF",
+        "Light mode text primary: #0A0A0A",
+        "Light mode text secondary: #6B7280",
+        "Light mode input BG: #F9FAFB, border: #E5E7EB",
+        "Light mode button: BG #0A0A0A, text #FFFFFF",
+        "Dark mode background: #0A0A0A",
+        "Dark mode text primary: #FAFAFA",
+        "Dark mode text secondary: #9CA3AF",
+        "Dark mode input BG: #18181B, border: #27272A",
+        "Dark mode button: BG #FAFAFA, text #0A0A0A",
+        "Input focus: #3B82F6 ring in both modes",
+        "Typecheck passes"
+      ],
+      "priority": 11,
+      "passes": false,
+      "notes": "Clean minimal color scheme"
+    },
+    {
+      "id": "US-012",
+      "title": "Add homepage animations",
+      "description": "Add subtle animations for polish.",
+      "acceptanceCriteria": [
+        "Page fade-in on load (300ms)",
+        "Input focus: border color transition (150ms)",
+        "Button hover: opacity 90% or slight darken (150ms)",
+        "Button click: scale 0.98 (100ms)",
+        "Smooth transitions on all interactive elements",
+        "No janky animations",
+        "Typecheck passes"
+      ],
+      "priority": 12,
+      "passes": false,
+      "notes": "Subtle animations feel premium"
+    },
+    {
+      "id": "US-013",
+      "title": "Improve loading state UX",
+      "description": "Show detailed progress during validation with checklist of data sources.",
+      "acceptanceCriteria": [
+        "Loading state shows 'Analyzing your idea...' heading",
+        "Shows checklist of data sources being fetched",
+        "Each source shows: pending (circle), loading (spinner), complete (checkmark)",
+        "Order: YC companies, Market trends, Recent news, Community sentiment",
+        "Progress bar or percentage indicator",
+        "Hint text: 'Usually takes 10-15 seconds'",
+        "Typecheck passes"
+      ],
+      "priority": 13,
+      "passes": false,
+      "notes": "Good loading UX reduces perceived wait time"
+    },
+    {
+      "id": "US-014",
+      "title": "Improve empty states",
+      "description": "Create helpful empty states for each section when no data is found.",
+      "acceptanceCriteria": [
+        "YC empty state: 'No similar YC companies found' + 'Your idea might be truly novel' + 'Try broader keywords'",
+        "News empty state: 'No recent news found' + 'This space might be emerging'",
+        "Reddit empty state: 'No community discussions found'",
+        "Each empty state has relevant emoji icon",
+        "Message is helpful not discouraging",
+        "Typecheck passes"
+      ],
+      "priority": 14,
+      "passes": false,
+      "notes": "Empty != error, guide user forward"
+    },
+    {
+      "id": "US-015",
+      "title": "Improve error states",
+      "description": "Create user-friendly error messages that don't expose technical details.",
+      "acceptanceCriteria": [
+        "Generic error: 'Something went wrong' + 'We couldn't complete your validation. This is usually temporary.' + Retry button",
+        "Rate limit error: 'Too many requests' + 'Please wait a moment and try again'",
+        "Network error: 'Connection issue' + 'Check your internet and try again'",
+        "No technical jargon (500, timeout, etc.)",
+        "All errors have retry action",
+        "Typecheck passes"
+      ],
+      "priority": 15,
+      "passes": false,
+      "notes": "Friendly errors build trust"
+    },
+    {
+      "id": "US-016",
+      "title": "Add Product Hunt section to report",
+      "description": "Create report section showing similar Product Hunt launches.",
+      "acceptanceCriteria": [
+        "Create ProductHuntSection component in /components/report/",
+        "Section heading: 'PRODUCT HUNT LAUNCHES'",
+        "Show products with: name, tagline, votes count, launch date",
+        "Products are clickable links to PH page",
+        "Empty state if no products found",
+        "AI insight about PH data",
+        "Typecheck passes"
+      ],
+      "priority": 16,
+      "passes": false,
+      "notes": "Shows what's already launched"
+    },
+    {
+      "id": "US-017",
+      "title": "Add competitors section to report",
+      "description": "Create report section showing discovered non-YC competitors.",
+      "acceptanceCriteria": [
+        "Create CompetitorsSection component in /components/report/",
+        "Section heading: 'COMPETITOR LANDSCAPE'",
+        "Show companies with: name, description, status badge",
+        "Status badges: Active (green), Acquired (blue), Dead (gray), Unknown (yellow)",
+        "AI insight about competitive landscape",
+        "Empty state if no competitors found",
+        "Typecheck passes"
+      ],
+      "priority": 17,
+      "passes": false,
+      "notes": "Shows broader market players"
+    },
+    {
+      "id": "US-018",
+      "title": "Add Hacker News to sentiment section",
+      "description": "Include Hacker News posts in the community sentiment section.",
+      "acceptanceCriteria": [
+        "Update SentimentSection to show HN posts alongside Reddit",
+        "Show source badge (Reddit vs HN) for each post",
+        "HN posts show: title, points, date",
+        "AI analysis includes HN sentiment",
+        "Typecheck passes"
+      ],
+      "priority": 18,
+      "passes": false,
+      "notes": "HN is high-signal for tech"
+    },
+    {
+      "id": "US-019",
+      "title": "Mobile responsive polish",
+      "description": "Ensure pixel-perfect mobile experience across all pages.",
+      "acceptanceCriteria": [
+        "Test at 375px (iPhone SE)",
+        "Test at 768px (tablet)",
+        "No horizontal scroll on any page",
+        "Touch targets at least 44px",
+        "Input full width on mobile",
+        "Cards stack vertically",
+        "Charts resize appropriately",
+        "No text cut off",
+        "Typecheck passes"
+      ],
+      "priority": 19,
+      "passes": false,
+      "notes": "Mobile-first generation"
+    },
+    {
+      "id": "US-020",
+      "title": "Performance optimization",
+      "description": "Ensure fast load times and no layout shift.",
+      "acceptanceCriteria": [
+        "All data sources fetched in parallel (Promise.all)",
+        "FCP < 1.5s",
+        "LCP < 2.5s",
+        "CLS = 0 (no layout shift)",
+        "Images optimized (WebP where possible)",
+        "Fonts don't block render",
+        "Build succeeds: npm run build",
+        "Typecheck passes"
+      ],
+      "priority": 20,
+      "passes": false,
+      "notes": "Speed is UX"
+    },
+    {
+      "id": "US-021",
+      "title": "Update OG and meta tags",
+      "description": "Update social sharing meta tags for new branding.",
+      "acceptanceCriteria": [
+        "Page title: 'YC Archive - Validate Your Startup Idea'",
+        "OG title compelling and clear",
+        "OG description: clear value prop",
+        "OG image: 1200x630px or quality fallback",
+        "Twitter card: summary_large_image",
+        "Report pages have dynamic OG with score/idea",
+        "Typecheck passes"
+      ],
+      "priority": 21,
+      "passes": false,
+      "notes": "Good OG = better sharing"
+    },
+    {
+      "id": "US-022",
+      "title": "Add favicon and icons",
+      "description": "Set up proper favicon and app icons.",
+      "acceptanceCriteria": [
+        "Favicon set (16x16, 32x32)",
+        "Apple touch icon (180x180)",
+        "Icons visible in browser tab",
+        "Icons work in both light and dark browser themes",
+        "Typecheck passes"
+      ],
+      "priority": 22,
+      "passes": false,
+      "notes": "Professional detail"
+    },
+    {
+      "id": "US-023",
+      "title": "Accessibility audit",
+      "description": "Ensure WCAG AA compliance for core flows.",
+      "acceptanceCriteria": [
+        "All text meets 4.5:1 contrast ratio",
+        "Focus states clearly visible",
+        "Form inputs have labels",
+        "Buttons have accessible names",
+        "Skip links for keyboard nav",
+        "No auto-playing animations",
+        "Typecheck passes"
+      ],
+      "priority": 23,
+      "passes": false,
+      "notes": "Accessibility is quality"
+    },
+    {
+      "id": "US-024",
+      "title": "End-to-end testing",
+      "description": "Test complete validation flow with new data sources.",
+      "acceptanceCriteria": [
+        "Test: Enter idea on homepage",
+        "Test: Loading state shows all sources",
+        "Test: Report shows all new sections (PH, competitors, HN)",
+        "Test: Share buttons work",
+        "Test: Mobile responsive",
+        "Test: Dark mode",
+        "Test: Report URL is shareable",
+        "Verify in browser"
+      ],
+      "priority": 24,
+      "passes": false,
+      "notes": "Manual verification required"
+    },
+    {
+      "id": "US-025",
+      "title": "Documentation and deployment prep",
+      "description": "Document new env vars and ensure deployment readiness.",
+      "acceptanceCriteria": [
+        "Update .env.example with SERPER_API_KEY, PRODUCTHUNT_TOKEN",
+        "Document API budget limits in README or comments",
+        "No console errors in production build",
+        "npm run build succeeds",
+        "npx tsc --noEmit succeeds",
+        "All new features work in production mode"
+      ],
+      "priority": 25,
+      "passes": false,
+      "notes": "Ready for production"
+    }
+  ]
+}
