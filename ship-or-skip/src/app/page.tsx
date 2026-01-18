@@ -4,12 +4,18 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 
 const MAX_CHARS = 200;
+const EXAMPLE_IDEA = "AI that writes cold outreach emails";
 
 export default function Home() {
   const router = useRouter();
   const [idea, setIdea] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const fillExample = () => {
+    setIdea(EXAMPLE_IDEA);
+    setError(null);
+  };
 
   const charCount = idea.length;
   const isOverLimit = charCount > MAX_CHARS;
@@ -110,6 +116,34 @@ export default function Home() {
             {isSubmitting ? "Validating..." : "Validate My Idea"}
           </button>
         </form>
+
+        {/* Example text */}
+        <p className="mt-6 text-sm text-foreground/60">
+          Try:{" "}
+          <button
+            type="button"
+            onClick={fillExample}
+            className="text-foreground/80 hover:text-foreground underline underline-offset-2 transition-colors"
+          >
+            &ldquo;{EXAMPLE_IDEA}&rdquo;
+          </button>
+        </p>
+
+        {/* Feature badges */}
+        <div className="flex flex-wrap justify-center gap-4 mt-6">
+          <span className="inline-flex items-center gap-1.5 text-sm font-medium text-foreground/70">
+            <span>📊</span>
+            <span>5,500+ YC startups</span>
+          </span>
+          <span className="inline-flex items-center gap-1.5 text-sm font-medium text-foreground/70">
+            <span>📈</span>
+            <span>Live trends</span>
+          </span>
+          <span className="inline-flex items-center gap-1.5 text-sm font-medium text-foreground/70">
+            <span>💬</span>
+            <span>Real sentiment</span>
+          </span>
+        </div>
       </main>
     </div>
   );
