@@ -1,16 +1,75 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
 const MAX_CHARS = 200;
 const EXAMPLE_IDEA = "AI that writes cold outreach emails";
+
+// Data source loading states
+type LoadingStatus = "pending" | "loading" | "complete";
+
+interface DataSourceState {
+  id: string;
+  label: string;
+  status: LoadingStatus;
+}
+
+const INITIAL_SOURCES: DataSourceState[] = [
+  { id: "yc", label: "YC companies", status: "pending" },
+  { id: "trends", label: "Market trends", status: "pending" },
+  { id: "news", label: "Recent news", status: "pending" },
+  { id: "sentiment", label: "Community sentiment", status: "pending" },
+];
 
 export default function Home() {
   const router = useRouter();
   const [idea, setIdea] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [dataSources, setDataSources] = useState<DataSourceState[]>(INITIAL_SOURCES);
+
+  // Simulate loading progress for data sources
+  useEffect(() => {
+    if (!isSubmitting) {
+      // Reset sources when not submitting
+      setDataSources(INITIAL_SOURCES);
+      return;
+    }
+
+    // Simulate staggered loading of data sources
+    const timings = [
+      { id: "yc", startDelay: 100, completeDelay: 2000 },
+      { id: "trends", startDelay: 200, completeDelay: 4000 },
+      { id: "news", startDelay: 300, completeDelay: 3000 },
+      { id: "sentiment", startDelay: 400, completeDelay: 5000 },
+    ];
+
+    const timeouts: NodeJS.Timeout[] = [];
+
+    timings.forEach(({ id, startDelay, completeDelay }) => {
+      // Set to loading
+      timeouts.push(
+        setTimeout(() => {
+          setDataSources((prev) =>
+            prev.map((s) => (s.id === id ? { ...s, status: "loading" } : s))
+          );
+        }, startDelay)
+      );
+      // Set to complete
+      timeouts.push(
+        setTimeout(() => {
+          setDataSources((prev) =>
+            prev.map((s) => (s.id === id ? { ...s, status: "complete" } : s))
+          );
+        }, completeDelay)
+      );
+    });
+
+    return () => {
+      timeouts.forEach((t) => clearTimeout(t));
+    };
+  }, [isSubmitting]);
 
   const fillExample = () => {
     setIdea(EXAMPLE_IDEA);
@@ -19,6 +78,10 @@ export default function Home() {
 
   const charCount = idea.length;
   const isOverLimit = charCount > MAX_CHARS;
+
+  // Calculate progress percentage based on completed sources
+  const completedCount = dataSources.filter((s) => s.status === "complete").length;
+  const progressPercent = Math.round((completedCount / dataSources.length) * 100);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -56,6 +119,83 @@ export default function Home() {
       setIsSubmitting(false);
     }
   };
+
+  // Loading state UI
+  if (isSubmitting) {
+    return (
+      <div className="flex min-h-screen items-center justify-center px-4 animate-page-fade-in">
+        <main className="flex flex-col items-center w-full max-w-md text-center">
+          {/* Logo */}
+          <span className="text-2xl font-bold tracking-tight mb-8">
+            YC-ARCHIVE
+          </span>
+
+          {/* Loading heading */}
+          <h2 className="text-2xl sm:text-3xl font-bold mb-8">
+            Analyzing your idea...
+          </h2>
+
+          {/* Progress bar */}
+          <div className="w-full bg-surface border border-border rounded-full h-2 mb-6 overflow-hidden">
+            <div
+              className="bg-focus-ring h-full rounded-full transition-all duration-500 ease-out"
+              style={{ width: `${progressPercent}%` }}
+            />
+          </div>
+
+          {/* Data sources checklist */}
+          <div className="w-full space-y-3 mb-8">
+            {dataSources.map((source) => (
+              <div
+                key={source.id}
+                className="flex items-center gap-3 px-4 py-3 bg-surface border border-border rounded-lg"
+              >
+                {/* Status icon */}
+                <div className="flex-shrink-0 w-5 h-5 flex items-center justify-center">
+                  {source.status === "pending" && (
+                    <div className="w-4 h-4 rounded-full border-2 border-foreground-secondary" />
+                  )}
+                  {source.status === "loading" && (
+                    <div className="w-4 h-4 rounded-full border-2 border-focus-ring border-t-transparent animate-spin" />
+                  )}
+                  {source.status === "complete" && (
+                    <svg
+                      className="w-5 h-5 text-ship"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth={2.5}
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M5 13l4 4L19 7"
+                      />
+                    </svg>
+                  )}
+                </div>
+                {/* Label */}
+                <span
+                  className={`text-sm font-medium ${
+                    source.status === "complete"
+                      ? "text-foreground"
+                      : "text-foreground-secondary"
+                  }`}
+                >
+                  {source.label}
+                </span>
+              </div>
+            ))}
+          </div>
+
+          {/* Hint text */}
+          <p className="text-sm text-foreground-secondary">
+            Usually takes 10-15 seconds
+          </p>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen items-center justify-center px-4 animate-page-fade-in">
@@ -112,7 +252,7 @@ export default function Home() {
               hover:opacity-90 active:scale-[0.98] btn-animate
               disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:opacity-50 disabled:active:scale-100"
           >
-            {isSubmitting ? "Validating..." : "Validate My Idea"}
+            Validate My Idea
           </button>
         </form>
 
