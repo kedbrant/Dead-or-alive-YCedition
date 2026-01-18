@@ -17,3 +17,4 @@ export {
   type RedditPost,
   type HackerNewsPost,
 } from './reddit';
+export { searchProductHunt, type PHProduct } from './producthunt';
