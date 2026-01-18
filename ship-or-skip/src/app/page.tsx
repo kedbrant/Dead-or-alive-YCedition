@@ -112,8 +112,13 @@ export default function Home() {
       }
 
       const data = await response.json();
-      // Navigate to report page with the report ID
-      router.push(`/report/${data.id}`);
+
+      // Generate a unique report ID and save to localStorage
+      const reportId = `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+      localStorage.setItem(`report_${reportId}`, JSON.stringify(data.report));
+
+      // Navigate to report page
+      router.push(`/report/${reportId}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
       setIsSubmitting(false);
