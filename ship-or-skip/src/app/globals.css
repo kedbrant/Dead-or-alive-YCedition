@@ -1,9 +1,45 @@
 @import "tailwindcss";
 
+/* Light mode (default) */
 :root {
+  --background: #FFFFFF;
+  --foreground: #0A0A0A;
+  --foreground-secondary: #6B7280;
+  --surface: #F9FAFB;
+  --border: #E5E7EB;
+  --button-bg: #0A0A0A;
+  --button-text: #FFFFFF;
+  --focus-ring: #3B82F6;
+  --ship: #22C55E;
+  --skip: #EF4444;
+}
+
+/* Dark mode */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0A0A0A;
+    --foreground: #FAFAFA;
+    --foreground-secondary: #9CA3AF;
+    --surface: #18181B;
+    --border: #27272A;
+    --button-bg: #FAFAFA;
+    --button-text: #0A0A0A;
+    --focus-ring: #3B82F6;
+    --ship: #22C55E;
+    --skip: #EF4444;
+  }
+}
+
+/* Manual dark mode class support */
+.dark {
   --background: #0A0A0A;
-  --foreground: #EDEDED;
+  --foreground: #FAFAFA;
+  --foreground-secondary: #9CA3AF;
   --surface: #18181B;
+  --border: #27272A;
+  --button-bg: #FAFAFA;
+  --button-text: #0A0A0A;
+  --focus-ring: #3B82F6;
   --ship: #22C55E;
   --skip: #EF4444;
 }
@@ -11,7 +47,12 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-foreground-secondary: var(--foreground-secondary);
   --color-surface: var(--surface);
+  --color-border: var(--border);
+  --color-button-bg: var(--button-bg);
+  --color-button-text: var(--button-text);
+  --color-focus-ring: var(--focus-ring);
   --color-ship: var(--ship);
   --color-skip: var(--skip);
   --font-sans: var(--font-inter);

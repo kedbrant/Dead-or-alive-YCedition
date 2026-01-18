@@ -71,7 +71,7 @@ export default function Home() {
         </h1>
 
         {/* Subhead */}
-        <p className="text-xl font-normal text-foreground/60 mb-10">
+        <p className="text-xl font-normal text-foreground-secondary mb-10">
           Against 5,500+ YC companies and live market data
         </p>
 
@@ -84,15 +84,15 @@ export default function Home() {
               onChange={(e) => setIdea(e.target.value)}
               placeholder="Describe your startup idea..."
               rows={3}
-              className="w-full min-h-[56px] px-4 py-3 bg-surface border border-foreground/20 rounded-xl text-base
-                placeholder:text-foreground/30
-                focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500
+              className="w-full min-h-[56px] px-4 py-3 bg-surface border border-border rounded-xl text-base
+                placeholder:text-foreground-secondary
+                focus:outline-none focus:border-focus-ring focus:ring-1 focus:ring-focus-ring
                 transition-colors resize-none"
             />
             {/* Character counter */}
             <span
               className={`absolute bottom-3 right-3 text-sm ${
-                isOverLimit ? "text-skip" : "text-foreground/40"
+                isOverLimit ? "text-skip" : "text-foreground-secondary"
               }`}
             >
               {charCount}/{MAX_CHARS}
@@ -108,7 +108,7 @@ export default function Home() {
           <button
             type="submit"
             disabled={isSubmitting || isOverLimit}
-            className="w-full bg-foreground text-background font-bold text-lg px-8 py-4 rounded-xl
+            className="w-full bg-button-bg text-button-text font-bold text-lg px-8 py-4 rounded-xl
               hover:opacity-90 active:scale-[0.98]
               transition-all duration-150
               disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:opacity-50 disabled:active:scale-100"
@@ -118,12 +118,12 @@ export default function Home() {
         </form>
 
         {/* Example text */}
-        <p className="mt-6 text-sm text-foreground/60">
+        <p className="mt-6 text-sm text-foreground-secondary">
           Try:{" "}
           <button
             type="button"
             onClick={fillExample}
-            className="text-foreground/80 hover:text-foreground underline underline-offset-2 transition-colors"
+            className="text-foreground hover:opacity-80 underline underline-offset-2 transition-colors"
           >
             &ldquo;{EXAMPLE_IDEA}&rdquo;
           </button>
@@ -131,15 +131,15 @@ export default function Home() {
 
         {/* Feature badges */}
         <div className="flex flex-wrap justify-center gap-4 mt-6">
-          <span className="inline-flex items-center gap-1.5 text-sm font-medium text-foreground/70">
+          <span className="inline-flex items-center gap-1.5 text-sm font-medium text-foreground-secondary">
             <span>📊</span>
             <span>5,500+ YC startups</span>
           </span>
-          <span className="inline-flex items-center gap-1.5 text-sm font-medium text-foreground/70">
+          <span className="inline-flex items-center gap-1.5 text-sm font-medium text-foreground-secondary">
             <span>📈</span>
             <span>Live trends</span>
           </span>
-          <span className="inline-flex items-center gap-1.5 text-sm font-medium text-foreground/70">
+          <span className="inline-flex items-center gap-1.5 text-sm font-medium text-foreground-secondary">
             <span>💬</span>
             <span>Real sentiment</span>
           </span>
