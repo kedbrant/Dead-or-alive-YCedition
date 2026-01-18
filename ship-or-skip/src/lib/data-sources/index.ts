@@ -18,3 +18,13 @@ export {
   type HackerNewsPost,
 } from './reddit';
 export { searchProductHunt, type PHProduct } from './producthunt';
+export {
+  generateAnalysis,
+  type AnalysisInput,
+  type AnalysisResult,
+  type MarketAnalysis,
+  type CompetitorAnalysis,
+  type ProductHuntAnalysis,
+  type SentimentAnalysis,
+  type YCCompanyForAnalysis,
+} from './analysis';

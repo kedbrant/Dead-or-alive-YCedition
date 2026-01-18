@@ -20,11 +20,13 @@ import {
   searchHackerNews,
   searchProductHunt,
   discoverCompetitors,
+  generateAnalysis,
   type NewsArticle,
   type RedditPost,
   type HackerNewsPost,
   type PHProduct,
   type DiscoveredCompany,
+  type AnalysisResult,
 } from "@/lib/data-sources";
 
 // YC Company type for search results
@@ -57,6 +59,7 @@ interface ValidationReport {
   redditPosts: RedditPost[];
   hnPosts: HackerNewsPost[];
   trends: null; // Placeholder for Google Trends (SerpAPI) - not yet implemented
+  analysis: AnalysisResult | null; // AI-generated comprehensive analysis
 }
 
 interface ValidateResponse {
@@ -175,6 +178,25 @@ export async function POST(
       searchHackerNews(trimmedIdea),
     ]);
 
+    // Generate AI analysis with all data sources
+    const analysis = await generateAnalysis({
+      idea: trimmedIdea,
+      ycCompanies: ycCompanies.map((c) => ({
+        yc_name: c.yc_name,
+        yc_batch: c.yc_batch,
+        yc_status: c.yc_status,
+        yc_industry: c.yc_industry,
+        hero: c.hero,
+        subtitle: c.subtitle,
+        source_outcome: c.source_outcome,
+      })),
+      phProducts,
+      competitors,
+      news,
+      redditPosts,
+      hnPosts,
+    });
+
     // Build the validation report
     const report: ValidationReport = {
       idea: trimmedIdea,
@@ -186,6 +208,7 @@ export async function POST(
       redditPosts,
       hnPosts,
       trends: null, // Placeholder for Google Trends (SerpAPI) - not yet implemented
+      analysis,
     };
 
     return NextResponse.json({
