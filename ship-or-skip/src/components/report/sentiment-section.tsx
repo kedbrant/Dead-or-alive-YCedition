@@ -1,11 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { RedditPost } from "@/lib/supabase/types";
+import { RedditPost, HackerNewsPost } from "@/lib/supabase/types";
 
 interface SentimentSectionProps {
   summary: string;
   posts: RedditPost[];
+  hnPosts?: HackerNewsPost[];
   sentimentBreakdown: {
     positive: number;
     negative: number;
@@ -16,12 +17,18 @@ interface SentimentSectionProps {
 export function SentimentSection({
   summary,
   posts,
+  hnPosts = [],
   sentimentBreakdown,
 }: SentimentSectionProps) {
-  const [showAll, setShowAll] = useState(false);
-  const totalPosts = posts.length;
-  const displayedPosts = showAll ? posts : posts.slice(0, 5);
-  const hasMore = totalPosts > 5;
+  const [showAllReddit, setShowAllReddit] = useState(false);
+  const [showAllHN, setShowAllHN] = useState(false);
+  const totalRedditPosts = posts.length;
+  const displayedRedditPosts = showAllReddit ? posts : posts.slice(0, 5);
+  const hasMoreReddit = totalRedditPosts > 5;
+
+  const totalHNPosts = hnPosts.length;
+  const displayedHNPosts = showAllHN ? hnPosts.slice(0, 15) : hnPosts.slice(0, 5);
+  const hasMoreHN = totalHNPosts > 5;
 
   // Extract unique subreddits searched
   const subredditsSearched = [...new Set(posts.map((post) => post.subreddit))];
@@ -113,10 +120,11 @@ export function SentimentSection({
       <p className="text-foreground/80 mb-4">{summary}</p>
 
       {/* Reddit Posts */}
-      {posts && posts.length > 0 ? (
-        <div>
+      {posts && posts.length > 0 && (
+        <div className="mb-4">
+          <h3 className="text-sm font-medium text-foreground/70 mb-2">Reddit</h3>
           <div className="space-y-2">
-            {displayedPosts.map((post, index) => (
+            {displayedRedditPosts.map((post, index) => (
               <a
                 key={index}
                 href={post.url}
@@ -139,12 +147,12 @@ export function SentimentSection({
           </div>
 
           {/* Expand/Collapse Button */}
-          {hasMore && (
+          {hasMoreReddit && (
             <button
-              onClick={() => setShowAll(!showAll)}
-              className="mt-4 w-full py-2 px-4 bg-foreground/5 hover:bg-foreground/10 rounded-lg text-sm font-medium text-foreground/70 hover:text-foreground transition-colors flex items-center justify-center gap-2"
+              onClick={() => setShowAllReddit(!showAllReddit)}
+              className="mt-2 w-full py-2 px-4 bg-foreground/5 hover:bg-foreground/10 rounded-lg text-sm font-medium text-foreground/70 hover:text-foreground transition-colors flex items-center justify-center gap-2"
             >
-              {showAll ? (
+              {showAllReddit ? (
                 <>
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -174,13 +182,89 @@ export function SentimentSection({
                       clipRule="evenodd"
                     />
                   </svg>
-                  Show all {totalPosts} posts
+                  Show all {totalRedditPosts} posts
                 </>
               )}
             </button>
           )}
         </div>
-      ) : (
+      )}
+
+      {/* Hacker News Posts */}
+      {hnPosts && hnPosts.length > 0 && (
+        <div className="mb-4">
+          <h3 className="text-sm font-medium text-foreground/70 mb-2">Hacker News</h3>
+          <div className="space-y-2">
+            {displayedHNPosts.map((post, index) => (
+              <a
+                key={index}
+                href={post.link}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block p-3 bg-foreground/5 rounded-lg hover:bg-foreground/10 transition-colors"
+              >
+                <div className="font-medium text-sm line-clamp-2">
+                  {post.title}
+                </div>
+                <div className="text-xs text-foreground/60 mt-1 flex items-center gap-2">
+                  <span className="text-yc-orange">HN</span>
+                  {post.date && (
+                    <>
+                      <span>&bull;</span>
+                      <span>{post.date}</span>
+                    </>
+                  )}
+                </div>
+              </a>
+            ))}
+          </div>
+
+          {/* Expand/Collapse Button */}
+          {hasMoreHN && (
+            <button
+              onClick={() => setShowAllHN(!showAllHN)}
+              className="mt-2 w-full py-2 px-4 bg-foreground/5 hover:bg-foreground/10 rounded-lg text-sm font-medium text-foreground/70 hover:text-foreground transition-colors flex items-center justify-center gap-2"
+            >
+              {showAllHN ? (
+                <>
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                    className="w-4 h-4"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M14.77 12.79a.75.75 0 01-1.06-.02L10 8.832 6.29 12.77a.75.75 0 11-1.08-1.04l4.25-4.5a.75.75 0 011.08 0l4.25 4.5a.75.75 0 01-.02 1.06z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                  Show less
+                </>
+              ) : (
+                <>
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                    className="w-4 h-4"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                  Show all {Math.min(totalHNPosts, 15)} posts
+                </>
+              )}
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* No posts message */}
+      {(!posts || posts.length === 0) && (!hnPosts || hnPosts.length === 0) && (
         <p className="text-foreground/60 text-sm italic">
           No community discussions found for this topic.
         </p>

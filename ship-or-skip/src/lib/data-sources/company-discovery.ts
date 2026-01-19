@@ -12,6 +12,7 @@ export interface DiscoveredCompany {
   name: string;
   description: string;
   status: CompanyStatus;
+  url?: string;
 }
 
 const openai = new OpenAI({
@@ -135,17 +136,19 @@ For each company found, determine:
 1. Company name (just the name, no Inc./LLC/etc.)
 2. Brief description (1 sentence, what they do)
 3. Status: "active" (operating), "acquired" (bought by another company), "dead" (shut down/defunct), or "unknown"
+4. URL: The company's website URL if found in the search results (not the G2/Capterra page, but the actual company domain)
 
 Rules:
 - Only include REAL companies, not generic categories or lists
 - Skip news sites, review sites, and aggregator sites themselves (G2, Capterra are sources, not competitors)
 - Maximum 8 companies
 - Focus on direct competitors that solve similar problems
+- For URL, prefer the company's main domain (e.g., "https://company.com"), not review site URLs
 
 Respond in JSON format:
 {
   "companies": [
-    {"name": "Company Name", "description": "What they do", "status": "active"}
+    {"name": "Company Name", "description": "What they do", "status": "active", "url": "https://company.com"}
   ]
 }
 
@@ -183,6 +186,7 @@ If no relevant companies found, respond with: {"companies": []}`,
         status: ['active', 'acquired', 'dead', 'unknown'].includes(c.status)
           ? c.status
           : 'unknown',
+        url: c.url && typeof c.url === 'string' ? c.url.trim() : undefined,
       }))
       .slice(0, 8);
   } catch (error) {

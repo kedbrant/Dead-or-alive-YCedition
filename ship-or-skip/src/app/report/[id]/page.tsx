@@ -178,6 +178,7 @@ export default async function ReportPage({ params }: ReportPageProps) {
         <SentimentSection
           summary={sections.sentiment.summary}
           posts={sections.sentiment.posts}
+          hnPosts={sections.sentiment.hnPosts}
           sentimentBreakdown={sections.sentiment.sentimentBreakdown}
         />
 

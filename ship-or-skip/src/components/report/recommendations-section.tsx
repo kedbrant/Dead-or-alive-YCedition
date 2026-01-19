@@ -20,7 +20,7 @@ export function RecommendationsSection({
         <div className="space-y-4">
           {recommendations.map((rec, index) => (
             <div key={index} className="flex gap-4">
-              <div className="flex-shrink-0 w-8 h-8 rounded-full bg-purple-500/20 text-purple-400 flex items-center justify-center font-bold">
+              <div className="flex-shrink-0 w-8 h-8 rounded-full bg-yc-orange/20 text-yc-orange flex items-center justify-center font-bold">
                 {index + 1}
               </div>
               <div>

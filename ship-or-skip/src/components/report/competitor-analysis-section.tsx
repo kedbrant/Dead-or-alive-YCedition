@@ -176,8 +176,8 @@ export function CompetitorAnalysisSection({
           <div className="space-y-2">
             {competitors.slice(0, 8).map((company, index) => {
               const style = statusStyles[company.status];
-              return (
-                <div key={index} className="flex items-start justify-between gap-4 p-3 bg-foreground/5 rounded-lg">
+              const content = (
+                <>
                   <div className="flex-1 min-w-0">
                     <div className="font-medium text-foreground">{company.name}</div>
                     <div className="text-sm text-foreground/60 mt-1">{company.description}</div>
@@ -185,6 +185,26 @@ export function CompetitorAnalysisSection({
                   <div className={`flex-shrink-0 px-2 py-1 rounded-lg text-xs font-medium ${style.bg} ${style.text}`}>
                     {style.label}
                   </div>
+                </>
+              );
+
+              if (company.url) {
+                return (
+                  <a
+                    key={index}
+                    href={company.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-start justify-between gap-4 p-3 bg-foreground/5 rounded-lg hover:bg-foreground/10 transition-colors"
+                  >
+                    {content}
+                  </a>
+                );
+              }
+
+              return (
+                <div key={index} className="flex items-start justify-between gap-4 p-3 bg-foreground/5 rounded-lg">
+                  {content}
                 </div>
               );
             })}

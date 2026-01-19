@@ -1,17 +1,31 @@
 "use client";
 
+import { useMemo } from "react";
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Filler,
+  Tooltip,
+} from "chart.js";
+import { Line } from "react-chartjs-2";
 import { TrendsData } from "@/lib/supabase/types";
+
+// Register Chart.js components
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Filler,
+  Tooltip
+);
 
 interface TrendsSectionProps {
   summary: string;
   data: TrendsData | null;
-}
-
-function getBarColor(value: number): string {
-  if (value >= 80) return "bg-green-500";
-  if (value >= 60) return "bg-yellow-500";
-  if (value >= 40) return "bg-orange-500";
-  return "bg-red-500";
 }
 
 function getTrendIndicator(changePercent: number): {
@@ -54,6 +68,79 @@ function getInterestLevel(currentLevel: number): {
 }
 
 export function TrendsSection({ summary, data }: TrendsSectionProps) {
+  // Memoize chart data and options
+  const chartData = useMemo(() => {
+    if (!data?.timeline || data.timeline.length === 0) return null;
+
+    return {
+      labels: data.timeline.map((point) => point.date),
+      datasets: [
+        {
+          data: data.timeline.map((point) => point.value),
+          fill: true,
+          backgroundColor: (context: { chart: { ctx: CanvasRenderingContext2D } }) => {
+            const ctx = context.chart.ctx;
+            const gradient = ctx.createLinearGradient(0, 0, 0, 128);
+            gradient.addColorStop(0, "rgba(168, 85, 247, 0.4)");
+            gradient.addColorStop(1, "rgba(168, 85, 247, 0)");
+            return gradient;
+          },
+          borderColor: "#a855f7",
+          borderWidth: 2,
+          tension: 0.4,
+          pointRadius: 0,
+          pointHoverRadius: 4,
+          pointHoverBackgroundColor: "#a855f7",
+          pointHoverBorderColor: "#fff",
+          pointHoverBorderWidth: 2,
+        },
+      ],
+    };
+  }, [data?.timeline]);
+
+  const chartOptions = useMemo(
+    () => ({
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: {
+        intersect: false,
+        mode: "index" as const,
+      },
+      plugins: {
+        tooltip: {
+          backgroundColor: "rgba(0, 0, 0, 0.8)",
+          titleColor: "#fff",
+          bodyColor: "#fff",
+          padding: 8,
+          displayColors: false,
+          callbacks: {
+            label: (context: { parsed: { y: number | null } }) =>
+              `Interest: ${context.parsed.y ?? 0}/100`,
+          },
+        },
+      },
+      scales: {
+        x: {
+          display: false,
+        },
+        y: {
+          display: false,
+          min: 0,
+          max: 100,
+        },
+      },
+    }),
+    []
+  );
+
+  // Helper function for bar chart colors
+  const getBarColor = (value: number): string => {
+    if (value >= 80) return "bg-green-500";
+    if (value >= 60) return "bg-yellow-500";
+    if (value >= 40) return "bg-orange-500";
+    return "bg-red-500";
+  };
+
   if (!data) {
     return (
       <div className="bg-surface rounded-2xl p-6 mb-6">
@@ -165,98 +252,11 @@ export function TrendsSection({ summary, data }: TrendsSectionProps) {
         </div>
       </div>
 
-      {/* Trend Line Chart */}
-      {data.timeline && data.timeline.length > 0 && (
+      {/* Chart.js Line Chart */}
+      {chartData && (
         <div className="mb-4">
-          {/* SVG Line Chart */}
-          <div className="relative h-32 w-full">
-            <svg
-              className="w-full h-full"
-              viewBox="0 0 100 40"
-              preserveAspectRatio="none"
-            >
-              {/* Grid lines */}
-              <line
-                x1="0"
-                y1="10"
-                x2="100"
-                y2="10"
-                stroke="currentColor"
-                strokeOpacity="0.1"
-                strokeWidth="0.5"
-              />
-              <line
-                x1="0"
-                y1="20"
-                x2="100"
-                y2="20"
-                stroke="currentColor"
-                strokeOpacity="0.1"
-                strokeWidth="0.5"
-              />
-              <line
-                x1="0"
-                y1="30"
-                x2="100"
-                y2="30"
-                stroke="currentColor"
-                strokeOpacity="0.1"
-                strokeWidth="0.5"
-              />
-
-              {/* Area fill */}
-              <path
-                d={`M0,40 ${data.timeline
-                  .map((point, index) => {
-                    const x = (index / (data.timeline.length - 1)) * 100;
-                    const y = 40 - (point.value / 100) * 40;
-                    return `L${x},${y}`;
-                  })
-                  .join(" ")} L100,40 Z`}
-                fill="url(#trendGradient)"
-                opacity="0.3"
-              />
-
-              {/* Line */}
-              <polyline
-                points={data.timeline
-                  .map((point, index) => {
-                    const x = (index / (data.timeline.length - 1)) * 100;
-                    const y = 40 - (point.value / 100) * 40;
-                    return `${x},${y}`;
-                  })
-                  .join(" ")}
-                fill="none"
-                stroke="url(#lineGradient)"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-
-              {/* Gradient definitions */}
-              <defs>
-                <linearGradient
-                  id="trendGradient"
-                  x1="0%"
-                  y1="0%"
-                  x2="0%"
-                  y2="100%"
-                >
-                  <stop offset="0%" stopColor="#a855f7" stopOpacity="0.6" />
-                  <stop offset="100%" stopColor="#a855f7" stopOpacity="0" />
-                </linearGradient>
-                <linearGradient
-                  id="lineGradient"
-                  x1="0%"
-                  y1="0%"
-                  x2="100%"
-                  y2="0%"
-                >
-                  <stop offset="0%" stopColor="#a855f7" />
-                  <stop offset="100%" stopColor="#c084fc" />
-                </linearGradient>
-              </defs>
-            </svg>
+          <div className="h-32 w-full">
+            <Line data={chartData} options={chartOptions} />
           </div>
 
           {/* Timeline labels */}
@@ -271,9 +271,9 @@ export function TrendsSection({ summary, data }: TrendsSectionProps) {
         </div>
       )}
 
-      {/* Bar Chart Alternative (shows if no timeline or as supplementary view) */}
+      {/* Bar Chart */}
       {data.timeline && data.timeline.length > 0 && (
-        <div className="h-20 flex items-end gap-0.5 mb-4">
+        <div className="h-16 flex items-end gap-0.5 mb-4">
           {data.timeline.map((point, index) => (
             <div
               key={index}

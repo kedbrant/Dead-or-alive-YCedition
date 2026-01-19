@@ -58,6 +58,7 @@ export interface DiscoveredCompany {
   name: string;
   description: string;
   status: CompanyStatus;
+  url?: string;
 }
 
 export interface TrendsData {
