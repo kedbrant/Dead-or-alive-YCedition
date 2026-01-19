@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { ValidationLoading } from "@/components/validation-loading";
+import { PromptBox } from "@/components/ui/prompt-box";
 
 const EXAMPLE_IDEA = "A marketplace connecting homeowners with people who want to rent their spare rooms";
 
@@ -98,71 +99,60 @@ export default function Home() {
 
   return (
     <div className="flex h-[calc(100vh-4rem)] items-center justify-center px-4 py-12">
-      <main className="flex flex-col items-center gap-6 max-w-2xl text-center w-full">
-        {/* Logo */}
-        <Image
-          src="/logo.png"
-          alt="YC Archive"
-          width={100}
-          height={100}
-          className="rounded-xl"
-        />
+      <main className="flex flex-col items-center gap-6 max-w-2xl w-full">
+        {/* Hero Row: Logo + Text */}
+        <div className="flex items-center gap-6 w-full">
+          {/* Logo */}
+          <Image
+            src="/logo.png"
+            alt="YC Archive"
+            width={80}
+            height={80}
+            className="rounded-xl flex-shrink-0"
+          />
 
-        {/* Headline */}
-        <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold leading-tight tracking-tight">
-          Validate ideas against the <span className="text-yc-orange">past</span> and the <span className="text-yc-orange">present</span>
-        </h1>
-
-        {/* Subtitle */}
-        <p className="text-lg sm:text-xl text-foreground/70 max-w-lg">
-          Compare your idea against 5,500+ YC companies and real-time market signals
-        </p>
-
-        {/* Idea Input Form */}
-        <form onSubmit={handleSubmit} className="w-full space-y-4">
-          <div className="space-y-2">
-            <textarea
-              value={idea}
-              onChange={(e) => {
-                setIdea(e.target.value);
-                if (error) setError(null);
-              }}
-              placeholder={EXAMPLE_IDEA}
-              rows={2}
-              className="w-full px-4 py-4 bg-surface border border-foreground/20 rounded-xl text-lg
-                placeholder:text-foreground/40
-                focus:outline-none focus:border-yc-orange focus:ring-1 focus:ring-yc-orange
-                transition-colors resize-none"
-            />
-            {error && (
-              <div className="text-left space-y-2">
-                <p className="text-skip text-sm">
-                  {error.isRateLimited && "⏱️ "}
-                  {error.message}
-                </p>
-                {error.isRetryable && (
-                  <button
-                    type="button"
-                    onClick={handleRetry}
-                    className="text-sm text-purple-400 hover:text-purple-300 underline underline-offset-2 transition-colors"
-                  >
-                    Try again
-                  </button>
-                )}
-              </div>
-            )}
+          {/* Text */}
+          <div className="text-left">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold leading-tight tracking-tight">
+              Validate <span className="text-yc-orange">before</span> you build
+            </h1>
+            <p className="text-lg sm:text-xl text-foreground/70 mt-1">
+              Your idea against the past, the present, and the market
+            </p>
           </div>
-          <button
-            type="submit"
+        </div>
+
+        {/* Idea Input */}
+        <div className="w-full space-y-2">
+          <PromptBox
+            value={idea}
+            onChange={(value) => {
+              setIdea(value);
+              if (error) setError(null);
+            }}
+            onSubmit={handleSubmit}
+            placeholder={EXAMPLE_IDEA}
             disabled={isSubmitting}
-            className="w-1/2 mx-auto block bg-yc-orange text-background font-bold text-lg px-8 py-4 rounded-xl
-              hover:shadow-[0_0_20px_rgba(255,102,0,0.5)] hover:scale-[1.02] active:scale-[0.98]
-              transition-all duration-150
-              disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
-          >
-            {isSubmitting ? "Analyzing..." : "Validate My Idea"}
-          </button>
-        </form>
+          />
+          <p className="text-center text-foreground/30 text-xs">YC-Archive.com</p>
+          {error && (
+            <div className="text-left space-y-2 px-2">
+              <p className="text-skip text-sm">
+                {error.isRateLimited && "⏱️ "}
+                {error.message}
+              </p>
+              {error.isRetryable && (
+                <button
+                  type="button"
+                  onClick={handleRetry}
+                  className="text-sm text-purple-400 hover:text-purple-300 underline underline-offset-2 transition-colors"
+                >
+                  Try again
+                </button>
+              )}
+            </div>
+          )}
+        </div>
       </main>
     </div>
   );
